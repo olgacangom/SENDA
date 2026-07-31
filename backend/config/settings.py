@@ -37,6 +37,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'google_health',
+    #'django_crontab',
+]
+
+CRONJOBS = [
+    ('0 9 * * *', 'django.core.management.call_command', ['sync_physiological_data'])
 ]
 
 MIDDLEWARE = [
@@ -115,3 +121,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+from decouple import config
+
+SECRET_KEY = config("SECRET_KEY")
+DEBUG = config("DEBUG", cast=bool)
