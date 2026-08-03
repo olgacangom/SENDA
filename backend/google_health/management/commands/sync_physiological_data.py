@@ -194,7 +194,7 @@ class Command(BaseCommand):
                 participant=account.participant,
                 start_date__lte=now,
             ).filter(
-                models.Q(end_date__isnull=True) | models.Q(end_date__gte=now)
+                models.Q(estimated_end_date__isnull=True) | models.Q(estimated_end_date__gte=now)
             ).first()
 
             if not assignment:

@@ -141,7 +141,7 @@ class Fitbit(models.Model):
         active = self.assignments.filter(
             start_date__lte=now
         ).filter(
-            models.Q(end_date__isnull=True) | models.Q(end_date__gte=now)
+            models.Q(estimated_end_date__isnull=True) | models.Q(estimated_end_date__gte=now)
         ).exists()
 
         return FitbitStatus.IN_USE if active else FitbitStatus.FREE
