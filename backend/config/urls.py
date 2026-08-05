@@ -16,8 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.contrib.auth.views import LogoutView
 
 urlpatterns = [
+    path('admin/logout/', LogoutView.as_view(next_page='http://localhost:5174/'), name='logout'),
     path('admin/', admin.site.urls),
-    path('', include('google_health.urls'))
+    path('', include('google_health.urls')),
 ]
