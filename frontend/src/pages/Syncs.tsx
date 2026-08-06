@@ -88,7 +88,7 @@ const Syncs: React.FC = () => {
 
   return (
     <div className="w-full text-slate-900 space-y-8">
-      
+
       {/* Cabecera de la sección */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -99,23 +99,23 @@ const Syncs: React.FC = () => {
 
       {/* Tarjetas de métricas superiores */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-3xl border border-blue-200/80 bg-white p-5 shadow-xl shadow-blue-200/40 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl text-center">
+        <div className="rounded-3xl border border-emerald-200/80 bg-white p-5 shadow-xl shadow-emerald-100/40 transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_20px_25px_-5px_rgba(5,150,105,0.1)] text-center">
           <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-emerald-600">ÉXITOS</p>
-          <p className="mt-2 text-3xl font-extrabold text-slate-900">{metrics.success}</p>
+          <p className="mt-2 text-3xl font-extrabold text-emerald-800">{metrics.success}</p>
         </div>
-        <div className="rounded-3xl border border-blue-200/80 bg-white p-5 shadow-xl shadow-blue-200/40 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl text-center">
+        <div className="rounded-3xl border border-rose-200/80 bg-white p-5 shadow-xl shadow-rose-100/40 transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_20px_25px_-5px_rgba(225,29,72,0.1)] text-center">
           <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-rose-600">ERRORES</p>
-          <p className="mt-2 text-3xl font-extrabold text-slate-900">{metrics.error}</p>
+          <p className="mt-2 text-3xl font-extrabold text-rose-800">{metrics.error}</p>
         </div>
-        <div className="rounded-3xl border border-blue-200/80 bg-white p-5 shadow-xl shadow-blue-200/40 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl text-center">
+        <div className="rounded-3xl border border-blue-200/80 bg-white p-5 shadow-xl shadow-blue-100/40 transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_20px_25px_-5px_rgba(37,99,235,0.1)] text-center">
           <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-blue-600">TOTAL PROCESOS</p>
-          <p className="mt-2 text-3xl font-extrabold text-slate-900">{metrics.total}</p>
+          <p className="mt-2 text-3xl font-extrabold text-blue-800">{metrics.total}</p>
         </div>
       </div>
 
       {/* Tarjeta contenedora de la tabla */}
       <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xl shadow-slate-200/40">
-        
+
         <div className="mb-6 flex items-center justify-between">
           <p className="text-xs font-bold uppercase tracking-wider text-slate-700">Historial de registros</p>
           <span className="inline-flex items-center px-3 py-1 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
@@ -145,8 +145,8 @@ const Syncs: React.FC = () => {
             <table className="min-w-full table-fixed border-collapse text-left">
               <thead>
                 <tr className="bg-blue-50/60 text-blue-900 uppercase text-[10px] tracking-wider">
-                  <th 
-                    className="w-[15%] px-6 py-3.5 font-bold rounded-l-2xl cursor-pointer select-none hover:text-blue-600 transition" 
+                  <th
+                    className="w-[15%] px-6 py-3.5 font-bold rounded-l-2xl cursor-pointer select-none hover:text-blue-600 transition"
                     onClick={toggleSortId}
                   >
                     <div className="flex items-center gap-1.5">
@@ -157,9 +157,9 @@ const Syncs: React.FC = () => {
                     </div>
                   </th>
                   <th className="w-[30%] px-6 py-3.5 font-bold">CUENTA</th>
-                  
-                  <th 
-                    className="w-[25%] px-6 py-3.5 font-bold cursor-pointer select-none hover:text-blue-600 transition" 
+
+                  <th
+                    className="w-[25%] px-6 py-3.5 font-bold cursor-pointer select-none hover:text-blue-600 transition"
                     onClick={toggleSortDate}
                   >
                     <div className="flex items-center gap-1.5">
@@ -171,9 +171,9 @@ const Syncs: React.FC = () => {
                   </th>
 
                   <th className="w-[15%] px-6 py-3.5 font-bold">RESULTADO</th>
-                  
-                  <th 
-                    className="w-[15%] px-6 py-3.5 font-bold rounded-r-2xl cursor-pointer select-none hover:text-blue-600 transition" 
+
+                  <th
+                    className="w-[15%] px-6 py-3.5 font-bold rounded-r-2xl cursor-pointer select-none hover:text-blue-600 transition"
                     onClick={toggleSortRecords}
                   >
                     <div className="flex items-center gap-1.5">
@@ -198,11 +198,10 @@ const Syncs: React.FC = () => {
                       <td className="px-6 py-4 text-xs font-semibold text-slate-700">{accountEmail}</td>
                       <td className="px-6 py-4 text-xs text-slate-600">{new Date(sync.sync_date).toLocaleString('es-ES')}</td>
                       <td className="px-6 py-4 text-xs">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-semibold border ${
-                          isSuccess 
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-semibold border ${isSuccess
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                             : 'bg-rose-50 text-rose-700 border-rose-200'
-                        }`}>
+                          }`}>
                           <span className={`h-1.5 w-1.5 rounded-full ${isSuccess ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
                           {sync.result}
                         </span>

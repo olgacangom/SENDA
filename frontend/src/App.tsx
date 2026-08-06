@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import FrontPage from './pages/FrontPage';
 import Login from './pages/Login';
 import Participants from './pages/Participants';
 import Fitbits from './pages/Fitbits';
@@ -24,12 +25,9 @@ const App: React.FC = () => {
   const [page, setPage] = useState<string>(() => {
     const savedPage = localStorage.getItem('senda_current_page');
     if (savedPage) return savedPage;
-    
-    const savedRole = localStorage.getItem('senda_role');
-    return savedRole === 'researcher' ? 'assignments' : 'participants';
+    return 'front'; 
   });
 
-  // Estado para controlar si el usuario tiene el ratón sobre el sidebar o si se fuerza apertura
   const [isHovered, setIsHovered] = useState<boolean>(false);
 
   const handleSetPage = (newPage: string) => {
@@ -57,7 +55,7 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     setLoggedIn(false);
-    setPage('login');
+    setPage('front');
     setRole(null);
     setCurrentUser('');
     
@@ -147,7 +145,11 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       {!loggedIn ? (
-        <Login onLogin={handleLogin} />
+        page === 'login' ? (
+          <Login onLogin={handleLogin} onBackToFront={() => setPage('front')} />
+        ) : (
+          <FrontPage onGoToLogin={() => setPage('login')} />
+        )
       ) : (
         <div className="flex min-h-screen w-full flex-col lg:flex-row">
           
@@ -162,7 +164,7 @@ const App: React.FC = () => {
             <div>
               {/* Logotipo SENDA */}
               <div className="flex items-center gap-3 mb-8 overflow-hidden whitespace-nowrap">
-                <img src="/images/senda.png" alt="SENDA Logo" className="h-10 w-10 shrink-0 object-contain" />
+                <img src="/images/senda.png" alt="SENDA Logo" className="h-[60px] w-[60px] shrink-0 object-contain" />
                 <div className={`transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'lg:opacity-0 lg:pointer-events-none'}`}>
                   <p className="text-[25px] font-bold text-green-900 tracking-wider">SENDA</p>
                   <p className="text-[9px] text-slate-400 tracking-tight uppercase">Salud · Neurociencia</p>
@@ -182,7 +184,7 @@ const App: React.FC = () => {
                     key={item.key}
                     onClick={() => handleSetPage(item.key)}
                     title={!isHovered ? item.label : undefined}
-                    className={`flex w-full items-center rounded-2xl py-3 text-left text-xs font-bold transition ${
+                    className={`flex w-full items-center rounded-2xl py-3 text-left text-xs font-bold transition cursor-pointer ${
                       isHovered ? 'px-4 justify-between' : 'lg:px-3 lg:justify-center px-4 justify-between'
                     } ${
                       page === item.key 
@@ -218,7 +220,7 @@ const App: React.FC = () => {
           <div className="flex flex-1 flex-col min-w-0">
             
             {/* BARRA SUPERIOR */}
-            <header className="h-20 border-b border-slate-200 bg-white px-8 flex items-center justify-between shrink-0">
+            <header className="h-[65px] border-b border-slate-200 bg-white px-8 flex items-center justify-between shrink-0">
               <div className="w-96">
               </div>
 
@@ -226,7 +228,7 @@ const App: React.FC = () => {
                 {/* FECHA */}
                 <span className="text-xs text-slate-400 font-medium capitalize">{currentDate}</span>
                 <div className="flex items-center gap-3 pl-6 border-l border-slate-200">
-                  <div className="h-9 w-9 rounded-full bg-teal-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
+                  <div className="h-9 w-9 rounded-full bg-emerald-700 text-white flex items-center justify-center text-xs font-bold shadow-sm">
                     {getInitials(currentUser)}
                   </div>
                   <div className="text-left">
@@ -238,7 +240,7 @@ const App: React.FC = () => {
                   </div>
                   <button 
                     onClick={handleLogout}
-                    className="ml-4 flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 transition"
+                    className="ml-4 flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-red-600 transition cursor-pointer"
                   >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
                     <span>Cerrar sesión</span>

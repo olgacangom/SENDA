@@ -49,7 +49,7 @@ const Admin: React.FC = () => {
 
   return (
     <div className="w-full text-slate-900 space-y-8">
-      
+
       {/* Cabecera de la sección */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -89,9 +89,9 @@ const Admin: React.FC = () => {
           <div className="col-span-full flex justify-end">
             <button
               type="submit"
-              className="rounded-2xl bg-blue-600 px-6 py-3 text-xs font-bold text-white hover:bg-blue-700 transition shadow-lg shadow-blue-500/20"
-            >
-              + Crear investigador
+              className="mt-4 sm:mt-0 inline-flex items-center justify-center px-5 py-3 bg-[#3A8FC2] hover:bg-[#27648A] hover:text-white text-white font-bold rounded-2xl shadow-lg shadow-blue-500/20 transition gap-2">
+              <span className="text-base font-bold leading-none text-s">+</span>
+              <span className="text-[12px]">Añadir investigador</span>
             </button>
           </div>
         </form>
@@ -102,7 +102,7 @@ const Admin: React.FC = () => {
 
       {/* Tarjeta contenedora de la tabla de investigadores activos */}
       <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xl shadow-slate-200/40">
-        
+
         <div className="mb-6 flex items-center justify-between">
           <p className="text-xs font-bold uppercase tracking-wider text-slate-700">Investigadores activos</p>
           <span className="inline-flex items-center px-3 py-1 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
@@ -126,11 +126,10 @@ const Admin: React.FC = () => {
                     <td className="px-6 py-4 text-xs font-bold text-slate-900">{r.email}</td>
                     <td className="px-6 py-4 text-xs text-slate-600">{new Date(r.created_at).toLocaleDateString('es-ES')}</td>
                     <td className="px-6 py-4 text-xs">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-semibold border ${
-                        r.is_active 
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-semibold border ${r.is_active
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                           : 'bg-slate-100 text-slate-700 border-slate-200'
-                      }`}>
+                        }`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${r.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
                         {r.is_active ? 'Activo' : 'Inactivo'}
                       </span>

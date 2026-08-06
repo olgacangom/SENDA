@@ -99,11 +99,11 @@ const PhysiologicalData: React.FC = () => {
       <div className="rounded-3xl border border-slate-200/80 bg-white p-8 shadow-xl shadow-slate-200/40">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-3">
-            <button className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-sm">
-              Exportar CSV
+            <button className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-bold text-slate-700 hover:bg-emerald-50 hover:border-emerald-500 transition shadow-sm">
+              Exportar a CSV
             </button>
-            <button className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-sm">
-              Exportar Excel
+            <button className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-bold text-slate-700 hover:bg-emerald-50 hover:border-emerald-500 transition shadow-sm">
+              Exportar a Excel
             </button>
           </div>
         </div>

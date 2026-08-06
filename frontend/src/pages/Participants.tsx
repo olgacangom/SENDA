@@ -63,8 +63,9 @@ const Participants: React.FC = () => {
           <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900">Participantes</h1>
           <p className="mt-1 text-xs font-medium text-slate-500">{filtered.length} personas inscritas en el estudio</p>
         </div>
-        <button className="mt-4 sm:mt-0 inline-flex items-center justify-center px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-2xl shadow-lg shadow-blue-500/20 transition gap-2">
-          <span>+ Añadir participante</span>
+        <button className="mt-4 sm:mt-0 inline-flex items-center justify-center px-5 py-3 bg-[#3A8FC2] hover:bg-[#27648A] hover:text-white text-white font-bold rounded-2xl shadow-lg shadow-blue-500/20 transition gap-2">
+          <span className="text-base font-bold leading-none text-s">+</span>
+          <span className="text-[12px]">Añadir participante</span>
         </button>
       </div>
 

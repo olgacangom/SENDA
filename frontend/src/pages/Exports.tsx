@@ -84,7 +84,7 @@ const Exports: React.FC = () => {
               <button
                 type="button"
                 onClick={() => download(item.type, item.label, 'csv')}
-                className="w-full rounded-xl bg-blue-600 hover:bg-blue-700 px-3 py-2 text-[11px] font-bold text-white transition text-center shadow-md shadow-blue-500/20"
+                className="w-full rounded-xl bg-[#3A8FC2] hover:bg-[#27648A] px-3 py-2 text-[11px] font-bold text-white transition text-center shadow-md shadow-blue-500/20"
               >
                 Descargar CSV
               </button>
