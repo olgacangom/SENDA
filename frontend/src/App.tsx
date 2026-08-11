@@ -25,7 +25,7 @@ const App: React.FC = () => {
   const [page, setPage] = useState<string>(() => {
     const savedPage = localStorage.getItem('senda_current_page');
     if (savedPage) return savedPage;
-    return 'front'; 
+    return 'front';
   });
 
   const [isHovered, setIsHovered] = useState<boolean>(false);
@@ -62,7 +62,7 @@ const App: React.FC = () => {
     localStorage.removeItem('senda_logged_in');
     localStorage.removeItem('senda_role');
     localStorage.removeItem('senda_user_email');
-    localStorage.removeItem('senda_current_page');
+    localStorage.setItem('senda_current_page', 'front');
   };
 
   const currentDate = new Date().toLocaleDateString('es-ES', {
@@ -146,9 +146,20 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       {!loggedIn ? (
         page === 'login' ? (
-          <Login onLogin={handleLogin} onBackToFront={() => setPage('front')} />
+          <Login 
+            onLogin={handleLogin} 
+            onBackToFront={() => {
+              setPage('front');
+              localStorage.setItem('senda_current_page', 'front');
+            }} 
+          />
         ) : (
-          <FrontPage onGoToLogin={() => setPage('login')} />
+          <FrontPage 
+            onGoToLogin={() => {
+              setPage('login');
+              localStorage.setItem('senda_current_page', 'login');
+            }} 
+          />
         )
       ) : (
         <div className="flex min-h-screen w-full flex-col lg:flex-row">

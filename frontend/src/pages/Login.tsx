@@ -16,16 +16,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToFront }) => {
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-slate-50 text-slate-900 flex items-center justify-center p-6">
-      <main className="w-full max-w-md rounded-3xl border border-slate-200/80 bg-white p-8 shadow-2xl space-y-6">
+      <main className="w-full max-w-md rounded-3xl border border-slate-200/80 bg-white p-8 shadow-2xl space-y-4">
         
         {/* Cabecera del formulario */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/images/senda.png" alt="SENDA Logo" className="h-12 w-12 object-contain" />
-            <div>
-              <p className="text-sm font-bold uppercase tracking-[0.2em] text-slate-900">SENDA</p>
-              <p className="text-[9px] uppercase tracking-[0.2em] text-slate-400">Plataforma Segura</p>
-            </div>
+          <div className="flex items-center gap-1">
+            <img src="/images/senda.png" alt="SENDA Logo" className="h-[60px] w-[60px] object-contain" />
           </div>
           <button
             onClick={onBackToFront}

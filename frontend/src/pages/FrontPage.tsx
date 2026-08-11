@@ -29,14 +29,14 @@ const FrontPage: React.FC<FrontPageProps> = ({ onGoToLogin }) => {
   }, []);
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-gradient-to-br from-sky-700 via-sky-500 to-slate-400 text-white flex flex-col justify-between px-8 sm:px-16 py-10">
+    <div className="h-screen w-screen overflow-hidden bg-gradient-to-br from-sky-700 via-sky-500 to-slate-400 text-white flex flex-col justify-between px-8 sm:px-16 py-6 sm:py-8">
       
       {/* Cabecera superior con logotipo y botón de Iniciar Sesión */}
       <div className="flex items-center justify-between w-full max-w-7xl mx-auto">
-        <div className="flex items-center gap-3">
-          <img src="/images/senda.png" alt="SENDA Logo" className="h-12 w-12 object-contain bg-white/10 rounded-2xl p-1 backdrop-blur-md" />
+        <div className="flex items-center gap-3.5">
+          <img src="/images/senda.png" alt="SENDA Logo" className="h-[65px] w-[65px] object-contain bg-white/10 rounded-2xl p-1 backdrop-blur-md shadow-sm" />
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.2em] text-white">SENDA</p>
+            <p className="text-[26px] font-bold uppercase tracking-[0.2em] text-white">SENDA</p>
             <p className="text-[10px] uppercase tracking-[0.3em] text-slate-100/80">Salud · Neurociencia · Andalucía</p>
           </div>
         </div>
@@ -50,34 +50,34 @@ const FrontPage: React.FC<FrontPageProps> = ({ onGoToLogin }) => {
         </button>
       </div>
 
-      {/* Contenido principal central */}
-      <div className="relative max-w-4xl mx-auto w-full text-center space-y-8 my-auto">
+      {/* Contenido principal central con espaciados equilibrados */}
+      <div className="relative max-w-4xl mx-auto w-full text-center space-y-8 my-auto py-4">
         <div className="absolute -left-16 -top-12 h-56 w-56 rounded-full bg-white/10 blur-3xl pointer-events-none" />
         <div className="absolute -right-16 -bottom-12 h-56 w-56 rounded-full bg-white/10 blur-3xl pointer-events-none" />
 
         <div className="relative z-10 space-y-4">
-          <span className="inline-flex rounded-full bg-white/10 px-4 py-1.5 text-xs uppercase tracking-[0.24em] text-slate-100 backdrop-blur-md border border-white/20">
-            Plataforma de investigación oficial
+          <span className="inline-flex rounded-full bg-white/10 px-4 py-1.5 text-xs uppercase tracking-[0.24em] text-slate-100 backdrop-blur-md border border-white/20 shadow-sm">
+            Universidad de Sevilla · Financiado por CENTRA
           </span>
-          <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-6xl leading-tight">
-            Investigación clínica con datos fisiológicos continuos
+          <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl leading-snug sm:leading-tight">
+            Salud Emocional y Neurociencia para el Desarrollo de Andalucía
           </h1>
-          <p className="max-w-2xl mx-auto text-sm leading-relaxed text-slate-100/90 sm:text-base">
-            Gestiona participantes, pulseras Fitbit y sincronizaciones con Google Health API desde una única plataforma diseñada para equipos científicos en Andalucía.
+          <p className="max-w-2xl mx-auto text-xs sm:text-sm text-slate-100/90 pt-1 font-medium">
+            Proyecto del <strong className="text-white font-semibold">Departamento de Psicología Experimental y Psicología Social de la Universidad de Sevilla</strong>
           </p>
         </div>
 
         {/* Tarjetas de métricas en tiempo real */}
-        <div className="relative z-10 grid gap-4 sm:grid-cols-3 max-w-2xl mx-auto pt-4">
-          <div className="rounded-3xl border border-white/20 bg-white/10 p-6 shadow-xl shadow-slate-950/10 backdrop-blur-md text-center">
+        <div className="relative z-10 grid gap-4 sm:grid-cols-3 max-w-2xl mx-auto pt-2">
+          <div className="rounded-3xl border border-white/20 bg-white/10 p-5 shadow-xl shadow-slate-950/10 backdrop-blur-md text-center transition-transform hover:scale-105 duration-200">
             <p className="text-3xl font-extrabold">{participantsCount !== null ? participantsCount : '—'}</p>
             <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-200">Participantes</p>
           </div>
-          <div className="rounded-3xl border border-white/20 bg-white/10 p-6 shadow-xl shadow-slate-950/10 backdrop-blur-md text-center">
+          <div className="rounded-3xl border border-white/20 bg-white/10 p-5 shadow-xl shadow-slate-950/10 backdrop-blur-md text-center transition-transform hover:scale-105 duration-200">
             <p className="text-3xl font-extrabold">{fitbitsCount !== null ? fitbitsCount : '—'}</p>
             <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-200">Fitbit registradas</p>
           </div>
-          <div className="rounded-3xl border border-white/20 bg-white/10 p-6 shadow-xl shadow-slate-950/10 backdrop-blur-md text-center">
+          <div className="rounded-3xl border border-white/20 bg-white/10 p-5 shadow-xl shadow-slate-950/10 backdrop-blur-md text-center transition-transform hover:scale-105 duration-200">
             <p className="text-3xl font-extrabold">{recordsCount !== null ? recordsCount : '—'}</p>
             <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-200">Registros</p>
           </div>
@@ -92,7 +92,7 @@ const FrontPage: React.FC<FrontPageProps> = ({ onGoToLogin }) => {
           </svg>
           <span>Acceso protegido · Cumplimiento RGPD</span>
         </div>
-        <p>© 2026 SENDA · Salud Emocional y Neurociencia para el Desarrollo de Andalucía</p>
+        <p>© 2026 SENDA · Universidad de Sevilla / Fundación CENTRA</p>
       </div>
 
     </div>

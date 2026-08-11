@@ -4,6 +4,8 @@ from .views import (
     google_callback_view,
     api_participants,
     api_fitbits,
+    api_fitbits_create,
+    api_fitbits_delete,
     api_synclogs,
     api_admin_login,
     api_researcher_login,
@@ -15,6 +17,9 @@ from .views import (
     api_export,
     api_logout,
     api_assignments,
+    api_participants_list,
+    api_fitbits_list,
+    api_assignments_create
 )
 
 urlpatterns = [
@@ -32,6 +37,11 @@ urlpatterns = [
     path('api/export/', api_export, name='api_export'),
     path('api/participants/', api_participants, name='api_participants'),
     path('api/fitbits/', api_fitbits, name='api_fitbits'),
+    path('api/fitbits/create/', api_fitbits_create, name='api_fitbits_create'),
+    path('api/fitbits/delete/', api_fitbits_delete, name='api_fitbits_delete'),
     path('api/synclogs/', api_synclogs, name='api_synclogs'),
-    path('api/assignments/', api_assignments, name='api_assignments')
+    path('api/assignments/', api_assignments, name='api_assignments'),
+    path('api/participants/list/', api_participants_list, name='api_participants_list'),
+    path('api/fitbits/list/', api_fitbits_list, name='api_fitbits_list'),
+    path('api/assignments/create/', api_assignments_create, name='api_assignments_create'),
 ]

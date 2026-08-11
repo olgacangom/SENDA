@@ -41,5 +41,9 @@ class GoogleOAuthService:
         response = requests.post(token_uri, data=payload)
         if response.status_code == 200:
             return response.json()
-        return None
+        try:
+            error_data = response.json()
+        except Exception:
+            error_data = response.text
+        return {'error': error_data, 'status_code': response.status_code}
     
