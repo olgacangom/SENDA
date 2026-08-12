@@ -20,7 +20,8 @@ from .views import (
     api_participants_list,
     api_fitbits_list,
     api_assignments_create,
-    api_variable_types_list
+    api_variable_types_list,
+    api_admin_delete_researcher,
 )
 
 urlpatterns = [
@@ -29,6 +30,7 @@ urlpatterns = [
     # API endpoints for frontend
     path('api/auth/status/', api_auth_status, name='api_auth_status'),
     path('api/auth/researcher/login/', api_researcher_login, name='api_researcher_login'),
+    path('api/admin/researchers/delete/', api_admin_delete_researcher, name='api_admin_delete_researcher'),
     path('api/auth/logout/', api_logout, name='api_logout'),
     path('api/admin/login/', api_admin_login, name='api_admin_login'),
     path('api/admin/researchers/', api_admin_researchers, name='api_admin_researchers'),

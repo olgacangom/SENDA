@@ -127,7 +127,6 @@ def api_participants(request):
         return _json_response(request, {'count': len(data), 'items': data})
 
     if request.method == 'DELETE':
-        # Eliminar participante por participant_code (body JSON) o por query param
         try:
             if request.body:
                 payload = json.loads(request.body.decode('utf-8'))
@@ -695,39 +694,36 @@ def api_researcher_login(request):
         resp['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
         resp['Access-Control-Allow-Headers'] = 'Content-Type'
         return _add_cors_headers(request, resp)
+
     if request.method != 'POST':
-        participants = Participant.objects.all().order_by('participant_code')
-        data = []
-        for p in participants:
-            # Try to use related GoogleAccount, or find one by email if not linked
-            ga = getattr(p, 'google_account', None)
-            if not ga and p.email:
-                ga = GoogleAccount.objects.filter(email=p.email).first()
-                if ga and ga.participant_id != p.id:
-                    # Link it so future queries are consistent
-                    ga.participant = p
-                    ga.save(update_fields=['participant'])
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-            access_token_expiration = None
-            authentication_status = 'PENDING'
-            if ga:
-                access_token_expiration = ga.access_token_expiration.isoformat() if getattr(ga, 'access_token_expiration', None) else None
-                authentication_status = ga.authentication_status or authentication_status
+    try:
+        data = json.loads(request.body)
+        username = data.get('username')
+        password = data.get('password')
+    except json.JSONDecodeError:
+        return _validation_error(request, 'Invalid JSON format')
 
-            data.append({
-                'participant_code': p.participant_code,
-                'email': p.email,
-                'access_token_expiration': access_token_expiration,
-                'authentication_status': authentication_status,
-            })
+    # Validar que existan los datos
+    if not username or not password:
         return _validation_error(request, 'missing_credentials')
 
-    user = authenticate(request, username=email, password=password)
-    if user is None or user.is_superuser or not user.is_active:
+    user = authenticate(request, username=username, password=password)
+
+    if user is None:
         return _validation_error(request, 'invalid_credentials', status=401)
 
+    if not user.is_active:
+        return _validation_error(request, 'account_disabled', status=401)
+
     login(request, user)
-    return _json_response(request, {'ok': True, 'username': user.username, 'is_researcher': True})
+
+    return _json_response(request, {
+        'ok': True,
+        'username': user.username,
+        'is_researcher': True
+    })
 
 
 @csrf_exempt
@@ -805,7 +801,30 @@ def api_admin_create_researcher(request):
     User.objects.create_user(username=email, email=email, password=password, is_active=True)
     return _json_response(request, {'ok': True, 'email': email})
 
+@csrf_exempt
+def api_admin_delete_researcher(request):
+    if request.method == 'OPTIONS':
+        resp = JsonResponse({'ok': True})
+        resp['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        resp['Access-Control-Allow-Headers'] = 'Content-Type'
+        return _add_cors_headers(request, resp)
+    if request.method != 'POST':
+        return _validation_error(request, 'method_not_allowed', status=405)
+    if not _admin_required(request):
+        return _validation_error(request, 'not_authorized', status=403)
 
+    try:
+        payload = json.loads(request.body.decode('utf-8'))
+        email = payload.get('email')
+        user = User.objects.get(username=email)
+        user.delete()
+        return _json_response(request, {'ok': True})
+    except User.DoesNotExist:
+        return _validation_error(request, 'user_not_found', status=404)
+    except Exception:
+        return _validation_error(request, 'error_deleting')
+
+    
 @csrf_exempt
 def api_admin_researchers(request):
     if request.method == 'OPTIONS':

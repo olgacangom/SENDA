@@ -17,7 +17,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToFront }) => {
   return (
     <div className="h-screen w-screen overflow-hidden bg-slate-50 text-slate-900 flex items-center justify-center p-6">
       <main className="w-full max-w-md rounded-3xl border border-slate-200/80 bg-white p-8 shadow-2xl space-y-4">
-        
+
         {/* Cabecera del formulario */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
@@ -47,24 +47,30 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToFront }) => {
                 role === 'researcher'
                   ? `${API_BASE}/api/auth/researcher/login/`
                   : `${API_BASE}/api/admin/login/`;
+
+              // Django authenticate() espera 'username' por defecto, aunque sea un email
               const body = JSON.stringify({
-                [role === 'researcher' ? 'email' : 'username']: username,
+                username: username, 
                 password,
               });
+
               const res = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body,
-                credentials: 'include',
+                credentials: 'include', // Necesario para cookies de sesión
               });
+
               const json = await res.json();
+
               if (!res.ok) {
-                setError(json.error || 'Error autenticando');
+                setError(json.error || 'Error en el servidor');
               } else {
                 onLogin(role === 'researcher' ? 'assignments' : 'participants', role, username);
               }
-            } catch {
-              setError('Error de red');
+            } catch (err: any) {
+              console.error("Login error:", err);
+              setError('Error de conexión o respuesta inválida');
             } finally {
               setLoading(false);
             }
