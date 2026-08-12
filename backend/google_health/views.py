@@ -1,7 +1,7 @@
 from django.shortcuts import redirect, HttpResponse
 from django.utils import timezone
 from .oauth import GoogleOAuthService
-from .models import Participant, GoogleAccount, Fitbit, SyncLog, Assignment, PhysiologicalData, Alert
+from .models import Participant, GoogleAccount, Fitbit, SyncLog, Assignment, PhysiologicalData, Alert, VariableType
 from decouple import config
 from urllib.parse import urlencode
 import requests
@@ -10,6 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.hashers import make_password
 from django.db.models import Sum
+from django.db import models
 import json
 import csv
 import io
@@ -302,6 +303,32 @@ def api_fitbits_delete(request):
 
 
 @csrf_exempt
+def api_assignments(request):
+    if request.method == 'OPTIONS':
+        resp = JsonResponse({'ok': True})
+        resp['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        resp['Access-Control-Allow-Headers'] = 'Content-Type'
+        return _add_cors_headers(request, resp)
+    if request.method != 'GET':
+        return _validation_error(request, 'method_not_allowed', status=405)
+
+    assignments = Assignment.objects.select_related('participant', 'fitbit').order_by('-start_date')
+    items = [
+        {
+            'id': str(assignment.id),
+            'participant_code': assignment.participant.participant_code if assignment.participant else None,
+            'fitbit_code': assignment.fitbit.fitbit_code if assignment.fitbit else None,
+            'start_date': assignment.start_date.isoformat() if assignment.start_date else None,
+            'estimated_end_date': assignment.estimated_end_date.isoformat() if assignment.estimated_end_date else None,
+            'real_end_date': assignment.real_end_date.isoformat() if assignment.real_end_date else None,
+            'status': assignment.status if hasattr(assignment, 'status') else 'ACTIVE',
+        }
+        for assignment in assignments
+    ]
+    return _json_response(request, {'count': len(items), 'items': items})
+
+
+@csrf_exempt
 def api_assignments_create(request):
     if request.method == 'OPTIONS':
         resp = JsonResponse({'ok': True})
@@ -367,6 +394,239 @@ def api_assignments_create(request):
         'id': str(assignment.id),
         'status': assignment.status
     }, status=201)
+
+
+@csrf_exempt
+def api_physiological_data(request):
+    if request.method == 'OPTIONS':
+        resp = JsonResponse({'ok': True})
+        resp['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        resp['Access-Control-Allow-Headers'] = 'Content-Type'
+        return _add_cors_headers(request, resp)
+    if request.method != 'GET':
+        return _validation_error(request, 'method_not_allowed', status=405)
+
+    participant_code = request.GET.get('participant')
+    fitbit_code = request.GET.get('fitbit')         
+    variable_type = request.GET.get('variable_type')      
+    date_from = request.GET.get('from')
+    date_to = request.GET.get('to')
+
+    qs = PhysiologicalData.objects.select_related('assignment__participant', 'assignment__fitbit')
+    
+    if participant_code:
+        qs = qs.filter(assignment__participant__participant_code=participant_code)
+        
+    if fitbit_code:                                  
+        qs = qs.filter(assignment__fitbit__fitbit_code=fitbit_code)
+        
+    if variable_type:                                
+        qs = qs.filter(variable_type=variable_type)
+
+    if date_from:
+        try:
+            qs = qs.filter(physical_time__gte=datetime.fromisoformat(date_from))
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            qs = qs.filter(physical_time__lte=datetime.fromisoformat(date_to))
+        except ValueError:
+            pass
+
+    items = [
+        {
+            'participant_code': item.assignment.participant.participant_code,
+            'fitbit_code': item.assignment.fitbit.fitbit_code,
+            'variable_type': item.variable_type,
+            'physical_time': item.physical_time.isoformat(),
+            'metric_value': item.metric_value,
+        }
+        for item in qs.order_by('-physical_time')[:200]
+    ]
+    return _json_response(request, {'count': len(items), 'items': items})
+
+
+@csrf_exempt
+def api_variable_types_list(request):
+    if request.method == 'OPTIONS':
+        resp = JsonResponse({'ok': True})
+        resp['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        resp['Access-Control-Allow-Headers'] = 'Content-Type'
+        return _add_cors_headers(request, resp)
+    
+    variables = [{'code': choice[0], 'label': choice[1]} for choice in VariableType.choices]
+    resp = JsonResponse({'items': variables})
+    return _add_cors_headers(request, resp)
+
+
+@csrf_exempt
+def api_alerts(request):
+    if request.method == 'OPTIONS':
+        resp = JsonResponse({'ok': True})
+        resp['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        resp['Access-Control-Allow-Headers'] = 'Content-Type'
+        return _add_cors_headers(request, resp)
+    if request.method != 'GET':
+        return _validation_error(request, 'method_not_allowed', status=405)
+
+    alerts = Alert.objects.select_related('assignment__participant', 'google_account').order_by('-created_at')[:100]
+    items = [
+        {
+            'id': str(alert.id),
+            'message': alert.message,
+            'priority': alert.priority,
+            'type': alert.alert_type,
+            'resolved': alert.resolved,
+            'participant_code': alert.assignment.participant.participant_code if alert.assignment else None,
+            'email': alert.google_account.email if alert.google_account else None,
+            'created_at': alert.created_at.isoformat(),
+        }
+        for alert in alerts
+    ]
+    return _json_response(request, {'count': len(items), 'items': items})
+
+
+@csrf_exempt
+def api_export(request):
+    if request.method == 'OPTIONS':
+        resp = JsonResponse({'ok': True})
+        resp['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        resp['Access-Control-Allow-Headers'] = 'Content-Type'
+        return _add_cors_headers(request, resp)
+    if request.method != 'GET':
+        return _validation_error(request, 'method_not_allowed', status=405)
+
+    export_type = request.GET.get('type')
+    export_format = request.GET.get('format', 'csv') 
+
+    rows = []
+
+    if export_type == 'participants':
+        rows.append(['participant_code', 'email', 'authentication_status'])
+        for account in GoogleAccount.objects.select_related('participant'):
+            rows.append([account.participant.participant_code, account.email, account.authentication_status])
+        file_root = 'participants'
+        
+    elif export_type == 'fitbits':
+        rows.append(['fitbit_code', 'status', 'assigned_participant'])
+        for fitbit in Fitbit.objects.all():
+            assignment = fitbit.assignments.filter(real_end_date__isnull=True).order_by('-start_date').first()
+            assigned = assignment.participant.participant_code if assignment else ''
+            rows.append([fitbit.fitbit_code, fitbit.status, assigned])
+        file_root = 'fitbits'
+        
+    elif export_type == 'syncs':
+        rows.append(['sync_date', 'email', 'result', 'downloaded_records'])
+        for log in SyncLog.objects.select_related('google_account').order_by('-sync_date'):
+            rows.append([log.sync_date.isoformat(), log.google_account.email if log.google_account else '', log.result, log.downloaded_records])
+        file_root = 'syncs'
+        
+    elif export_type == 'physiological':
+        rows.append(['participant_code', 'fitbit_code', 'variable_type', 'physical_time', 'metric_value'])
+        
+        participant_code = request.GET.get('participant')
+        fitbit_code = request.GET.get('fitbit')            
+        variable_type = request.GET.get('variable_type')       
+        date_from = request.GET.get('from')
+        date_to = request.GET.get('to')
+        status_filter = request.GET.get('status') # ACTIVE o COMPLETED
+
+        qs = PhysiologicalData.objects.select_related('assignment__participant', 'assignment__fitbit')
+        
+        if participant_code:
+            qs = qs.filter(assignment__participant__participant_code=participant_code)
+        if fitbit_code:                                    
+            qs = qs.filter(assignment__fitbit__fitbit_code=fitbit_code)
+        if variable_type:                                    
+            qs = qs.filter(variable_type=variable_type)
+        if date_from:
+            try:
+                qs = qs.filter(physical_time__gte=datetime.fromisoformat(date_from))
+            except ValueError:
+                pass
+        if date_to:
+            try:
+                qs = qs.filter(physical_time__lte=datetime.fromisoformat(date_to))
+            except ValueError:
+                pass
+
+        now = timezone.now()
+        if status_filter and status_filter != 'ALL':
+            valid_participants = []
+            for p in Participant.objects.all():
+                assign = Assignment.objects.filter(participant=p).order_by('-start_date').first()
+                
+                if not assign:
+                    p_status = 'PENDING'
+                elif assign.real_end_date:
+                    p_status = 'COMPLETED'
+                else:
+                    p_status = 'ACTIVE'
+                
+                if p_status == status_filter:
+                    valid_participants.append(p.participant_code)
+            
+            qs = qs.filter(assignment__participant__participant_code__in=valid_participants)
+
+        from zoneinfo import ZoneInfo
+        local_tz = ZoneInfo("Europe/Madrid")
+
+        for item in qs.order_by('-physical_time')[:5000]:
+            p_code = item.assignment.participant.participant_code if item.assignment and item.assignment.participant else ''
+            f_code = item.assignment.fitbit.fitbit_code if item.assignment and item.assignment.fitbit else ''
+            # Convertimos la fecha UTC de la base de datos a hora local de España
+            local_time = item.physical_time.astimezone(local_tz)
+            rows.append([p_code, f_code, item.variable_type, local_time.isoformat(), item.metric_value])
+        
+        # Construcción del nombre del archivo
+        name_parts = []
+        if participant_code:
+            name_parts.append(participant_code)
+        if variable_type:
+            name_parts.append(variable_type.lower())
+        if status_filter and status_filter != 'ALL':
+            name_parts.append(status_filter.lower())
+            
+        file_root = "_".join(name_parts) if name_parts else 'physiological_data'
+        
+    else:
+        return _validation_error(request, 'invalid_export_type', status=400)
+
+    if export_format == 'xlsx':
+        import openpyxl
+        
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Datos"
+
+        for row in rows:
+            ws.append(row)
+
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        response = HttpResponse(
+            output.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{file_root}.xlsx"'
+    else:
+        output = io.BytesIO()
+        wrapper = io.TextIOWrapper(output, encoding='utf-8-sig', newline='')
+        writer = csv.writer(wrapper, delimiter=';')
+        
+        for row in rows:
+            writer.writerow(row)
+        
+        wrapper.flush()
+        output.seek(0)
+            
+        response = HttpResponse(output.getvalue(), content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{file_root}.csv"'
+
+    return _add_cors_headers(request, response)
 
 
 @csrf_exempt
@@ -567,162 +827,6 @@ def api_admin_researchers(request):
 
 
 @csrf_exempt
-def api_alerts(request):
-    if request.method == 'OPTIONS':
-        resp = JsonResponse({'ok': True})
-        resp['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
-        resp['Access-Control-Allow-Headers'] = 'Content-Type'
-        return _add_cors_headers(request, resp)
-    if request.method != 'GET':
-        return _validation_error(request, 'method_not_allowed', status=405)
-
-    alerts = Alert.objects.select_related('assignment__participant', 'google_account').order_by('-created_at')[:100]
-    items = [
-        {
-            'id': str(alert.id),
-            'message': alert.message,
-            'priority': alert.priority,
-            'type': alert.alert_type,
-            'resolved': alert.resolved,
-            'participant_code': alert.assignment.participant.participant_code if alert.assignment else None,
-            'email': alert.google_account.email if alert.google_account else None,
-            'created_at': alert.created_at.isoformat(),
-        }
-        for alert in alerts
-    ]
-    return _json_response(request, {'count': len(items), 'items': items})
-
-
-@csrf_exempt
-def api_physiological_data(request):
-    if request.method == 'OPTIONS':
-        resp = JsonResponse({'ok': True})
-        resp['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
-        resp['Access-Control-Allow-Headers'] = 'Content-Type'
-        return _add_cors_headers(request, resp)
-    if request.method != 'GET':
-        return _validation_error(request, 'method_not_allowed', status=405)
-
-    participant_code = request.GET.get('participant')
-    fitbit_code = request.GET.get('fitbit')         
-    variable_type = request.GET.get('variable_type')      
-    date_from = request.GET.get('from')
-    date_to = request.GET.get('to')
-
-    qs = PhysiologicalData.objects.select_related('assignment__participant', 'assignment__fitbit')
-    
-    if participant_code:
-        qs = qs.filter(assignment__participant__participant_code=participant_code)
-        
-    if fitbit_code:                                  
-        qs = qs.filter(assignment__fitbit__fitbit_code=fitbit_code)
-        
-    if variable_type:                                
-        qs = qs.filter(variable_type=variable_type)
-
-    if date_from:
-        try:
-            qs = qs.filter(physical_time__gte=datetime.fromisoformat(date_from))
-        except ValueError:
-            pass
-    if date_to:
-        try:
-            qs = qs.filter(physical_time__lte=datetime.fromisoformat(date_to))
-        except ValueError:
-            pass
-
-    items = [
-        {
-            'participant_code': item.assignment.participant.participant_code,
-            'fitbit_code': item.assignment.fitbit.fitbit_code,
-            'variable_type': item.variable_type,
-            'physical_time': item.physical_time.isoformat(),
-            'metric_value': item.metric_value,
-        }
-        for item in qs.order_by('-physical_time')[:200]
-    ]
-    return _json_response(request, {'count': len(items), 'items': items})
-
-@csrf_exempt
-def api_export(request):
-    if request.method == 'OPTIONS':
-        resp = JsonResponse({'ok': True})
-        resp['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
-        resp['Access-Control-Allow-Headers'] = 'Content-Type'
-        return _add_cors_headers(request, resp)
-    if request.method != 'GET':
-        return _validation_error(request, 'method_not_allowed', status=405)
-
-    export_type = request.GET.get('type')
-    export_format = request.GET.get('format', 'csv') 
-
-    rows = []
-
-    if export_type == 'participants':
-        rows.append(['participant_code', 'email', 'authentication_status'])
-        for account in GoogleAccount.objects.select_related('participant'):
-            rows.append([account.participant.participant_code, account.email, account.authentication_status])
-        file_root = 'participants'
-        
-    elif export_type == 'fitbits':
-        rows.append(['fitbit_code', 'status', 'assigned_participant'])
-        for fitbit in Fitbit.objects.all():
-            assignment = fitbit.assignments.filter(real_end_date__isnull=True).order_by('-start_date').first()
-            assigned = assignment.participant.participant_code if assignment else ''
-            rows.append([fitbit.fitbit_code, fitbit.status, assigned])
-        file_root = 'fitbits'
-        
-    elif export_type == 'syncs':
-        rows.append(['sync_date', 'email', 'result', 'downloaded_records'])
-        for log in SyncLog.objects.select_related('google_account').order_by('-sync_date'):
-            rows.append([log.sync_date.isoformat(), log.google_account.email if log.google_account else '', log.result, log.downloaded_records])
-        file_root = 'syncs'
-        
-    elif export_type == 'physiological':
-        rows.append(['participant_code', 'fitbit_code', 'variable_type', 'physical_time', 'metric_value'])
-        qs = PhysiologicalData.objects.select_related('assignment__participant', 'assignment__fitbit').order_by('-physical_time')[:1000]
-        for item in qs:
-            p_code = item.assignment.participant.participant_code if item.assignment and item.assignment.participant else ''
-            f_code = item.assignment.fitbit.fitbit_code if item.assignment and item.assignment.fitbit else ''
-            rows.append([p_code, f_code, item.variable_type, item.physical_time.isoformat(), item.metric_value])
-        file_root = 'physiological_data'
-        
-    else:
-        return _validation_error(request, 'invalid_export_type', status=400)
-
-    if export_format == 'xlsx':
-        output = io.BytesIO()
-        xml_content = ['<?xml version="1.0" encoding="UTF-8"?>']
-        xml_content.append('<?mso-application progid="Excel.Sheet"?>')
-        xml_content.append('<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"')
-        xml_content.append(' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">')
-        xml_content.append('<Worksheet ss:Name="Sheet1"><Table>')
-        
-        for row in rows:
-            xml_content.append('<Row>')
-            for cell in row:
-                cell_value = str(cell).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-                xml_content.append(f'<Cell><Data ss:Type="String">{cell_value}</Data></Cell>')
-            xml_content.append('</Row>')
-            
-        xml_content.append('</Table></Worksheet></Workbook>')
-        
-        response = HttpResponse("".join(xml_content), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = f'attachment; filename="{file_root}.xlsx"'
-    else:
-        # Formato CSV 
-        output = io.StringIO()
-        writer = csv.writer(output)
-        for row in rows:
-            writer.writerow(row)
-            
-        response = HttpResponse(output.getvalue(), content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename="{file_root}.csv"'
-
-    return _add_cors_headers(request, response)
-
-
-@csrf_exempt
 def api_admin_login(request):
     """Autentica un administrador usando username/password y crea sesión para /admin/.
     Se espera POST con JSON {username, password}.
@@ -763,27 +867,4 @@ def api_admin_login(request):
 
 
 
-@csrf_exempt
-def api_assignments(request):
-    if request.method == 'OPTIONS':
-        resp = JsonResponse({'ok': True})
-        resp['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
-        resp['Access-Control-Allow-Headers'] = 'Content-Type'
-        return _add_cors_headers(request, resp)
-    if request.method != 'GET':
-        return _validation_error(request, 'method_not_allowed', status=405)
 
-    assignments = Assignment.objects.select_related('participant', 'fitbit').order_by('-start_date')
-    items = [
-        {
-            'id': str(assignment.id),
-            'participant_code': assignment.participant.participant_code if assignment.participant else None,
-            'fitbit_code': assignment.fitbit.fitbit_code if assignment.fitbit else None,
-            'start_date': assignment.start_date.isoformat() if assignment.start_date else None,
-            'estimated_end_date': assignment.estimated_end_date.isoformat() if assignment.estimated_end_date else None,
-            'real_end_date': assignment.real_end_date.isoformat() if assignment.real_end_date else None,
-            'status': assignment.status if hasattr(assignment, 'status') else 'ACTIVE',
-        }
-        for assignment in assignments
-    ]
-    return _json_response(request, {'count': len(items), 'items': items})
