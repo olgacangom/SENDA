@@ -13,6 +13,7 @@ from .views import (
     api_admin_create_researcher,
     api_admin_researchers,
     api_alerts,
+    api_resolve_alert,
     api_physiological_data,
     api_export,
     api_logout,
@@ -22,6 +23,7 @@ from .views import (
     api_assignments_create,
     api_variable_types_list,
     api_admin_delete_researcher,
+    api_clear_synclogs
 )
 
 urlpatterns = [
@@ -35,6 +37,7 @@ urlpatterns = [
     path('api/admin/login/', api_admin_login, name='api_admin_login'),
     path('api/admin/researchers/', api_admin_researchers, name='api_admin_researchers'),
     path('api/admin/researchers/create/', api_admin_create_researcher, name='api_admin_create_researcher'),
+    path('api/alerts/<uuid:alert_id>/resolve/', api_resolve_alert, name='api_resolve_alert'),
     path('api/alerts/', api_alerts, name='api_alerts'),
     path('api/physiological-data/', api_physiological_data, name='api_physiological_data'),
     path('api_variable_types_list/', api_variable_types_list, name='api_variable_types_list'),
@@ -44,6 +47,7 @@ urlpatterns = [
     path('api/fitbits/create/', api_fitbits_create, name='api_fitbits_create'),
     path('api/fitbits/delete/', api_fitbits_delete, name='api_fitbits_delete'),
     path('api/synclogs/', api_synclogs, name='api_synclogs'),
+    path('api/clear/synclogs/', api_clear_synclogs, name='api_clear_synclogs'),
     path('api/assignments/', api_assignments, name='api_assignments'),
     path('api/participants/list/', api_participants_list, name='api_participants_list'),
     path('api/fitbits/list/', api_fitbits_list, name='api_fitbits_list'),

@@ -487,6 +487,26 @@ def api_alerts(request):
 
 
 @csrf_exempt
+def api_resolve_alert(request, alert_id):
+    if request.method == 'OPTIONS':
+        resp = JsonResponse({'ok': True})
+        resp['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        resp['Access-Control-Allow-Headers'] = 'Content-Type'
+        return _add_cors_headers(request, resp)
+    if request.method != 'POST':
+        return _validation_error(request, 'method_not_allowed', status=405)
+
+    try:
+        alert = Alert.objects.get(id=alert_id)
+        alert.resolved = True
+        alert.resolved_at = timezone.now()
+        alert.save(update_fields=['resolved', 'resolved_at'])
+        return _json_response(request, {'ok': True, 'message': 'Alerta resuelta correctamente'})
+    except Alert.DoesNotExist:
+        return _validation_error(request, 'alert_not_found', status=404)
+
+
+@csrf_exempt
 def api_export(request):
     if request.method == 'OPTIONS':
         resp = JsonResponse({'ok': True})
@@ -651,6 +671,24 @@ def api_synclogs(request):
     ]
     total_records = syncs.aggregate(Sum('downloaded_records'))['downloaded_records__sum'] or 0
     return _json_response(request, {'count': len(items), 'total_records': total_records, 'items': items})
+
+
+@csrf_exempt
+def api_clear_synclogs(request):
+    if request.method == 'OPTIONS':
+        resp = JsonResponse({'ok': True})
+        resp['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        resp['Access-Control-Allow-Headers'] = 'Content-Type'
+        return _add_cors_headers(request, resp)
+    if request.method != 'POST':
+        return _json_response(request, {'ok': False, 'error': 'method_not_allowed'}, status=405)
+    
+    if not _admin_required(request):
+     return _json_response(request, {'ok': False, 'error': 'not_authorized'}, status=403)
+
+    # Borramos todos los logs de sincronización
+    SyncLog.objects.all().delete()
+    return _json_response(request, {'ok': True, 'message': 'Historial de sincronizaciones vaciado correctamente'})
 
 
 def _json_response(request, payload, status=200):

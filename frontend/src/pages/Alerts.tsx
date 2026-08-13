@@ -17,21 +17,54 @@ const Alerts: React.FC = () => {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [query, setQuery] = useState('');
   const [selectedPriority, setSelectedPriority] = useState<string>('ALL');
+  const [showResolved, setShowResolved] = useState<boolean>(false); // Para ver activas vs resueltas
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const [pageSize, setPageSize] = useState<number>(() => {
+    const savedSize = localStorage.getItem('alerts_page_size');
+    return savedSize ? Number(savedSize) : 10;
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const fetchAlerts = () => {
     fetch(`${API_BASE}/api/alerts/`, { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => setAlerts(data.items || []))
       .catch(() => setError('No se pudieron cargar las alertas'));
+  };
+
+  useEffect(() => {
+    fetchAlerts();
   }, []);
 
-  const handleResolve = (id: string) => {
-    // Lógica opcional para marcar como resuelta de forma local o vía API
-    setAlerts((prev) => prev.filter((item) => item.id !== id));
+  useEffect(() => {
+    localStorage.setItem('alerts_page_size', pageSize.toString());
+    setCurrentPage(1);
+  }, [pageSize]);
+
+  const handleResolve = async (id: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/alerts/${id}/resolve/`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (res.ok) {
+        setAlerts((prev) =>
+          prev.map((item) => (item.id === id ? { ...item, resolved: true } : item))
+        );
+      } else {
+        setError('No se pudo marcar la alerta como resuelta');
+      }
+    } catch {
+      setError('Error de red al resolver la alerta');
+    }
   };
 
   const filtered = alerts.filter((alert) => {
+    // Si no estamos viendo las resueltas, ocultamos las que ya lo estén
+    if (!showResolved && alert.resolved) return false;
+    if (showResolved && !alert.resolved) return false;
+
     const matchesQuery =
       alert.message.toLowerCase().includes(query.toLowerCase()) ||
       (alert.participant_code && alert.participant_code.toLowerCase().includes(query.toLowerCase())) ||
@@ -43,111 +76,138 @@ const Alerts: React.FC = () => {
     return matchesQuery && matchesPriority;
   });
 
-  const countHigh = alerts.filter((item) => item.priority === 'HIGH').length;
-  const countMedium = alerts.filter((item) => item.priority === 'MEDIUM').length;
-  const countLow = alerts.filter((item) => item.priority === 'LOW').length;
+  const activeAlerts = alerts.filter((item) => !item.resolved);
+  const countHigh = activeAlerts.filter((item) => item.priority === 'HIGH').length;
+  const countMedium = activeAlerts.filter((item) => item.priority === 'MEDIUM').length;
+  const countLow = activeAlerts.filter((item) => item.priority === 'LOW').length;
+
+  // Paginación
+  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  const paginatedAlerts = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <div className="w-full text-slate-900 space-y-8">
       
       {/* Cabecera de la sección */}
-      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900">Alertas</h1>
-          <p className="mt-1 text-xs font-medium text-slate-500">Incidencias y anomalías detectadas automáticamente en el estudio.</p>
+          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900">Alertas y Notificaciones</h1>
+          <p className="mt-1 text-xs font-medium text-slate-500">Supervisión automática de dispositivos y constantes vitales.</p>
+        </div>
+        <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl self-start sm:self-auto">
+          <button
+            onClick={() => { setShowResolved(false); setCurrentPage(1); }}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${!showResolved ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+          >
+            Activas ({activeAlerts.length})
+          </button>
+          <button
+            onClick={() => { setShowResolved(true); setCurrentPage(1); }}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${showResolved ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+          >
+            Historial Resueltas
+          </button>
         </div>
       </div>
 
-      {/* Tarjetas de métricas superiores interactivas */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div 
-          onClick={() => setSelectedPriority('HIGH')}
-          className={`cursor-pointer rounded-3xl border bg-white p-6 shadow-xl shadow-slate-200/40 transition-all hover:-translate-y-1 ${
-            selectedPriority === 'HIGH' ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-slate-200/80'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-rose-600">CRÍTICAS</p>
-            <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse"></span>
+      {/* Tarjetas de métricas superiores */}
+      {!showResolved && (
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div 
+            onClick={() => { setSelectedPriority('HIGH'); setCurrentPage(1); }}
+            className={`cursor-pointer rounded-3xl border bg-white p-6 shadow-xl shadow-slate-200/40 transition-all hover:-translate-y-1 ${
+              selectedPriority === 'HIGH' ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-slate-200/80'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-rose-600">CRÍTICAS</p>
+              <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse"></span>
+            </div>
+            <p className="mt-2 text-3xl font-extrabold text-slate-900">{countHigh}</p>
           </div>
-          <p className="mt-2 text-3xl font-extrabold text-slate-900">{countHigh}</p>
-        </div>
 
-        <div 
-          onClick={() => setSelectedPriority('MEDIUM')}
-          className={`cursor-pointer rounded-3xl border bg-white p-6 shadow-xl shadow-slate-200/40 transition-all hover:-translate-y-1 ${
-            selectedPriority === 'MEDIUM' ? 'border-amber-500 ring-2 ring-amber-500/20' : 'border-slate-200/80'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-amber-600">ADVERTENCIAS</p>
+          <div 
+            onClick={() => { setSelectedPriority('MEDIUM'); setCurrentPage(1); }}
+            className={`cursor-pointer rounded-3xl border bg-white p-6 shadow-xl shadow-slate-200/40 transition-all hover:-translate-y-1 ${
+              selectedPriority === 'MEDIUM' ? 'border-amber-500 ring-2 ring-amber-500/20' : 'border-slate-200/80'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-amber-600">ADVERTENCIAS</p>
+            </div>
+            <p className="mt-2 text-3xl font-extrabold text-slate-900">{countMedium}</p>
           </div>
-          <p className="mt-2 text-3xl font-extrabold text-slate-900">{countMedium}</p>
-        </div>
 
-        <div 
-          onClick={() => setSelectedPriority('LOW')}
-          className={`cursor-pointer rounded-3xl border bg-white p-6 shadow-xl shadow-slate-200/40 transition-all hover:-translate-y-1 ${
-            selectedPriority === 'LOW' ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-200/80'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-blue-600">INFORMATIVAS</p>
+          <div 
+            onClick={() => { setSelectedPriority('LOW'); setCurrentPage(1); }}
+            className={`cursor-pointer rounded-3xl border bg-white p-6 shadow-xl shadow-slate-200/40 transition-all hover:-translate-y-1 ${
+              selectedPriority === 'LOW' ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-200/80'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-blue-600">INFORMATIVAS</p>
+            </div>
+            <p className="mt-2 text-3xl font-extrabold text-slate-900">{countLow}</p>
           </div>
-          <p className="mt-2 text-3xl font-extrabold text-slate-900">{countLow}</p>
         </div>
-      </div>
+      )}
 
-      {/* Tarjeta contenedora de la bandeja de alertas */}
-      <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xl shadow-slate-200/40">
+      {/* Tarjeta contenedora de la bandeja */}
+      <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xl shadow-slate-200/40 space-y-6">
         
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-700">Bandeja de alertas</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-700">
+              {showResolved ? 'Historial de incidencias resueltas' : 'Bandeja de incidencias activas'}
+            </p>
             <span className="inline-flex items-center px-3 py-1 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
-              {filtered.length} incidencias
+              {filtered.length} registros
             </span>
           </div>
 
-          {/* Filtros rápidos por pestañas */}
-          <div className="flex items-center gap-1.5 bg-slate-50 p-1.5 rounded-2xl border border-slate-200/60">
-            <button
-              onClick={() => setSelectedPriority('ALL')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition ${
-                selectedPriority === 'ALL' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              Todas
-            </button>
-            <button
-              onClick={() => setSelectedPriority('HIGH')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition ${
-                selectedPriority === 'HIGH' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              Críticas
-            </button>
-            <button
-              onClick={() => setSelectedPriority('MEDIUM')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition ${
-                selectedPriority === 'MEDIUM' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              Advertencias
-            </button>
-            <button
-              onClick={() => setSelectedPriority('LOW')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition ${
-                selectedPriority === 'LOW' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              Informativas
-            </button>
+          <div className="flex items-center gap-3">
+            {/* Selector de tamaño de página */}
+            <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-full text-xs font-semibold text-slate-600">
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="bg-transparent font-semibold text-slate-700 focus:outline-none cursor-pointer"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={15}>15</option>
+                <option value={20}>20</option>
+                <option value={25}>25</option>
+              </select>
+              <span>por página</span>
+            </div>
+
+            {/* Filtros rápidos por prioridad */}
+            <div className="flex items-center gap-1.5 bg-slate-50 p-1.5 rounded-2xl border border-slate-200/60">
+              <button
+                onClick={() => { setSelectedPriority('ALL'); setCurrentPage(1); }}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${selectedPriority === 'ALL' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+              >
+                Todas
+              </button>
+              <button
+                onClick={() => { setSelectedPriority('HIGH'); setCurrentPage(1); }}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${selectedPriority === 'HIGH' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+              >
+                Críticas
+              </button>
+              <button
+                onClick={() => { setSelectedPriority('MEDIUM'); setCurrentPage(1); }}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${selectedPriority === 'MEDIUM' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+              >
+                Advertencias
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Barra de búsqueda interna con icono de lupa */}
-        <div className="mb-6 relative">
+        {/* Barra de búsqueda interna */}
+        <div className="relative">
           <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -156,15 +216,15 @@ const Alerts: React.FC = () => {
           <input
             type="search"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => { setQuery(e.target.value); setCurrentPage(1); }}
             placeholder="Buscar por mensaje, código de participante o correo..."
             className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 py-3.5 pl-11 pr-4 text-xs text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
           />
         </div>
 
-        {/* Listado de alertas con indicador lateral */}
+        {/* Listado de alertas */}
         <div className="space-y-3">
-          {filtered.map((alert) => {
+          {paginatedAlerts.map((alert) => {
             const isHigh = alert.priority === 'HIGH';
             const isMedium = alert.priority === 'MEDIUM';
 
@@ -209,12 +269,19 @@ const Alerts: React.FC = () => {
                       <span className={`h-1.5 w-1.5 rounded-full ${dotColor}`}></span>
                       {alert.priority}
                     </span>
-                    <button 
-                      onClick={() => handleResolve(alert.id)}
-                      className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition shadow-sm"
-                    >
-                      Resolver
-                    </button>
+
+                    {!alert.resolved ? (
+                      <button 
+                        onClick={() => handleResolve(alert.id)}
+                        className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition shadow-sm cursor-pointer"
+                      >
+                        Resolver
+                      </button>
+                    ) : (
+                      <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100">
+                        Resuelta
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -222,8 +289,39 @@ const Alerts: React.FC = () => {
           })}
         </div>
 
+        {/* Paginación */}
+        {filtered.length > 0 && (
+          <div className="flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-[11px] font-medium text-slate-400">
+              Página {currentPage} de {totalPages} (Mostrando {paginatedAlerts.length} de {filtered.length} registros)
+            </p>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+              >
+                ← Anterior
+              </button>
+
+              <div className="rounded-xl bg-blue-50 px-4 py-2 text-[11px] font-bold text-blue-700">
+                {currentPage}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+              >
+                Siguiente →
+              </button>
+            </div>
+          </div>
+        )}
+
         {filtered.length === 0 && !error && (
-          <p className="py-12 text-center text-xs text-slate-400">No se encontraron alertas registradas para este filtro.</p>
+          <p className="py-12 text-center text-xs text-slate-400">No hay alertas registradas para esta vista.</p>
         )}
         {error && (
           <p className="py-12 text-center text-xs text-red-500">{error}</p>
