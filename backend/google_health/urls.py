@@ -23,7 +23,11 @@ from .views import (
     api_assignments_create,
     api_variable_types_list,
     api_admin_delete_researcher,
-    api_clear_synclogs
+    api_clear_synclogs,
+    api_researcher_request_code,
+    api_researcher_verify_code,
+    api_researcher_verify_registration,
+    researcher_response_view
 )
 
 urlpatterns = [
@@ -37,6 +41,10 @@ urlpatterns = [
     path('api/admin/login/', api_admin_login, name='api_admin_login'),
     path('api/admin/researchers/', api_admin_researchers, name='api_admin_researchers'),
     path('api/admin/researchers/create/', api_admin_create_researcher, name='api_admin_create_researcher'),
+    path('api/auth/researcher/respond/', researcher_response_view, name='researcher_response'),
+    path('api/auth/researcher/request-code/', api_researcher_request_code, name='api_researcher_request_code'),
+    path('api/auth/researcher/verify-code/', api_researcher_verify_code, name='api_researcher_verify_code'),
+    path('api/auth/researcher/verify-registration/', api_researcher_verify_registration, name='api_researcher_verify_registration'),
     path('api/alerts/<uuid:alert_id>/resolve/', api_resolve_alert, name='api_resolve_alert'),
     path('api/alerts/', api_alerts, name='api_alerts'),
     path('api/physiological-data/', api_physiological_data, name='api_physiological_data'),

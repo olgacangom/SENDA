@@ -12,27 +12,32 @@ type ExportLog = {
 const API_BASE = 'http://localhost:1574';
 
 interface ExportsProps {
+  userEmail: string;
   onNavigate?: (view: string) => void;
 }
 
-const Exports: React.FC<ExportsProps> = ({ onNavigate }) => {
+const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
+  const storageKey = userEmail ? `export_history_${userEmail}` : 'export_history_guest';
+  const settingsKey = userEmail ? `export_max_logs_${userEmail}` : 'export_max_logs_guest';
+
   const [maxLogs, setMaxLogs] = useState<number>(() => {
-    const savedLimit = localStorage.getItem('export_max_logs');
+    const savedLimit = localStorage.getItem(settingsKey);
     return savedLimit ? Number(savedLimit) : 5;
   });
 
   const [history, setHistory] = useState<ExportLog[]>(() => {
-    const savedHistory = localStorage.getItem('export_history');
+    const savedHistory = localStorage.getItem(storageKey);
     return savedHistory ? JSON.parse(savedHistory) : [];
   });
 
+  // Sincronizar historial con el usuario logueado
   useEffect(() => {
-    localStorage.setItem('export_history', JSON.stringify(history));
-  }, [history]);
+    localStorage.setItem(storageKey, JSON.stringify(history));
+  }, [history, storageKey]);
 
   useEffect(() => {
-    localStorage.setItem('export_max_logs', maxLogs.toString());
-  }, [maxLogs]);
+    localStorage.setItem(settingsKey, maxLogs.toString());
+  }, [maxLogs, settingsKey]);
 
   const download = (type: string, label: string, format: string = 'csv') => {
     window.open(`${API_BASE}/api/export/?type=${type}&format=${format}`, '_blank');
@@ -50,14 +55,14 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate }) => {
       timeStr,
     };
 
-    // Mantiene hasta un máximo de 25 registros en memoria
-    setHistory((prev) => [newLog, ...prev].slice(0, 25)); 
+    setHistory((prev) => [newLog, ...prev].slice(0, 25));
   };
 
   const clearHistory = () => {
     setHistory([]);
-    localStorage.removeItem('export_history');
+    localStorage.removeItem(storageKey); // Limpia solo el historial del usuario actual
   };
+
 
   const getCardIcon = (type: string) => {
     switch (type) {
@@ -245,11 +250,10 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate }) => {
                       <span className="font-semibold text-slate-800 first-letter:uppercase lowercase">{log.label}</span>
                     </td>
                     <td className="py-3.5">
-                      <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-extrabold ring-1 ring-inset ${
-                        log.format === 'XLSX'
-                          ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-                          : 'bg-sky-50 text-sky-700 ring-sky-200'
-                      }`}>
+                      <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-extrabold ring-1 ring-inset ${log.format === 'XLSX'
+                        ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                        : 'bg-sky-50 text-sky-700 ring-sky-200'
+                        }`}>
                         {log.format}
                       </span>
                     </td>

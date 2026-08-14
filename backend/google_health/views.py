@@ -15,6 +15,12 @@ import json
 import csv
 import io
 from datetime import datetime
+import random
+from django.core.cache import cache
+from django.core.mail import send_mail, EmailMultiAlternatives
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.urls import reverse
 
 User = get_user_model()
 
@@ -810,9 +816,9 @@ def api_dashboard(request):
         'alerts_count': alerts_count,
     })
 
-
 @csrf_exempt
 def api_admin_create_researcher(request):
+    """El administrador autoriza un correo y envía un email con opciones de Sí/No."""
     if request.method == 'OPTIONS':
         resp = JsonResponse({'ok': True})
         resp['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
@@ -829,15 +835,229 @@ def api_admin_create_researcher(request):
         return _validation_error(request, 'invalid_json')
 
     email = payload.get('email')
-    password = payload.get('password')
-    if not email or not password:
-        return _validation_error(request, 'missing_credentials')
+    if not email:
+        return _validation_error(request, 'missing_email')
 
     if User.objects.filter(username=email).exists():
-        return _validation_error(request, 'Ya existe un usuario con ese correo/contraseña', status=409)
+        return _validation_error(request, 'Ya existe un usuario con ese correo', status=409)
 
-    User.objects.create_user(username=email, email=email, password=password, is_active=True)
+    # Creamos el usuario como inactivo (pendiente de aceptación)
+    user = User.objects.create_user(username=email, email=email, is_active=False)
+    user.set_unusable_password()
+    user.save()
+
+    # Generar enlaces de confirmación Sí / No usando codificación segura del email
+    uid = urlsafe_base64_encode(force_bytes(email))
+    frontend_url = config("FRONTEND_URL", default="http://localhost:5174")
+    
+    yes_url = f"http://localhost:1574/api/auth/researcher/respond/?uid={uid}&action=yes"
+    no_url = f"http://localhost:1574/api/auth/researcher/respond/?uid={uid}&action=no"
+
+    html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {{ font-family: Arial, sans-serif; color: #333; background-color: #f8fafc; margin: 0; padding: 20px; }}
+        .container {{ max-width: 600px; background: #ffffff; padding: 30px; border-radius: 12px; border: 1px solid #e2e8f0; }}
+        .button-yes {{ background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin-right: 10px; }}
+        .button-no {{ background-color: #ef4444; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; }}
+        .footer {{ margin-top: 25px; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 style="color: #1e293b;">Verificación de cuenta - SENDA</h2>
+        <p>Hola,</p>
+        <p>Has sido autorizado/a para colaborar como investigador/a en la plataforma <strong>SENDA</strong>.</p>
+        <p>Para confirmar tu identidad y activar tu acceso institucional, por favor haz clic en una de las siguientes opciones:</p>
+        
+        <div style="margin: 30px 0;">
+            <a href="{yes_url}" class="button-yes">Sí, aceptar autorización</a>
+            <a href="{no_url}" class="button-no">No, rechazar</a>
+        </div>
+
+        <p>Si tú no has solicitado este acceso, puedes ignorar este mensaje de forma segura.</p>
+        
+        <div class="footer">
+            <p>Atentamente,<br><strong>Equipo SENDA</strong></p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+
+    subject = 'Autorización como investigador/a en SENDA'
+    from_email = config('DEFAULT_FROM_EMAIL', default='admin@proyectosenda.org')
+    text_content = f"Hola,\n\nTe han autorizado como investigador/a en SENDA.\n\nAcepta aquí: {yes_url}\nRechaza aquí: {no_url}\n\nEquipo SENDA"
+
+    email_msg = EmailMultiAlternatives(subject, text_content, from_email, [email])
+    email_msg.attach_alternative(html_content, "text/html")
+    email_msg.send(fail_silently=False)
+
     return _json_response(request, {'ok': True, 'email': email})
+
+
+def researcher_response_view(request):
+    """Vista que procesa cuando el investigador hace clic en Sí o No desde su correo."""
+    uid = request.GET.get('uid')
+    action = request.GET.get('action')
+
+    if not uid or not action:
+        return HttpResponse("Enlace inválido o incompleto.", status=400)
+
+    try:
+        email = force_str(urlsafe_base64_decode(uid))
+        user = User.objects.get(username=email)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        return HttpResponse("Usuario no encontrado.", status=404)
+
+    frontend_url = config("FRONTEND_URL", default="http://localhost:5174")
+
+    if action == 'yes':
+        user.is_active = True
+        user.save()
+        return HttpResponse(
+            f"<html><body style='font-family:sans-serif; text-align:center; padding-top:50px;'>"
+            f"<h2 style='color:green;'>¡Autorización aceptada con éxito!</h2>"
+            f"<p>Tu cuenta para el correo <b>{email}</b> ya está activa. Ya puedes iniciar sesión en SENDA.</p>"
+            f"</body></html>"
+        )
+    elif action == 'no':
+        user.delete() 
+        return HttpResponse(
+            f"<html><body style='font-family:sans-serif; text-align:center; padding-top:50px;'>"
+            f"<h2 style='color:red;'>Autorización rechazada</h2>"
+            f"<p>Has rechazado la invitación para el correo <b>{email}</b>. La cuenta ha sido descartada.</p>"
+            f"</body></html>"
+        )
+    
+    return HttpResponse("Acción no válida.", status=400)
+
+@csrf_exempt
+def api_researcher_request_code(request):
+    """Paso 1 del Login: El investigador introduce su correo y se le envía un código temporal de un solo uso."""
+    if request.method == 'OPTIONS':
+        resp = JsonResponse({'ok': True})
+        resp['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        resp['Access-Control-Allow-Headers'] = 'Content-Type'
+        return _add_cors_headers(request, resp)
+    if request.method != 'POST':
+        return _validation_error(request, 'method_not_allowed', status=405)
+
+    try:
+        data = json.loads(request.body)
+        email = data.get('email')
+    except json.JSONDecodeError:
+        return _validation_error(request, 'Invalid JSON format')
+
+    if not email:
+        return _validation_error(request, 'missing_email')
+
+    try:
+        user = User.objects.get(username=email, is_superuser=False)
+    except User.DoesNotExist:
+        return _validation_error(request, 'Email no autorizado', status=404)
+
+    # Generar código OTP temporal de un solo uso
+    code = f"{random.randint(100000, 999999)}"
+    cache.set(f"otp_{email}", code, timeout=300)  # 5 minutos de validez
+
+    send_mail(
+        subject='Verificación de cuenta en SENDA',
+        message=f'Tu código de verificación es: {code}',
+        from_email=config('DEFAULT_FROM_EMAIL'),
+        recipient_list=[email],
+        fail_silently=False, 
+    )
+    return _json_response(request, {'ok': True, 'message': 'Código enviado correctamente'})
+
+
+@csrf_exempt
+def api_researcher_verify_code(request):
+    """Paso 2 del Login: El investigador introduce el código y accede directamente a la plataforma."""
+    if request.method == 'OPTIONS':
+        resp = JsonResponse({'ok': True})
+        resp['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        resp['Access-Control-Allow-Headers'] = 'Content-Type'
+        return _add_cors_headers(request, resp)
+    if request.method != 'POST':
+        return _validation_error(request, 'method_not_allowed', status=405)
+
+    try:
+        data = json.loads(request.body)
+        email = data.get('email')
+        code = data.get('code')
+    except json.JSONDecodeError:
+        return _validation_error(request, 'Invalid JSON format')
+
+    if not email or not code:
+        return _validation_error(request, 'missing_credentials')
+
+    cached_code = cache.get(f"otp_{email}")
+
+    if not cached_code or str(cached_code) != str(code):
+        return _validation_error(request, 'invalid_or_expired_code', status=401)
+
+    try:
+        user = User.objects.get(username=email, is_superuser=False)
+        if not user.is_active:
+            return _validation_error(request, 'La cuenta aún no ha sido verificada con el código inicial', status=403)
+    except User.DoesNotExist:
+        return _validation_error(request, 'Email no autorizado', status=404)
+
+    # Invalidar el código usado para que no se pueda reutilizar
+    cache.delete(f"otp_{email}")
+
+    user.backend = 'django.contrib.auth.backends.ModelBackend'
+    login(request, user)
+
+    return _json_response(request, {
+        'ok': True,
+        'username': user.username,
+        'is_researcher': True
+    })
+
+
+@csrf_exempt
+def api_researcher_verify_registration(request):
+    """Paso final del alta: El investigador verifica el código enviado por el admin para activar su cuenta."""
+    if request.method == 'OPTIONS':
+        resp = JsonResponse({'ok': True})
+        resp['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        resp['Access-Control-Allow-Headers'] = 'Content-Type'
+        return _add_cors_headers(request, resp)
+    if request.method != 'POST':
+        return _validation_error(request, 'method_not_allowed', status=405)
+
+    try:
+        data = json.loads(request.body)
+        email = data.get('email')
+        code = data.get('code')
+    except json.JSONDecodeError:
+        return _validation_error(request, 'Invalid JSON format')
+
+    if not email or not code:
+        return _validation_error(request, 'missing_credentials')
+
+    cached_code = cache.get(f"otp_{email}")
+
+    if not cached_code or str(cached_code) != str(code):
+        return _validation_error(request, 'invalid_or_expired_code', status=401)
+
+    try:
+        user = User.objects.get(username=email, is_superuser=False)
+    except User.DoesNotExist:
+        return _validation_error(request, 'user_not_found', status=404)
+
+    # Activar la cuenta del investigador definitivamente
+    user.is_active = True
+    user.save()
+    cache.delete(f"otp_{email}")
+
+    return _json_response(request, {'ok': True, 'message': 'Cuenta verificada y activada con éxito'})
+
 
 @csrf_exempt
 def api_admin_delete_researcher(request):

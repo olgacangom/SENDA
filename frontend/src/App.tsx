@@ -268,7 +268,7 @@ const App: React.FC = () => {
               {page === 'syncs' && <Syncs />}
               {page === 'physiological' && <PhysiologicalData />}
               {page === 'alerts' && <Alerts />}
-              {page === 'exports' && <Exports onNavigate={handleSetPage}/>}
+              {page === 'exports' && <Exports userEmail={currentUser} onNavigate={handleSetPage}/>}
               {page === 'admin' && <Admin />}
             </main>
           </div>
