@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.db.models.signals import post_save, post_delete, pre_delete, pre_save
 from django.dispatch import receiver
+from django.contrib.auth.hashers import make_password, check_password
 
 
 # ==========================================
@@ -117,6 +118,14 @@ ALERT_CATALOG = {
 class Participant(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     participant_code = models.CharField(max_length=100, unique=True)
+    email = models.EmailField(unique=True, null=True, blank=True)
+    password_hash = models.CharField(max_length=128, blank=True)
+
+    def set_password(self, raw_password):
+        self.password_hash = make_password(raw_password)
+
+    def check_password(self, raw_password):
+        return check_password(raw_password, self.password_hash)
 
     def __str__(self):
         return self.participant_code
@@ -136,7 +145,8 @@ class Fitbit(models.Model):
         if self.status in (FitbitStatus.MAINTENANCE, FitbitStatus.INACTIVE):
             return self.status
 
-        now = timezone.now()
+        now = timezone.localtime(timezone.now())
+        tz = timezone.get_current_timezone()
 
         active = self.assignments.filter(
             start_date__lte=now
@@ -154,13 +164,43 @@ class GoogleAccount(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     participant = models.OneToOneField(Participant, on_delete=models.CASCADE, related_name='google_account')
     email = models.EmailField(unique=True)
-    access_token = models.TextField()
-    refresh_token = models.TextField()
-    access_token_expiration = models.DateTimeField()
-    authentication_status = models.CharField(max_length=50)
+    access_token = models.TextField(blank=True, default='')
+    refresh_token = models.TextField(blank=True, default='')
+    access_token_expiration = models.DateTimeField(null=True, blank=True)
+    authentication_status = models.CharField(max_length=50, default='PENDING')
 
     def __str__(self):
         return self.email
+
+
+@receiver(post_save, sender=Participant)
+def create_pending_google_account_for_participant(sender, instance, created, **kwargs):
+    if not instance.email:
+        return
+
+    try:
+        google_account = instance.google_account
+        if google_account.email != instance.email:
+            google_account.email = instance.email
+            google_account.save(update_fields=['email'])
+        return
+    except GoogleAccount.DoesNotExist:
+        pass
+
+    existing = GoogleAccount.objects.filter(email__iexact=instance.email).first()
+    if existing:
+        existing.participant = instance
+        existing.save(update_fields=['participant'])
+        return
+
+    GoogleAccount.objects.create(
+        participant=instance,
+        email=instance.email,
+        access_token='',
+        refresh_token='',
+        access_token_expiration=None,
+        authentication_status='PENDING'
+    )
 
 
 class Assignment(models.Model):
@@ -173,19 +213,44 @@ class Assignment(models.Model):
 
     @property
     def status(self):
-        now = timezone.now()
-        if self.start_date > now:
+        # localtime para comparar con la hora del servidor local
+        tz = timezone.get_current_timezone()
+        now = timezone.localtime(timezone.now(), timezone=tz)
+
+        start = self.start_date
+        if timezone.is_naive(start):
+            start = timezone.make_aware(start, tz)
+        start = timezone.localtime(start, timezone=tz)
+
+        if start > now:
             return AssignmentStatus.PENDING
-        if self.estimated_end_date and self.estimated_end_date < now:
-            return AssignmentStatus.COMPLETED
+
+        if self.estimated_end_date:
+            end = self.estimated_end_date
+            if timezone.is_naive(end):
+                end = timezone.make_aware(end, tz)
+            end = timezone.localtime(end, timezone=tz)
+            if end < now:
+                return AssignmentStatus.COMPLETED
+
         return AssignmentStatus.ACTIVE
 
+    
     def clean(self):
-        if self.estimated_end_date and self.estimated_end_date <= self.start_date:
-            raise ValidationError("Estimated end date must be later than start date.")
         super().clean()
         if not self.start_date:
             return
+
+        # Forzar zona horaria actual (maneja el desfase de la hora europea)
+        tz = timezone.get_current_timezone()
+        if timezone.is_naive(self.start_date):
+            self.start_date = timezone.make_aware(self.start_date, tz)
+        
+        if self.estimated_end_date and timezone.is_naive(self.estimated_end_date):
+            self.estimated_end_date = timezone.make_aware(self.estimated_end_date, tz)
+
+        if self.estimated_end_date and self.estimated_end_date <= self.start_date:
+            raise ValidationError("La fecha de finalización estimada debe ser posterior a la fecha de inicio.")
 
         overlapping = Assignment.objects.filter(fitbit=self.fitbit)
         if self.pk:
@@ -193,6 +258,7 @@ class Assignment(models.Model):
 
         for existing in overlapping:
             ex_start = existing.start_date
+            ex_end = existing.estimated_end_date
 
             if not ex_end:
                 raise ValidationError(f"La pulsera {self.fitbit.fitbit_code} ya está asignada de forma indefinida.")
@@ -231,7 +297,7 @@ class PhysiologicalData(models.Model):
     physical_time = models.DateTimeField()
     start_time = models.DateTimeField(blank=True, null=True)
     end_time = models.DateTimeField(blank=True, null=True)
-    metric_value = models.FloatField()
+    metric_value = models.FloatField(null=True, blank=True)
     device_name = models.CharField(max_length=100, blank=True, null=True)
     platform = models.CharField(max_length=100, blank=True, null=True)
     recording_method = models.CharField(max_length=100, blank=True, null=True)

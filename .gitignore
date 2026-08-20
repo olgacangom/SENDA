@@ -7,3 +7,8 @@ __pycache__/
 .vscode/
 .venv
 .env
+
+backend/celerybeat-schedule.*
+backend/celerybeat-schedule
+backend/celerybeat-schedule-shm
+backend/celerybeat-schedule-wal

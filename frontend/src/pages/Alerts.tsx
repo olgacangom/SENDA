@@ -1,0 +1,334 @@
+import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+
+type AlertItem = {
+  id: string;
+  message: string;
+  priority: string;
+  type: string;
+  resolved: boolean;
+  participant_code: string | null;
+  email: string | null;
+  created_at: string;
+};
+
+const API_BASE = 'http://localhost:1574';
+
+const Alerts: React.FC = () => {
+  const { t } = useTranslation();
+  const [alerts, setAlerts] = useState<AlertItem[]>([]);
+  const [query, setQuery] = useState('');
+  const [selectedPriority, setSelectedPriority] = useState<string>('ALL');
+  const [showResolved, setShowResolved] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [pageSize, setPageSize] = useState<number>(() => {
+    const savedSize = localStorage.getItem('alerts_page_size');
+    return savedSize ? Number(savedSize) : 10;
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const fetchAlerts = () => {
+    fetch(`${API_BASE}/api/alerts/`, { credentials: 'include' })
+      .then((res) => res.json())
+      .then((data) => setAlerts(data.items || []))
+      .catch(() => setError(t('Error loading alerts')));
+  };
+
+  useEffect(() => {
+    fetchAlerts();
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('alerts_page_size', pageSize.toString());
+    setCurrentPage(1);
+  }, [pageSize]);
+
+  const handleResolve = async (id: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/alerts/${id}/resolve/`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (res.ok) {
+        setAlerts((prev) =>
+          prev.map((item) => (item.id === id ? { ...item, resolved: true } : item))
+        );
+      } else {
+        setError(t('Error resolving alert'));
+      }
+    } catch {
+      setError(t('Server connection error'));
+    }
+  };
+
+  const filtered = alerts.filter((alert) => {
+    if (!showResolved && alert.resolved) return false;
+    if (showResolved && !alert.resolved) return false;
+
+    const matchesQuery =
+      alert.message.toLowerCase().includes(query.toLowerCase()) ||
+      (alert.participant_code && alert.participant_code.toLowerCase().includes(query.toLowerCase())) ||
+      (alert.email && alert.email.toLowerCase().includes(query.toLowerCase()));
+
+    const matchesPriority =
+      selectedPriority === 'ALL' || alert.priority === selectedPriority;
+
+    return matchesQuery && matchesPriority;
+  });
+
+  const activeAlerts = alerts.filter((item) => !item.resolved);
+  const countHigh = activeAlerts.filter((item) => item.priority === 'HIGH').length;
+  const countMedium = activeAlerts.filter((item) => item.priority === 'MEDIUM').length;
+  const countLow = activeAlerts.filter((item) => item.priority === 'LOW').length;
+
+  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  const paginatedAlerts = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  return (
+    <div className="w-full text-slate-900 space-y-8">
+      
+      {/* Cabecera de la sección */}
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900">{t('Alerts Title')}</h1>
+          <p className="mt-1 text-xs font-medium text-slate-500">{t('Alerts Subtitle')}</p>
+        </div>
+        <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl self-start sm:self-auto">
+          <button
+            onClick={() => { setShowResolved(false); setCurrentPage(1); }}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${!showResolved ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+          >
+            {t('Active Count', { count: activeAlerts.length })}
+          </button>
+          <button
+            onClick={() => { setShowResolved(true); setCurrentPage(1); }}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${showResolved ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+          >
+            {t('Resolved History')}
+          </button>
+        </div>
+      </div>
+
+      {/* Tarjetas de métricas superiores */}
+      {!showResolved && (
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div 
+            onClick={() => { setSelectedPriority('HIGH'); setCurrentPage(1); }}
+            className={`cursor-pointer rounded-3xl border bg-white p-6 shadow-xl shadow-slate-200/40 transition-all hover:-translate-y-1 ${
+              selectedPriority === 'HIGH' ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-slate-200/80'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-rose-600">{t('Critical')}</p>
+              <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse"></span>
+            </div>
+            <p className="mt-2 text-3xl font-extrabold text-slate-900">{countHigh}</p>
+          </div>
+
+          <div 
+            onClick={() => { setSelectedPriority('MEDIUM'); setCurrentPage(1); }}
+            className={`cursor-pointer rounded-3xl border bg-white p-6 shadow-xl shadow-slate-200/40 transition-all hover:-translate-y-1 ${
+              selectedPriority === 'MEDIUM' ? 'border-amber-500 ring-2 ring-amber-500/20' : 'border-slate-200/80'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-amber-600">{t('Warnings')}</p>
+            </div>
+            <p className="mt-2 text-3xl font-extrabold text-slate-900">{countMedium}</p>
+          </div>
+
+          <div 
+            onClick={() => { setSelectedPriority('LOW'); setCurrentPage(1); }}
+            className={`cursor-pointer rounded-3xl border bg-white p-6 shadow-xl shadow-slate-200/40 transition-all hover:-translate-y-1 ${
+              selectedPriority === 'LOW' ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-200/80'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-blue-600">{t('Informative')}</p>
+            </div>
+            <p className="mt-2 text-3xl font-extrabold text-slate-900">{countLow}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Tarjeta contenedora de la bandeja */}
+      <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xl shadow-slate-200/40 space-y-6">
+        
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-700">
+              {showResolved ? t('Resolved Tray') : t('Active Tray')}
+            </p>
+            <span className="inline-flex items-center px-3 py-1 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+              {filtered.length} {t('Records')}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Selector de tamaño de página */}
+            <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-full text-xs font-semibold text-slate-600">
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="bg-transparent font-semibold text-slate-700 focus:outline-none cursor-pointer"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={15}>15</option>
+                <option value={20}>20</option>
+                <option value={25}>25</option>
+              </select>
+              <span>{t('Per Page')}</span>
+            </div>
+
+            {/* Filtros rápidos por prioridad */}
+            <div className="flex items-center gap-1.5 bg-slate-50 p-1.5 rounded-2xl border border-slate-200/60">
+              <button
+                onClick={() => { setSelectedPriority('ALL'); setCurrentPage(1); }}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${selectedPriority === 'ALL' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+              >
+                {t('All')}
+              </button>
+              <button
+                onClick={() => { setSelectedPriority('HIGH'); setCurrentPage(1); }}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${selectedPriority === 'HIGH' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+              >
+                {t('Critical')}
+              </button>
+              <button
+                onClick={() => { setSelectedPriority('MEDIUM'); setCurrentPage(1); }}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${selectedPriority === 'MEDIUM' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+              >
+                {t('Warnings')}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Barra de búsqueda interna */}
+        <div className="relative">
+          <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </span>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setCurrentPage(1); }}
+            placeholder={t('Search Participant')}
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 py-3.5 pl-11 pr-4 text-xs text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+          />
+        </div>
+
+        {/* Listado de alertas */}
+        <div className="space-y-3">
+          {paginatedAlerts.map((alert) => {
+            const isHigh = alert.priority === 'HIGH';
+            const isMedium = alert.priority === 'MEDIUM';
+
+            const borderLeftColor = isHigh
+              ? 'border-l-rose-500'
+              : isMedium
+                ? 'border-l-amber-500'
+                : 'border-l-blue-500';
+
+            const badgeStyle = isHigh
+              ? 'bg-rose-50 text-rose-700 border-rose-200'
+              : isMedium
+                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                : 'bg-blue-50 text-blue-700 border-blue-200';
+
+            const dotColor = isHigh
+              ? 'bg-rose-500'
+              : isMedium
+                ? 'bg-amber-500'
+                : 'bg-blue-500';
+
+            return (
+              <div 
+                key={alert.id} 
+                className={`rounded-2xl border border-slate-200/80 border-l-4 ${borderLeftColor} bg-slate-50/40 p-5 transition hover:bg-white hover:shadow-md`}
+              >
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-slate-200/70 text-slate-700">
+                        {alert.participant_code || alert.email || 'Sistema'}
+                      </span>
+                      <span className="text-[11px] text-slate-400 font-medium">
+                        {new Date(alert.created_at).toLocaleString('es-ES')}
+                      </span>
+                    </div>
+                    <p className="text-xs font-bold text-slate-900 pt-1">{alert.message}</p>
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold border shadow-sm ${badgeStyle}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${dotColor}`}></span>
+                      {alert.priority}
+                    </span>
+
+                    {!alert.resolved ? (
+                      <button 
+                        onClick={() => handleResolve(alert.id)}
+                        className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition shadow-sm cursor-pointer"
+                      >
+                        {t('Resolve')}
+                      </button>
+                    ) : (
+                      <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100">
+                        {t('Resolved')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Paginación */}
+        {filtered.length > 0 && (
+          <div className="flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-[11px] font-medium text-slate-400">
+              {t('Page', { page: currentPage, totalPages })}
+            </p>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+              >
+                {t('Previous')}
+              </button>
+
+              <div className="rounded-xl bg-blue-50 px-4 py-2 text-[11px] font-bold text-blue-700">
+                {currentPage}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+              >
+                {t('Next')}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {filtered.length === 0 && !error && (
+          <p className="py-12 text-center text-xs text-slate-400">{t('No Alerts')}</p>
+        )}
+        {error && (
+          <p className="py-12 text-center text-xs text-red-500">{error}</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Alerts;
