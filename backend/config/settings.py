@@ -141,7 +141,7 @@ CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0' 
 
 CELERY_BEAT_SCHEDULE = {
-    'sincronizar-datos-cada-hora': {
+    'sincronizar-datos-cada-5min': {
         'task': 'google_health.tasks.sync_all_users_data',
         'schedule': 300.0, # 300 segundos = 5 minutos (actualización de datos fisiologicos)
     },

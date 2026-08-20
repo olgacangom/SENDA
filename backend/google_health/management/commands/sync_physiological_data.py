@@ -273,7 +273,7 @@ class Command(BaseCommand):
 
             SyncLog.objects.create(
                 google_account=account,
-                result='SUCCESS_MULTIVARIABLE',
+                result='SUCCESS',
                 downloaded_records=total_downloaded
             )
             self.stdout.write(self.style.SUCCESS(f'Total registros guardados: {total_downloaded}'))

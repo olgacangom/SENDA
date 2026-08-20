@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const API_BASE = 'http://localhost:1574';
 
@@ -8,6 +9,7 @@ type FitbitItem = {
 };
 
 const Fitbits: React.FC = () => {
+  const { t } = useTranslation();
   const [fitbits, setFitbits] = useState<FitbitItem[]>([]);
   const [summary, setSummary] = useState({ in_use: 0, free: 0, maintenance: 0, inactive: 0 });
   const [query, setQuery] = useState('');
@@ -32,7 +34,6 @@ const Fitbits: React.FC = () => {
         setFitbits(items);
         setSummary(data.counts || { in_use: 0, free: 0, maintenance: 0, inactive: 0 });
 
-        // Calcular automáticamente el siguiente código (ej. F_004 a partir de F_003)
         if (items.length > 0) {
           const codes = items.map((f: FitbitItem) => {
             const match = f.fitbit_code.match(/F_(\d+)/);
@@ -44,7 +45,7 @@ const Fitbits: React.FC = () => {
           setNextCode('F_001');
         }
       })
-      .catch(() => setError('No se pudieron cargar las pulseras'));
+      .catch(() => setError(t('Error loading fitbits')));
   };
 
   useEffect(() => {
@@ -67,10 +68,10 @@ const Fitbits: React.FC = () => {
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || 'No se pudo registrar la pulsera');
+        throw new Error(data.error || t('Create fitbit error'));
       }
 
-      setSubmitSuccess(`Pulsera ${nextCode} registrada correctamente.`);
+      setSubmitSuccess(`${t('Fitbit registered')} ${nextCode}.`);
       setSelectedStatus('FREE');
       loadFitbits();
       
@@ -80,7 +81,7 @@ const Fitbits: React.FC = () => {
       }, 1200);
 
     } catch (err: any) {
-      setSubmitError(err.message || 'Error al registrar la pulsera Fitbit');
+      setSubmitError(err.message || t('Server connection error'));
     } finally {
       setSubmitting(false);
     }
@@ -96,7 +97,7 @@ const Fitbits: React.FC = () => {
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900">Fitbit</h1>
-          <p className="mt-1 text-xs font-medium text-slate-500">{filtered.length} dispositivos registrados en el estudio</p>
+          <p className="mt-1 text-xs font-medium text-slate-500">{filtered.length} {t('Devices Registered')}</p>
         </div>
         <button
           onClick={() => {
@@ -104,18 +105,18 @@ const Fitbits: React.FC = () => {
             setSubmitSuccess(null);
             setIsModalOpen(true);
           }}
-          className="mt-4 sm:mt-0 inline-flex items-center justify-center px-5 py-3 bg-[#3A8FC2] hover:bg-[#27648A] hover:text-white text-white font-bold rounded-2xl shadow-lg shadow-blue-500/20 transition gap-2"
+          className="mt-4 sm:mt-0 inline-flex items-center justify-center px-5 py-3 bg-[#3A8FC2] hover:bg-[#27648A] hover:text-white text-white font-bold rounded-2xl shadow-lg shadow-blue-500/20 transition gap-2 cursor-pointer"
         >
           <span className="text-base font-bold leading-none text-s">+</span>
-          <span className="text-[12px]">Registrar Fitbit</span>
+          <span className="text-[12px]">{t('Register Fitbit')}</span>
         </button>
       </div>
 
       {/* Tarjetas de resumen superior */}
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-4 mb-8">
         {[
           { 
-            label: 'En uso', 
+            label: t('In Use'), 
             value: summary.in_use, 
             textColor: 'text-emerald-600', 
             backgroundColor: 'bg-[#E6FFEE]',
@@ -123,7 +124,7 @@ const Fitbits: React.FC = () => {
             hoverShadow: 'hover:shadow-[0_20px_25px_-5px_rgba(5,150,105,0.15)] hover:border-emerald-200' 
           },
           { 
-            label: 'Libres', 
+            label: t('Free'), 
             value: summary.free, 
             textColor: 'text-blue-600',
             backgroundColor: 'bg-[#E6F5FF]', 
@@ -131,7 +132,7 @@ const Fitbits: React.FC = () => {
             hoverShadow: 'hover:shadow-[0_20px_25px_-5px_rgba(37,99,235,0.15)] hover:border-blue-200' 
           },
           { 
-            label: 'Mantenimiento', 
+            label: t('Maintenance'), 
             value: summary.maintenance, 
             textColor: 'text-amber-600',
             backgroundColor: 'bg-[#FFF3E6]', 
@@ -139,7 +140,7 @@ const Fitbits: React.FC = () => {
             hoverShadow: 'hover:shadow-[0_20px_25px_-5px_rgba(217,119,6,0.15)] hover:border-amber-200' 
           },
           { 
-            label: 'Inactivas', 
+            label: t('Inactive'), 
             value: summary.inactive, 
             textColor: 'text-red-500', 
             backgroundColor: 'bg-[#FFE6E6]',
@@ -161,7 +162,6 @@ const Fitbits: React.FC = () => {
 
       {/* Tarjeta contenedora de la tabla */}
       <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xl shadow-slate-200/40">
-        {/* Barra de búsqueda interna con icono de lupa */}
         <div className="mb-6 relative">
           <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -172,7 +172,7 @@ const Fitbits: React.FC = () => {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por código de pulsera o estado..."
+            placeholder={t('Search Fitbit')}
             className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 py-3.5 pl-11 pr-4 text-xs text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
           />
         </div>
@@ -182,8 +182,8 @@ const Fitbits: React.FC = () => {
             <table className="min-w-full table-fixed border-collapse text-left">
               <thead>
                 <tr className="bg-blue-50/60 text-blue-900 uppercase text-[10px] tracking-wider">
-                  <th className="w-[50%] px-6 py-3.5 font-bold rounded-l-2xl">PULSERA</th>
-                  <th className="w-[50%] px-6 py-3.5 font-bold rounded-r-2xl">ESTADO</th>
+                  <th className="w-[50%] px-6 py-3.5 font-bold rounded-l-2xl">{t('Fitbit')}</th>
+                  <th className="w-[50%] px-6 py-3.5 font-bold rounded-r-2xl">{t('Status')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -224,7 +224,7 @@ const Fitbits: React.FC = () => {
         </div>
 
         {filtered.length === 0 && !error && (
-          <p className="py-8 text-center text-xs text-slate-400">No se encontraron dispositivos.</p>
+          <p className="py-8 text-center text-xs text-slate-400">{t('No Fitbits found')}</p>
         )}
         {error && (
           <p className="py-8 text-center text-xs text-red-500">{error}</p>
@@ -236,7 +236,7 @@ const Fitbits: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
           <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-900">Registrar nueva Fitbit</h2>
+              <h2 className="text-lg font-bold text-slate-900">{t('Register New Fitbit')}</h2>
               <button
                 onClick={() => setIsModalOpen(false)}
                 className="text-slate-500 hover:text-slate-900 cursor-pointer text-base font-bold"
@@ -248,7 +248,7 @@ const Fitbits: React.FC = () => {
             <form onSubmit={handleCreateFitbit} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">
-                  Código de dispositivo (Automático)
+                  {t('Automatic Code')}
                 </label>
                 <input
                   type="text"
@@ -260,7 +260,7 @@ const Fitbits: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">
-                  Estado operativo
+                  {t('Operational Status')}
                 </label>
                 <div className="relative">
                   <select
@@ -268,10 +268,10 @@ const Fitbits: React.FC = () => {
                     onChange={(e) => setSelectedStatus(e.target.value)}
                     className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-sm text-slate-900 outline-none focus:border-blue-500 focus:bg-white cursor-pointer"
                   >
-                    <option value="FREE">Libre</option>
-                    <option value="IN_USE">En uso</option>
-                    <option value="MAINTENANCE">Mantenimiento</option>
-                    <option value="INACTIVE">Inactiva</option>
+                    <option value="FREE">{t('Free')}</option>
+                    <option value="IN_USE">{t('In Use')}</option>
+                    <option value="MAINTENANCE">{t('Maintenance')}</option>
+                    <option value="INACTIVE">{t('Inactive')}</option>
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -290,14 +290,14 @@ const Fitbits: React.FC = () => {
                   onClick={() => setIsModalOpen(false)}
                   className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
                 >
-                  Cancelar
+                  {t('Cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
                   className="rounded-2xl bg-[#3A8FC2] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#27648A] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
                 >
-                  {submitting ? 'Guardando...' : 'Guardar Fitbit'}
+                  {submitting ? t('Processing') : t('Save Fitbit')}
                 </button>
               </div>
             </form>
@@ -308,33 +308,55 @@ const Fitbits: React.FC = () => {
       {/* MODAL DE DETALLE DE FITBIT */}
       {selectedFitbit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
-          <div className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-900">Detalle Fitbit</h2>
+          <div className="w-full max-w-xl rounded-3xl bg-white p-7 shadow-2xl">
+            <div className="mb-6 flex items-start justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                  <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-xl font-extrabold text-slate-900">{t('Fitbit Detail')}</h2>
+                  <p className="text-xs text-slate-500">{t('Fitbit Full Info')}</p>
+                </div>
+              </div>
               <button
                 onClick={() => setSelectedFitbit(null)}
-                className="text-slate-500 hover:text-slate-900 cursor-pointer"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900 cursor-pointer transition"
               >
-                ×
+                ✕
               </button>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 text-sm text-slate-700">
-              <div><strong>Código:</strong> {selectedFitbit.fitbit_code}</div>
-              <div><strong>Estado:</strong> {selectedFitbit.status}</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 flex flex-col justify-center">
+                <span className="text-[11px] font-medium text-blue-900 mb-1">{t('Code')}</span>
+                <span className="text-sm font-bold text-slate-900">{selectedFitbit.fitbit_code}</span>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 flex flex-col justify-center">
+                <span className="text-[11px] font-medium text-blue-900 mb-1">{t('Status')}</span>
+                <div>
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold capitalize ${
+                    selectedFitbit.status.toLowerCase().includes('in_use') || selectedFitbit.status.toLowerCase().includes('uso')
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : selectedFitbit.status.toLowerCase().includes('free') || selectedFitbit.status.toLowerCase().includes('libre')
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    <span className="h-1.5 w-1.5 rounded-full bg-current"></span>
+                    {selectedFitbit.status.replace('_', ' ').toLowerCase()}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                onClick={() => setSelectedFitbit(null)}
-                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
-              >
-                Cerrar
-              </button>
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2 border-t border-slate-100">
               <button
                 onClick={async () => {
                   if (!selectedFitbit) return;
-                  if (!confirm(`¿Eliminar la pulsera ${selectedFitbit.fitbit_code}?`)) return;
+                  if (!confirm(`${t('Delete Fitbit Confirmation')} ${selectedFitbit.fitbit_code}?`)) return;
                   try {
                     const resp = await fetch(`${API_BASE}/api/fitbits/delete/`, {
                       method: 'DELETE',
@@ -347,15 +369,25 @@ const Fitbits: React.FC = () => {
                       setSelectedFitbit(null);
                       loadFitbits();
                     } else {
-                      alert(j.error || 'No se pudo eliminar la pulsera');
+                      alert(j.error || t('Delete Fitbit error'));
                     }
                   } catch (e) {
-                    alert('Error al conectar con el servidor');
+                    alert(t('Server connection error'));
                   }
                 }}
-                className="rounded-2xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700 transition cursor-pointer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-xs font-bold text-red-600 hover:bg-red-100 transition cursor-pointer"
               >
-                Eliminar Fitbit
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                {t('Delete Fitbit')}
+              </button>
+
+              <button
+                onClick={() => setSelectedFitbit(null)}
+                className="w-full sm:w-auto rounded-2xl border border-slate-200 bg-white px-6 py-3 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+              >
+                {t('Close')}
               </button>
             </div>
           </div>

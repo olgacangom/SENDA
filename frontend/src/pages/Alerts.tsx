@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 type AlertItem = {
   id: string;
@@ -14,10 +15,11 @@ type AlertItem = {
 const API_BASE = 'http://localhost:1574';
 
 const Alerts: React.FC = () => {
+  const { t } = useTranslation();
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [query, setQuery] = useState('');
   const [selectedPriority, setSelectedPriority] = useState<string>('ALL');
-  const [showResolved, setShowResolved] = useState<boolean>(false); // Para ver activas vs resueltas
+  const [showResolved, setShowResolved] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const [pageSize, setPageSize] = useState<number>(() => {
@@ -30,7 +32,7 @@ const Alerts: React.FC = () => {
     fetch(`${API_BASE}/api/alerts/`, { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => setAlerts(data.items || []))
-      .catch(() => setError('No se pudieron cargar las alertas'));
+      .catch(() => setError(t('Error loading alerts')));
   };
 
   useEffect(() => {
@@ -53,15 +55,14 @@ const Alerts: React.FC = () => {
           prev.map((item) => (item.id === id ? { ...item, resolved: true } : item))
         );
       } else {
-        setError('No se pudo marcar la alerta como resuelta');
+        setError(t('Error resolving alert'));
       }
     } catch {
-      setError('Error de red al resolver la alerta');
+      setError(t('Server connection error'));
     }
   };
 
   const filtered = alerts.filter((alert) => {
-    // Si no estamos viendo las resueltas, ocultamos las que ya lo estén
     if (!showResolved && alert.resolved) return false;
     if (showResolved && !alert.resolved) return false;
 
@@ -81,7 +82,6 @@ const Alerts: React.FC = () => {
   const countMedium = activeAlerts.filter((item) => item.priority === 'MEDIUM').length;
   const countLow = activeAlerts.filter((item) => item.priority === 'LOW').length;
 
-  // Paginación
   const totalPages = Math.ceil(filtered.length / pageSize) || 1;
   const paginatedAlerts = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
@@ -91,21 +91,21 @@ const Alerts: React.FC = () => {
       {/* Cabecera de la sección */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900">Alertas y Notificaciones</h1>
-          <p className="mt-1 text-xs font-medium text-slate-500">Supervisión automática de dispositivos y constantes vitales.</p>
+          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900">{t('Alerts Title')}</h1>
+          <p className="mt-1 text-xs font-medium text-slate-500">{t('Alerts Subtitle')}</p>
         </div>
         <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl self-start sm:self-auto">
           <button
             onClick={() => { setShowResolved(false); setCurrentPage(1); }}
             className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${!showResolved ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
           >
-            Activas ({activeAlerts.length})
+            {t('Active Count', { count: activeAlerts.length })}
           </button>
           <button
             onClick={() => { setShowResolved(true); setCurrentPage(1); }}
             className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${showResolved ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
           >
-            Historial Resueltas
+            {t('Resolved History')}
           </button>
         </div>
       </div>
@@ -120,7 +120,7 @@ const Alerts: React.FC = () => {
             }`}
           >
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-rose-600">CRÍTICAS</p>
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-rose-600">{t('Critical')}</p>
               <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse"></span>
             </div>
             <p className="mt-2 text-3xl font-extrabold text-slate-900">{countHigh}</p>
@@ -133,7 +133,7 @@ const Alerts: React.FC = () => {
             }`}
           >
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-amber-600">ADVERTENCIAS</p>
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-amber-600">{t('Warnings')}</p>
             </div>
             <p className="mt-2 text-3xl font-extrabold text-slate-900">{countMedium}</p>
           </div>
@@ -145,7 +145,7 @@ const Alerts: React.FC = () => {
             }`}
           >
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-blue-600">INFORMATIVAS</p>
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-blue-600">{t('Informative')}</p>
             </div>
             <p className="mt-2 text-3xl font-extrabold text-slate-900">{countLow}</p>
           </div>
@@ -158,10 +158,10 @@ const Alerts: React.FC = () => {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <p className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              {showResolved ? 'Historial de incidencias resueltas' : 'Bandeja de incidencias activas'}
+              {showResolved ? t('Resolved Tray') : t('Active Tray')}
             </p>
             <span className="inline-flex items-center px-3 py-1 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
-              {filtered.length} registros
+              {filtered.length} {t('Records')}
             </span>
           </div>
 
@@ -179,7 +179,7 @@ const Alerts: React.FC = () => {
                 <option value={20}>20</option>
                 <option value={25}>25</option>
               </select>
-              <span>por página</span>
+              <span>{t('Per Page')}</span>
             </div>
 
             {/* Filtros rápidos por prioridad */}
@@ -188,19 +188,19 @@ const Alerts: React.FC = () => {
                 onClick={() => { setSelectedPriority('ALL'); setCurrentPage(1); }}
                 className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${selectedPriority === 'ALL' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
               >
-                Todas
+                {t('All')}
               </button>
               <button
                 onClick={() => { setSelectedPriority('HIGH'); setCurrentPage(1); }}
                 className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${selectedPriority === 'HIGH' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
               >
-                Críticas
+                {t('Critical')}
               </button>
               <button
                 onClick={() => { setSelectedPriority('MEDIUM'); setCurrentPage(1); }}
                 className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${selectedPriority === 'MEDIUM' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
               >
-                Advertencias
+                {t('Warnings')}
               </button>
             </div>
           </div>
@@ -217,7 +217,7 @@ const Alerts: React.FC = () => {
             type="search"
             value={query}
             onChange={(e) => { setQuery(e.target.value); setCurrentPage(1); }}
-            placeholder="Buscar por mensaje, código de participante o correo..."
+            placeholder={t('Search Participant')}
             className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 py-3.5 pl-11 pr-4 text-xs text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
           />
         </div>
@@ -275,11 +275,11 @@ const Alerts: React.FC = () => {
                         onClick={() => handleResolve(alert.id)}
                         className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition shadow-sm cursor-pointer"
                       >
-                        Resolver
+                        {t('Resolve')}
                       </button>
                     ) : (
                       <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100">
-                        Resuelta
+                        {t('Resolved')}
                       </span>
                     )}
                   </div>
@@ -293,7 +293,7 @@ const Alerts: React.FC = () => {
         {filtered.length > 0 && (
           <div className="flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-[11px] font-medium text-slate-400">
-              Página {currentPage} de {totalPages} (Mostrando {paginatedAlerts.length} de {filtered.length} registros)
+              {t('Page', { page: currentPage, totalPages })}
             </p>
 
             <div className="flex items-center gap-2">
@@ -302,7 +302,7 @@ const Alerts: React.FC = () => {
                 disabled={currentPage === 1}
                 className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
               >
-                ← Anterior
+                {t('Previous')}
               </button>
 
               <div className="rounded-xl bg-blue-50 px-4 py-2 text-[11px] font-bold text-blue-700">
@@ -314,14 +314,14 @@ const Alerts: React.FC = () => {
                 disabled={currentPage === totalPages}
                 className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
               >
-                Siguiente →
+                {t('Next')}
               </button>
             </div>
           </div>
         )}
 
         {filtered.length === 0 && !error && (
-          <p className="py-12 text-center text-xs text-slate-400">No hay alertas registradas para esta vista.</p>
+          <p className="py-12 text-center text-xs text-slate-400">{t('No Alerts')}</p>
         )}
         {error && (
           <p className="py-12 text-center text-xs text-red-500">{error}</p>

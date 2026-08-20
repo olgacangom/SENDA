@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import FrontPage from './pages/FrontPage';
 import Login from './pages/Login';
@@ -9,15 +10,17 @@ import PhysiologicalData from './pages/PhysiologicalData';
 import Alerts from './pages/Alerts';
 import Exports from './pages/Exports';
 import Admin from './pages/Admin';
+import i18n from './i18n';
 
 const App: React.FC = () => {
+  const { t, i18n: currentI18n } = useTranslation();
   const [loggedIn, setLoggedIn] = useState<boolean>(() => {
     return localStorage.getItem('senda_logged_in') === 'true';
-  }); 
+  });
   const [role, setRole] = useState<'researcher' | 'admin' | null>(() => {
     return (localStorage.getItem('senda_role') as 'researcher' | 'admin') || null;
   });
-  
+
   const [currentUser, setCurrentUser] = useState<string>(() => {
     return localStorage.getItem('senda_user_email') || '';
   });
@@ -36,12 +39,12 @@ const App: React.FC = () => {
   };
 
   const handleLogin = (nextPage: string, userRole: 'researcher' | 'admin', email?: string) => {
-    const userEmail = email && email.trim() !== '' 
-      ? email 
+    const userEmail = email && email.trim() !== ''
+      ? email
       : (userRole === 'admin' ? 'admin@senda.es' : 'investigador@senda.es');
-      
+
     const defaultPage = userRole === 'researcher' ? 'assignments' : 'participants';
-    
+
     setRole(userRole);
     setPage(defaultPage);
     setLoggedIn(true);
@@ -58,14 +61,15 @@ const App: React.FC = () => {
     setPage('front');
     setRole(null);
     setCurrentUser('');
-    
+
     localStorage.removeItem('senda_logged_in');
     localStorage.removeItem('senda_role');
     localStorage.removeItem('senda_user_email');
     localStorage.setItem('senda_current_page', 'front');
   };
 
-  const currentDate = new Date().toLocaleDateString('es-ES', {
+  const localeLang = currentI18n.language === 'en' ? 'en-US' : 'es-ES';
+  const currentDate = new Date().toLocaleDateString(localeLang, {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -121,21 +125,23 @@ const App: React.FC = () => {
 
     if (userRole === 'researcher') {
       return [
-        { key: 'assignments', label: 'Asignaciones', icon: icons.assignments },
-        { key: 'physiological', label: 'Datos fisiológicos', icon: icons.physiological },
-        { key: 'alerts', label: 'Alertas', icon: icons.alerts },
-        { key: 'exports', label: 'Exportaciones', icon: icons.exports },
+        { key: 'fitbits', label: t('Fitbit'), icon: icons.fitbit },
+        { key: 'assignments', label: t('Assignments'), icon: icons.assignments },
+        { key: 'physiological', label: t('Physiological Data'), icon: icons.physiological },
+        { key: 'alerts', label: t('Alerts'), icon: icons.alerts },
+        { key: 'exports', label: t('Exports'), icon: icons.exports },
+        { key: 'syncs', label: t('Synchronizations'), icon: icons.syncs },
       ];
     } else {
       return [
-        { key: 'participants', label: 'Participantes', icon: icons.participants },
-        { key: 'fitbits', label: 'Fitbit', icon: icons.fitbit },
-        { key: 'assignments', label: 'Asignaciones', icon: icons.assignments },
-        { key: 'physiological', label: 'Datos fisiológicos', icon: icons.physiological },
-        { key: 'alerts', label: 'Alertas', icon: icons.alerts },
-        { key: 'exports', label: 'Exportaciones', icon: icons.exports },
-        { key: 'syncs', label: 'Sincronizaciones', icon: icons.syncs },
-        { key: 'admin', label: 'Roles y Permisos', icon: icons.admin },
+        { key: 'participants', label: t('Participants'), icon: icons.participants },
+        { key: 'fitbits', label: t('Fitbit'), icon: icons.fitbit },
+        { key: 'assignments', label: t('Assignments'), icon: icons.assignments },
+        { key: 'physiological', label: t('Physiological Data'), icon: icons.physiological },
+        { key: 'alerts', label: t('Alerts'), icon: icons.alerts },
+        { key: 'exports', label: t('Exports'), icon: icons.exports },
+        { key: 'syncs', label: t('Synchronizations'), icon: icons.syncs },
+        { key: 'admin', label: t('Roles & Permissions'), icon: icons.admin },
       ];
     }
   };
@@ -146,31 +152,30 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       {!loggedIn ? (
         page === 'login' ? (
-          <Login 
-            onLogin={handleLogin} 
+          <Login
+            onLogin={handleLogin}
             onBackToFront={() => {
               setPage('front');
               localStorage.setItem('senda_current_page', 'front');
-            }} 
+            }}
           />
         ) : (
-          <FrontPage 
+          <FrontPage
             onGoToLogin={() => {
               setPage('login');
               localStorage.setItem('senda_current_page', 'login');
-            }} 
+            }}
           />
         )
       ) : (
         <div className="flex min-h-screen w-full flex-col lg:flex-row">
-          
+
           {/* BARRA LATERAL RETRÁCTIL POR HOVER */}
-          <aside 
+          <aside
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className={`shrink-0 border-b border-slate-200 bg-white py-8 lg:border-r lg:border-b-0 flex flex-col justify-between transition-all duration-300 ease-in-out z-20 shadow-lg lg:shadow-none ${
-              isHovered ? 'lg:w-72 px-6' : 'lg:w-20 px-4'
-            } w-full`}
+            className={`shrink-0 border-b border-slate-200 bg-white py-8 lg:border-r lg:border-b-0 flex flex-col justify-between transition-all duration-300 ease-in-out z-20 shadow-lg lg:shadow-none ${isHovered ? 'lg:w-72 px-6' : 'lg:w-20 px-4'
+              } w-full`}
           >
             <div>
               {/* Logotipo SENDA */}
@@ -195,13 +200,11 @@ const App: React.FC = () => {
                     key={item.key}
                     onClick={() => handleSetPage(item.key)}
                     title={!isHovered ? item.label : undefined}
-                    className={`flex w-full items-center rounded-2xl py-3 text-left text-xs font-bold transition cursor-pointer ${
-                      isHovered ? 'px-4 justify-between' : 'lg:px-3 lg:justify-center px-4 justify-between'
-                    } ${
-                      page === item.key 
-                        ? 'bg-blue-50 text-blue-700 shadow-sm' 
+                    className={`flex w-full items-center rounded-2xl py-3 text-left text-xs font-bold transition cursor-pointer ${isHovered ? 'px-4 justify-between' : 'lg:px-3 lg:justify-center px-4 justify-between'
+                      } ${page === item.key
+                        ? 'bg-blue-50 text-blue-700 shadow-sm'
                         : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <span className={`${page === item.key ? 'text-blue-600' : 'text-slate-400'}`}>
@@ -229,12 +232,42 @@ const App: React.FC = () => {
 
           {/* CONTENEDOR DERECHO */}
           <div className="flex flex-1 flex-col min-w-0">
-            
+
             {/* BARRA SUPERIOR */}
             <header className="h-[65px] border-b border-slate-200 bg-white px-8 flex items-center justify-between shrink-0">
-              <div className="w-96">
-              </div>
+              <div className="flex items-center rounded-[25px] border border-slate-200 bg-[#f3f5f7] p-0.5 shadow-[inset_0_2px_5px_rgba(15,23,42,0.06)]">
+                {/* Español */}
+                <button
+                  onClick={() => i18n.changeLanguage('es')}
+                  className={`flex h-7 items-center justify-center gap-2.5 rounded-[22px] px-2 transition-all duration-300 cursor-pointer ${i18n.language === 'es'
+                      ? 'bg-white text-emerald-950 shadow-[0_5px_14px_rgba(15,23,42,0.14)] font-bold border border-emerald-700'
+                      : 'text-slate-500 hover:text-slate-700 font-medium'
+                    }`}
+                >
+                  <img
+                    src="https://flagcdn.com/w40/es.png"
+                    alt="Español"
+                    className="h-5 w-5 rounded-full object-cover shadow-sm"
+                  />
+                  <span className="text-xs tracking-wide">ES</span>
+                </button>
 
+                {/* Inglés */}
+                <button
+                  onClick={() => i18n.changeLanguage('en')}
+                  className={`flex h-7 items-center justify-center gap-2.5 rounded-[22px] px-2 flex-row-reverse transition-all duration-300 cursor-pointer ${i18n.language === 'en'
+                      ? 'bg-white text-emerald-950 shadow-[0_5px_14px_rgba(15,23,42,0.14)] font-bold border border-emerald-700'
+                      : 'text-slate-500 hover:text-slate-700 font-medium'
+                    }`}
+                >
+                  <img
+                    src="https://flagcdn.com/w40/gb.png"
+                    alt="English"
+                    className="h-5 w-5 rounded-full object-cover shadow-sm"
+                  />
+                  <span className="text-xs tracking-wide">EN</span>
+                </button>
+              </div>
               <div className="flex items-center gap-6">
                 {/* FECHA */}
                 <span className="text-xs text-slate-400 font-medium capitalize">{currentDate}</span>
@@ -249,12 +282,12 @@ const App: React.FC = () => {
                       {role === 'admin' ? 'Administrador' : 'Investigador'}
                     </p>
                   </div>
-                  <button 
+                  <button
                     onClick={handleLogout}
                     className="ml-4 flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-red-600 transition cursor-pointer"
                   >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-                    <span>Cerrar sesión</span>
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                    <span>{t('Logout')}</span>
                   </button>
                 </div>
               </div>
@@ -268,7 +301,7 @@ const App: React.FC = () => {
               {page === 'syncs' && <Syncs />}
               {page === 'physiological' && <PhysiologicalData />}
               {page === 'alerts' && <Alerts />}
-              {page === 'exports' && <Exports userEmail={currentUser} onNavigate={handleSetPage}/>}
+              {page === 'exports' && <Exports userEmail={currentUser} onNavigate={handleSetPage} />}
               {page === 'admin' && <Admin />}
             </main>
           </div>

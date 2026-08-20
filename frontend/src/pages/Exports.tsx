@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 type ExportLog = {
   id: string;
@@ -17,6 +18,7 @@ interface ExportsProps {
 }
 
 const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
+  const { t } = useTranslation();
   const storageKey = userEmail ? `export_history_${userEmail}` : 'export_history_guest';
   const settingsKey = userEmail ? `export_max_logs_${userEmail}` : 'export_max_logs_guest';
 
@@ -60,9 +62,8 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
 
   const clearHistory = () => {
     setHistory([]);
-    localStorage.removeItem(storageKey); // Limpia solo el historial del usuario actual
+    localStorage.removeItem(storageKey);
   };
-
 
   const getCardIcon = (type: string) => {
     switch (type) {
@@ -116,8 +117,8 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
     <div className="w-full text-slate-900 space-y-8">
       {/* Cabecera */}
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Exportaciones</h1>
-        <p className="mt-1 text-xs font-medium text-slate-500">Descarga conjuntos de datos globales para análisis estadístico.</p>
+        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">{t('Exports Title')}</h1>
+        <p className="mt-1 text-xs font-medium text-slate-500">{t('Exports Subtitle')}</p>
       </div>
 
       {/* Tarjeta informativa superior */}
@@ -128,12 +129,12 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
           </svg>
         </div>
         <p className="text-xs text-blue-900">
-          Para exportar rangos o participantes específicos, utiliza los filtros avanzados en la sección de{' '}
+          {t('Export Notice')}{' '}
           <span
             onClick={() => onNavigate && onNavigate('physiological')}
             className="font-bold underline cursor-pointer text-blue-700 hover:text-blue-900 transition"
           >
-            Datos fisiológicos
+            {t('Physiological Data Title')}
           </span>.
         </p>
       </div>
@@ -141,10 +142,10 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
       {/* Cuadrícula de tarjetas de exportación */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          { label: 'PARTICIPANTES', type: 'participants', description: 'Listado completo e información.' },
-          { label: 'FITBIT REGISTRADAS', type: 'fitbits', description: 'Estado y asignación de pulseras.' },
-          { label: 'SINCRONIZACIONES', type: 'syncs', description: 'Historial de descargas y errores.' },
-          { label: 'DATOS FISIOLÓGICOS', type: 'physiological', description: 'Volcado masivo de métricas globales.' },
+          { label: t('Participants Resource'), type: 'participants', description: t('Participants Desc') },
+          { label: t('Fitbits Resource'), type: 'fitbits', description: t('Fitbits Desc') },
+          { label: t('Syncs Resource'), type: 'syncs', description: t('Syncs Desc') },
+          { label: t('Physiological Resource'), type: 'physiological', description: t('Physiological Desc') },
         ].map((item) => (
           <div key={item.type} className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm flex flex-col justify-between">
             <div>
@@ -163,7 +164,7 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
                 className="w-full grid grid-cols-[1fr_auto_1fr] items-center rounded-xl bg-[#3A8FC2] hover:bg-[#27648A] px-4 py-3 text-[11px] font-bold text-white transition shadow-md shadow-blue-500/20 cursor-pointer"
               >
                 <span></span>
-                <span className="text-center">Descargar CSV</span>
+                <span className="text-center">{t('Download CSV')}</span>
                 <div className="flex justify-end">
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -177,7 +178,7 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
                 className="w-full grid grid-cols-[1fr_auto_1fr] items-center rounded-xl border border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-100 px-4 py-3 text-[11px] font-bold text-slate-700 transition shadow-sm cursor-pointer"
               >
                 <span></span>
-                <span className="text-center">Descargar Excel</span>
+                <span className="text-center">{t('Download Excel')}</span>
                 <div className="flex justify-end">
                   <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-mono">.XLSX</span>
                 </div>
@@ -197,13 +198,12 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
               </svg>
             </div>
             <div>
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">Últimas descargas</h2>
-              <p className="text-[11px] text-slate-400">Historial de los {maxLogs} últimos archivos exportados.</p>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">{t('Latest Downloads')}</h2>
+              <p className="text-[11px] text-slate-400">{t('Logs History Desc', { count: maxLogs })}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Selector dinámico de registros (máximo 25) */}
             <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-full text-xs font-semibold text-slate-600">
               <select
                 value={maxLogs}
@@ -217,7 +217,7 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
                 <option value={20}>20</option>
                 <option value={25}>25</option>
               </select>
-              <span>registros</span>
+              <span>{t('Records Count')}</span>
             </div>
 
             {history.length > 0 && (
@@ -225,7 +225,7 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
                 onClick={clearHistory}
                 className="rounded-xl border border-rose-200 bg-white px-3 py-1.5 text-xs font-bold text-rose-500 transition hover:bg-rose-50 cursor-pointer shadow-sm"
               >
-                Limpiar historial
+                {t('Clear History')}
               </button>
             )}
           </div>
@@ -236,10 +236,10 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
             <table className="min-w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-100 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                  <th className="pb-3 pl-2">Recurso</th>
-                  <th className="pb-3">Formato</th>
-                  <th className="pb-3">Fecha y Hora</th>
-                  <th className="pb-3 pr-2 text-right">Acción</th>
+                  <th className="pb-3 pl-2">{t('Resource')}</th>
+                  <th className="pb-3">{t('Format')}</th>
+                  <th className="pb-3">{t('Date and Time')}</th>
+                  <th className="pb-3 pr-2 text-right">{t('Action')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 text-xs">
@@ -286,7 +286,7 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
             </table>
           </div>
         ) : (
-          <p className="py-8 text-center text-xs text-slate-400">No hay registros de descargas recientes.</p>
+          <p className="py-8 text-center text-xs text-slate-400">{t('No Downloads')}</p>
         )}
       </div>
     </div>

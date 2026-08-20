@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 type PhysiologicalDataItem = {
   participant_code: string;
@@ -17,10 +18,131 @@ const VARIABLE_OPTIONS = [
   'HR_ZONE_CARDIO', 'HR_ZONE_PEAK', 'ACTIVE_ZONE_MINUTES', 'STEPS', 'DISTANCE'
 ];
 
+// --- Componente reutilizable para desplegables de SELECCIÓN MÚLTIPLE con buscador ---
+const CustomMultiSearchableSelect: React.FC<{
+  label: string;
+  selectedValues: string[];
+  onChange: (vals: string[]) => void;
+  options: string[];
+  placeholder?: string;
+}> = ({ label, selectedValues, onChange, options, placeholder = "Buscar..." }) => {
+  const { t } = useTranslation();
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filtered = options.filter(o => o.toLowerCase().includes(search.toLowerCase()));
+
+  const toggleOption = (opt: string) => {
+    if (selectedValues.includes(opt)) {
+      onChange(selectedValues.filter(v => v !== opt));
+    } else {
+      onChange([...selectedValues, opt]);
+    }
+  };
+
+  const getDisplayText = () => {
+    if (selectedValues.length === 0) return `${t('All')} ${label.toLowerCase()}s`;
+    if (selectedValues.length === 1) return selectedValues[0];
+    return `${selectedValues.length} ${label.toLowerCase()}s ${t('Selected plural')}`;
+  };
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">{label}</label>
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50/60 px-4 py-3 text-xs font-semibold text-slate-900 cursor-pointer transition hover:border-blue-500 hover:bg-white"
+      >
+        <span className="truncate">{getDisplayText()}</span>
+        <div className="flex items-center gap-1.5 text-slate-400">
+          {selectedValues.length > 0 && (
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange([]);
+              }}
+              className="hover:text-slate-600 p-0.5 rounded-full"
+              title={t('Clear selection')}
+            >
+              ✕
+            </span>
+          )}
+          <svg className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 z-50 mt-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
+          <div className="relative mb-2">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </span>
+            <input
+              type="search"
+              autoFocus
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={placeholder}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50/60 py-2 pl-9 pr-3 text-xs text-slate-900 outline-none focus:border-blue-500 focus:bg-white"
+            />
+          </div>
+
+          <div className="max-h-60 overflow-y-auto space-y-1">
+            <div
+              onClick={() => onChange([])}
+              className={`cursor-pointer rounded-xl px-3 py-2 text-xs font-semibold transition ${selectedValues.length === 0 ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}
+            >
+              {t('All (Clear selection)')}
+            </div>
+            {filtered.map(opt => {
+              const isSelected = selectedValues.includes(opt);
+              return (
+                <div
+                  key={opt}
+                  onClick={() => toggleOption(opt)}
+                  className={`flex items-center justify-between cursor-pointer rounded-xl px-3 py-2 text-xs font-semibold transition ${isSelected ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}
+                >
+                  <span className="truncate mr-2">{opt}</span>
+                  <div className={`h-4 w-4 rounded-md border flex items-center justify-center transition ${isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 bg-white'}`}>
+                    {isSelected && (
+                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            {filtered.length === 0 && (
+              <p className="py-4 text-center text-xs text-slate-400">{t('No results found')}</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const PhysiologicalData: React.FC = () => {
-  const [participant, setParticipant] = useState('');
-  const [fitbit, setFitbit] = useState('');
-  const [variableType, setVariableType] = useState('');
+  const { t } = useTranslation();
+  const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
+  const [selectedFitbits, setSelectedFitbits] = useState<string[]>([]);
+  const [selectedVariables, setSelectedVariables] = useState<string[]>([]);
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
 
@@ -47,22 +169,26 @@ const PhysiologicalData: React.FC = () => {
       fetch(`${API_BASE}/api/assignments/`, { credentials: 'include' }).then(r => r.json())
     ])
       .then(([partData, fitData, physData, assignData]) => {
-        const itemsPart = partData.items || [];
+        const itemsPart = partData.items || partData || [];
         setParticipantsList(itemsPart.map((p: any) => p.participant_code));
         setFitbitsList(fitData.items || []);
 
         const statusMap: Record<string, string> = {};
-        const assignments = assignData.items || [];
+        const assignments = assignData.items || assignData || [];
 
         itemsPart.forEach((p: any) => {
-          const assign = assignments.find((a: any) => a.participant_code === p.participant_code);
+          const assign = assignments.find((a: any) => {
+            const aCode = typeof a.participant === 'string'
+              ? a.participant
+              : a.participant?.participant_code || a.participant_code;
+            return aCode === p.participant_code;
+          });
 
           if (!assign) {
             statusMap[p.participant_code] = 'PENDING';
-          } else if (assign.real_end_date) {
+          } else if (assign.real_end_date && new Date(assign.real_end_date) <= new Date()) {
             statusMap[p.participant_code] = 'COMPLETED';
           } else {
-            // Si tiene asignación y no tiene real_end_date, está ACTIVO
             statusMap[p.participant_code] = 'ACTIVE';
           }
         });
@@ -74,9 +200,9 @@ const PhysiologicalData: React.FC = () => {
   const loadData = () => {
     setError(null);
     const params = new URLSearchParams();
-    if (participant) params.append('participant', participant);
-    if (fitbit) params.append('fitbit', fitbit);
-    if (variableType) params.append('variable_type', variableType);
+    if (selectedParticipants.length > 0) params.append('participant', selectedParticipants.join(','));
+    if (selectedFitbits.length > 0) params.append('fitbit', selectedFitbits.join(','));
+    if (selectedVariables.length > 0) params.append('variable_type', selectedVariables.join(','));
     if (from) params.append('from', from);
     if (to) params.append('to', to);
 
@@ -86,19 +212,15 @@ const PhysiologicalData: React.FC = () => {
         setData(result.items || []);
         setCurrentPage(1);
       })
-      .catch(() => setError('No se encontraron datos fisiológicos'));
+      .catch(() => setError(t('Error loading physiological data')));
   };
 
   useEffect(() => {
     loadData();
-  }, [participant, fitbit, variableType, from, to]);
+  }, [selectedParticipants, selectedFitbits, selectedVariables, from, to]);
 
   const filteredDataByStatus = data.filter((item) => {
-    const pStatus = participantsStatusMap[item.participant_code] || 'PENDING';
-
-    // Ocultar cualquier dato de participantes en estado PENDING
-    if (pStatus === 'PENDING') return false;
-
+    const pStatus = participantsStatusMap[item.participant_code] || 'ACTIVE';
     if (statusFilter === 'ALL') return true;
     return pStatus === statusFilter;
   });
@@ -107,9 +229,9 @@ const PhysiologicalData: React.FC = () => {
   const paginatedData = filteredDataByStatus.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const clearFilters = () => {
-    setParticipant('');
-    setFitbit('');
-    setVariableType('');
+    setSelectedParticipants([]);
+    setSelectedFitbits([]);
+    setSelectedVariables([]);
     setFrom('');
     setTo('');
     setStatusFilter('ALL');
@@ -122,9 +244,9 @@ const PhysiologicalData: React.FC = () => {
     const params = new URLSearchParams();
     params.append('type', 'physiological');
     params.append('format', format);
-    if (participant) params.append('participant', participant);
-    if (fitbit) params.append('fitbit', fitbit);
-    if (variableType) params.append('variable_type', variableType);
+    if (selectedParticipants.length > 0) params.append('participant', selectedParticipants.join(','));
+    if (selectedFitbits.length > 0) params.append('fitbit', selectedFitbits.join(','));
+    if (selectedVariables.length > 0) params.append('variable_type', selectedVariables.join(','));
     if (from) params.append('from', from);
     if (to) params.append('to', to);
     if (statusFilter && statusFilter !== 'ALL') params.append('status', statusFilter);
@@ -167,8 +289,8 @@ const PhysiologicalData: React.FC = () => {
       {/* Cabecera de la sección */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900">Datos fisiológicos</h1>
-          <p className="mt-1 text-xs font-medium text-slate-500">Consulta, filtra y analiza el histórico de monitorización</p>
+          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900">{t('Physiological Data Title')}</h1>
+          <p className="mt-1 text-xs font-medium text-slate-500">{t('Physiological Subtitle')}</p>
         </div>
       </div>
 
@@ -176,24 +298,21 @@ const PhysiologicalData: React.FC = () => {
       <div className="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-xl w-fit">
         <button
           onClick={() => { setStatusFilter('ALL'); setCurrentPage(1); }}
-          className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${statusFilter === 'ALL' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'
-            }`}
+          className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${statusFilter === 'ALL' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
         >
-          Todos
+          {t('All')}
         </button>
         <button
           onClick={() => { setStatusFilter('ACTIVE'); setCurrentPage(1); }}
-          className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${statusFilter === 'ACTIVE' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'
-            }`}
+          className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${statusFilter === 'ACTIVE' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
         >
-          Activos
+          {t('Active')}
         </button>
         <button
           onClick={() => { setStatusFilter('COMPLETED'); setCurrentPage(1); }}
-          className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${statusFilter === 'COMPLETED' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'
-            }`}
+          className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${statusFilter === 'COMPLETED' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
         >
-          Completados
+          {t('Completed')}
         </button>
       </div>
 
@@ -206,73 +325,51 @@ const PhysiologicalData: React.FC = () => {
                 onClick={() => handleExport('csv')}
                 className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-bold text-slate-700 hover:bg-emerald-100 transition shadow-sm cursor-pointer"
               >
-                Exportar a CSV
+                {t('Export CSV')}
               </button>
               <button
                 onClick={() => handleExport('xlsx')}
                 className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-bold text-slate-700 hover:bg-emerald-100 transition shadow-sm cursor-pointer"
               >
-                Exportar a Excel
+                {t('Export Excel')}
               </button>
             </div>
             <button
               onClick={clearFilters}
               className="ml-auto rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold text-rose-500 transition hover:bg-rose-500 hover:text-white cursor-pointer shadow-sm"
             >
-              Limpiar filtros
+              {t('Clear Filters')}
             </button>
           </div>
         </div>
 
         <div className="mt-6 pt-6 border-t border-slate-100 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {/* Participante */}
-          <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Participante</label>
-            <select
-              value={participant}
-              onChange={(e) => setParticipant(e.target.value)}
-              className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50/60 px-4 py-3 pr-10 text-xs font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white cursor-pointer"
-            >
-              <option value="">Todos los participantes</option>
-              {participantsList.map((code) => (
-                <option key={code} value={code}>{code}</option>
-              ))}
-            </select>
-          </div>
+          <CustomMultiSearchableSelect
+            label={t('Participants Resource')}
+            selectedValues={selectedParticipants}
+            onChange={setSelectedParticipants}
+            options={participantsList}
+            placeholder={t('Search Participant')}
+          />
 
-          {/* Fitbit */}
-          <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Pulsera Fitbit</label>
-            <select
-              value={fitbit}
-              onChange={(e) => setFitbit(e.target.value)}
-              className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50/60 px-4 py-3 pr-10 text-xs font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white cursor-pointer"
-            >
-              <option value="">Todas las pulseras</option>
-              {fitbitsList.map((code) => (
-                <option key={code} value={code}>{code}</option>
-              ))}
-            </select>
-          </div>
+          <CustomMultiSearchableSelect
+            label={t('Fitbit')}
+            selectedValues={selectedFitbits}
+            onChange={setSelectedFitbits}
+            options={fitbitsList}
+            placeholder={t('Search Fitbit')}
+          />
 
-          {/* Variable */}
-          <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Variable</label>
-            <select
-              value={variableType}
-              onChange={(e) => setVariableType(e.target.value)}
-              className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50/60 px-4 py-3 pr-10 text-xs font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white cursor-pointer"
-            >
-              <option value="">Todas las variables</option>
-              {VARIABLE_OPTIONS.map((v) => (
-                <option key={v} value={v}>{v}</option>
-              ))}
-            </select>
-          </div>
+          <CustomMultiSearchableSelect
+            label={t('Variable')}
+            selectedValues={selectedVariables}
+            onChange={setSelectedVariables}
+            options={VARIABLE_OPTIONS}
+            placeholder={t('Search Variable')}
+          />
 
-          {/* Desde */}
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Desde</label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">{t('From')}</label>
             <input
               type="datetime-local"
               value={from}
@@ -281,9 +378,8 @@ const PhysiologicalData: React.FC = () => {
             />
           </div>
 
-          {/* Hasta */}
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Hasta</label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">{t('To')}</label>
             <input
               type="datetime-local"
               value={to}
@@ -297,9 +393,9 @@ const PhysiologicalData: React.FC = () => {
       {/* Tabla de registros */}
       <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xl shadow-slate-200/40">
         <div className="mb-6 flex items-center justify-between">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-700">Registros detallados</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-700">{t('Detailed Records')}</p>
           <span className="inline-flex items-center px-3 py-1 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
-            Mostrando {paginatedData.length} de {filteredDataByStatus.length} registros filtrados
+            {t('Showing Filtered Records', { count: paginatedData.length, total: filteredDataByStatus.length })}
           </span>
         </div>
 
@@ -308,18 +404,18 @@ const PhysiologicalData: React.FC = () => {
             <table className="min-w-full table-fixed border-collapse text-left">
               <thead>
                 <tr className="bg-blue-50/60 text-blue-900 uppercase text-[10px] tracking-wider">
-                  <th className="w-[18%] px-6 py-3.5 font-bold rounded-l-2xl">PARTICIPANTE</th>
-                  <th className="w-[17%] px-6 py-3.5 font-bold">ESTADO</th>
-                  <th className="w-[18%] px-6 py-3.5 font-bold">PULSERA</th>
-                  <th className="w-[18%] px-6 py-3.5 font-bold">VARIABLE</th>
+                  <th className="w-[18%] px-6 py-3.5 font-bold rounded-l-2xl">{t('Participants Resource')}</th>
+                  <th className="w-[17%] px-6 py-3.5 font-bold">{t('Status')}</th>
+                  <th className="w-[18%] px-6 py-3.5 font-bold">{t('Fitbit')}</th>
+                  <th className="w-[18%] px-6 py-3.5 font-bold">{t('Variable')}</th>
                   <th className="w-[15%] px-6 py-3.5 font-bold cursor-pointer select-none hover:text-blue-600 transition" onClick={toggleSortOrderDate}>
                     <div className="flex items-center gap-1.5">
-                      <span>HORA</span>
+                      <span>{t('Time')}</span>
                     </div>
                   </th>
                   <th className="w-[14%] px-6 py-3.5 font-bold cursor-pointer select-none hover:text-blue-600 transition rounded-r-2xl" onClick={toggleSortOrderValue}>
                     <div className="flex items-center gap-1.5">
-                      <span>VALOR</span>
+                      <span>{t('Value')}</span>
                     </div>
                   </th>
                 </tr>
@@ -331,9 +427,12 @@ const PhysiologicalData: React.FC = () => {
                     <tr key={`${item.participant_code}-${index}`} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50/80 transition-colors">
                       <td className="px-6 py-4 text-xs font-bold text-slate-900">{item.participant_code}</td>
                       <td className="px-6 py-4 text-xs">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-xl text-[10px] font-bold ${status === 'COMPLETED' ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                          }`}>
-                          {status === 'COMPLETED' ? 'Completado' : 'Activo'}
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-xl text-[10px] font-bold ${
+                          status === 'COMPLETED'
+                            ? 'bg-amber-50 text-amber-700 border border-amber-100'
+                            : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                        }`}>
+                          {status === 'COMPLETED' ? t('Completed') : t('Active')}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-xs font-semibold text-blue-600">{item.fitbit_code}</td>
@@ -343,7 +442,9 @@ const PhysiologicalData: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-xs text-slate-600">{new Date(item.physical_time).toLocaleString('es-ES')}</td>
-                      <td className="px-6 py-4 text-xs font-bold text-slate-900">{item.metric_value}</td>
+                      <td className="px-6 py-4 text-xs font-bold text-slate-900">
+                        {item.metric_value !== null && item.metric_value !== undefined ? item.metric_value : 'null'}
+                      </td>
                     </tr>
                   );
                 })}
@@ -352,11 +453,11 @@ const PhysiologicalData: React.FC = () => {
           </div>
         </div>
 
-        {/*  Paginación */}
+        {/* Paginación */}
         {filteredDataByStatus.length > 0 && (
           <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-[11px] font-medium text-slate-400">
-              Página {currentPage} de {totalPages}
+              {t('Page', { page: currentPage, totalPages })}
             </p>
 
             <div className="flex items-center gap-2">
@@ -365,7 +466,7 @@ const PhysiologicalData: React.FC = () => {
                 disabled={currentPage === 1}
                 className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
               >
-                ← Anterior
+                {t('Previous')}
               </button>
 
               <div className="rounded-xl bg-blue-50 px-4 py-2 text-[11px] font-bold text-blue-700">
@@ -377,14 +478,14 @@ const PhysiologicalData: React.FC = () => {
                 disabled={currentPage === totalPages}
                 className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
               >
-                Siguiente →
+                {t('Next')}
               </button>
             </div>
           </div>
         )}
 
         {filteredDataByStatus.length === 0 && !error && (
-          <p className="py-12 text-center text-xs text-slate-400">No se encontraron datos para los filtros seleccionados.</p>
+          <p className="py-12 text-center text-xs text-slate-400">{t('No Physiological Data')}</p>
         )}
         {error && (
           <p className="py-12 text-center text-xs text-red-500">{error}</p>

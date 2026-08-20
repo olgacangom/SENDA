@@ -250,7 +250,7 @@ class Assignment(models.Model):
             self.estimated_end_date = timezone.make_aware(self.estimated_end_date, tz)
 
         if self.estimated_end_date and self.estimated_end_date <= self.start_date:
-            raise ValidationError("Estimated end date must be later than start date.")
+            raise ValidationError("La fecha de finalización estimada debe ser posterior a la fecha de inicio.")
 
         overlapping = Assignment.objects.filter(fitbit=self.fitbit)
         if self.pk:
@@ -297,7 +297,7 @@ class PhysiologicalData(models.Model):
     physical_time = models.DateTimeField()
     start_time = models.DateTimeField(blank=True, null=True)
     end_time = models.DateTimeField(blank=True, null=True)
-    metric_value = models.FloatField()
+    metric_value = models.FloatField(null=True, blank=True)
     device_name = models.CharField(max_length=100, blank=True, null=True)
     platform = models.CharField(max_length=100, blank=True, null=True)
     recording_method = models.CharField(max_length=100, blank=True, null=True)

@@ -27,7 +27,9 @@ from .views import (
     api_researcher_request_code,
     api_researcher_verify_code,
     api_researcher_verify_registration,
-    researcher_response_view
+    researcher_response_view,
+    api_assignments_update,
+    api_assignments_delete,
 )
 
 urlpatterns = [
@@ -60,5 +62,7 @@ urlpatterns = [
     path('api/participants/list/', api_participants_list, name='api_participants_list'),
     path('api/fitbits/list/', api_fitbits_list, name='api_fitbits_list'),
     path('api/assignments/create/', api_assignments_create, name='api_assignments_create'),
+    path('api/assignments/update/', api_assignments_update, name='api_assignments_update'),
+    path('api/assignments/delete/', api_assignments_delete, name='delete'),
 
 ]

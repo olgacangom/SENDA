@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const API_BASE = 'http://localhost:1574';
 
@@ -13,6 +14,7 @@ type SyncLog = {
 };
 
 const Syncs: React.FC = () => {
+  const { t } = useTranslation();
   const [syncs, setSyncs] = useState<SyncLog[]>([]);
   const [metrics, setMetrics] = useState({ success: 0, error: 0, total: 0 });
   const [query, setQuery] = useState('');
@@ -22,7 +24,7 @@ const Syncs: React.FC = () => {
 
   const [pageSize, setPageSize] = useState<number>(() => {
     const savedSize = localStorage.getItem('syncs_page_size');
-    return savedSize ? Number(savedSize) : 10;  // tamaño de página dinámico, por defecto 10
+    return savedSize ? Number(savedSize) : 10;
   });
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -44,7 +46,7 @@ const Syncs: React.FC = () => {
         total: items.length,
       });
     } catch {
-      setError('No se pudieron cargar las sincronizaciones');
+      setError(t('Error loading syncs'));
     } finally {
       setLoading(false);
     }
@@ -60,7 +62,7 @@ const Syncs: React.FC = () => {
   }, [pageSize]);
 
   const clearHistory = async () => {
-    if (!window.confirm('¿Estás seguro de que deseas vaciar todo el historial de sincronizaciones? Esta acción no se puede deshacer.')) {
+    if (!window.confirm(t('Clear history confirmation'))) {
       return;
     }
     setError(null);
@@ -74,10 +76,10 @@ const Syncs: React.FC = () => {
         setMetrics({ success: 0, error: 0, total: 0 });
         setCurrentPage(1);
       } else {
-        setError('No se pudo vaciar el historial');
+        setError(t('Clear history error'));
       }
     } catch {
-      setError('Error de red al intentar vaciar el historial');
+      setError(t('Server connection error'));
     }
   };
 
@@ -88,7 +90,7 @@ const Syncs: React.FC = () => {
       return sync.google_account.email;
     }
     if (sync.email) return sync.email;
-    return 'Sin cuenta';
+    return t('No account');
   };
 
   const handleSort = (field: 'date' | 'records') => {
@@ -133,8 +135,8 @@ const Syncs: React.FC = () => {
       {/* Cabecera de la sección */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900">Sincronizaciones</h1>
-          <p className="mt-1 text-xs font-medium text-slate-500">Historial de descargas desde Google Health API y estado de cada intento.</p>
+          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900">{t('Syncs Title')}</h1>
+          <p className="mt-1 text-xs font-medium text-slate-500">{t('Syncs Subtitle')}</p>
         </div>
         <div className="flex items-center gap-3 self-start sm:self-auto">
           {syncs.length > 0 && (
@@ -145,7 +147,7 @@ const Syncs: React.FC = () => {
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
-              <span>Vaciar historial</span>
+              <span>{t('Clear History Btn')}</span>
             </button>
           )}
           <button
@@ -156,7 +158,7 @@ const Syncs: React.FC = () => {
             <svg className={`h-4 w-4 text-slate-500 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            <span>{loading ? 'Actualizando...' : 'Actualizar datos'}</span>
+            <span>{loading ? t('Updating') : t('Update Data')}</span>
           </button>
         </div>
       </div>
@@ -164,15 +166,15 @@ const Syncs: React.FC = () => {
       {/* Tarjetas de métricas superiores */}
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-3xl border border-emerald-200/80 bg-white p-5 shadow-xl shadow-emerald-100/40 transition-all duration-200 hover:-translate-y-1 text-center">
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-emerald-600">ÉXITOS</p>
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-emerald-600">{t('Success Metric')}</p>
           <p className="mt-2 text-3xl font-extrabold text-emerald-800">{metrics.success}</p>
         </div>
         <div className="rounded-3xl border border-rose-200/80 bg-white p-5 shadow-xl shadow-rose-100/40 transition-all duration-200 hover:-translate-y-1 text-center">
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-rose-600">ERRORES</p>
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-rose-600">{t('Error Metric')}</p>
           <p className="mt-2 text-3xl font-extrabold text-rose-800">{metrics.error}</p>
         </div>
         <div className="rounded-3xl border border-blue-200/80 bg-white p-5 shadow-xl shadow-blue-100/40 transition-all duration-200 hover:-translate-y-1 text-center">
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-blue-600">TOTAL PROCESOS</p>
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-blue-600">{t('Total Metric')}</p>
           <p className="mt-2 text-3xl font-extrabold text-blue-800">{metrics.total}</p>
         </div>
       </div>
@@ -187,19 +189,19 @@ const Syncs: React.FC = () => {
               onClick={() => { setStatusFilter('ALL'); setCurrentPage(1); }}
               className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${statusFilter === 'ALL' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
             >
-              Todos
+              {t('All')}
             </button>
             <button
               onClick={() => { setStatusFilter('SUCCESS'); setCurrentPage(1); }}
               className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${statusFilter === 'SUCCESS' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
             >
-              Éxitos
+              {t('Successes')}
             </button>
             <button
               onClick={() => { setStatusFilter('ERROR'); setCurrentPage(1); }}
               className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${statusFilter === 'ERROR' ? 'bg-white text-rose-700 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
             >
-              Errores
+              {t('Errors')}
             </button>
           </div>
 
@@ -216,7 +218,7 @@ const Syncs: React.FC = () => {
                 <option value={20}>20</option>
                 <option value={25}>25</option>
               </select>
-              <span>por página</span>
+              <span>{t('Per Page')}</span>
             </div>
           </div>
         </div>
@@ -232,7 +234,7 @@ const Syncs: React.FC = () => {
             type="search"
             value={query}
             onChange={(e) => { setQuery(e.target.value); setCurrentPage(1); }}
-            placeholder="Buscar por cuenta de correo o resultado..."
+            placeholder={t('Search Sync')}
             className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 py-3.5 pl-11 pr-4 text-xs text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
           />
         </div>
@@ -243,26 +245,26 @@ const Syncs: React.FC = () => {
             <table className="min-w-full table-fixed border-collapse text-left">
               <thead>
                 <tr className="bg-blue-50/60 text-blue-900 uppercase text-[10px] tracking-wider">
-                  <th className="w-[20%] px-6 py-3.5 font-bold rounded-l-2xl">ID REGISTRO</th>
-                  <th className="w-[30%] px-6 py-3.5 font-bold">CUENTA</th>
+                  <th className="w-[20%] px-6 py-3.5 font-bold rounded-l-2xl">{t('Sync ID')}</th>
+                  <th className="w-[30%] px-6 py-3.5 font-bold">{t('Account')}</th>
                   <th
                     className="w-[25%] px-6 py-3.5 font-bold cursor-pointer select-none hover:text-blue-600 transition"
                     onClick={() => handleSort('date')}
                   >
                     <div className="flex items-center gap-1.5">
-                      <span>INICIO</span>
+                      <span>{t('Start')}</span>
                       <svg className={`h-3.5 w-3.5 transition-transform ${sortField === 'date' && sortOrder === 'asc' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
                       </svg>
                     </div>
                   </th>
-                  <th className="w-[15%] px-6 py-3.5 font-bold">RESULTADO</th>
+                  <th className="w-[15%] px-6 py-3.5 font-bold">{t('Result')}</th>
                   <th
                     className="w-[10%] px-6 py-3.5 font-bold rounded-r-2xl cursor-pointer select-none hover:text-blue-600 transition"
                     onClick={() => handleSort('records')}
                   >
                     <div className="flex items-center gap-1.5">
-                      <span>REGS</span>
+                      <span>{t('Records Count')}</span>
                       <svg className={`h-3.5 w-3.5 transition-transform ${sortField === 'records' && sortOrder === 'asc' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
                       </svg>
@@ -304,7 +306,7 @@ const Syncs: React.FC = () => {
         {filteredAndSorted.length > 0 && (
           <div className="flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-[11px] font-medium text-slate-400">
-              Página {currentPage} de {totalPages} (Mostrando {paginatedSyncs.length} de {filteredAndSorted.length} registros filtrados)
+              {t('Page', { page: currentPage, totalPages })}
             </p>
 
             <div className="flex items-center gap-2">
@@ -313,7 +315,7 @@ const Syncs: React.FC = () => {
                 disabled={currentPage === 1}
                 className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
               >
-                ← Anterior
+                {t('Previous')}
               </button>
 
               <div className="rounded-xl bg-blue-50 px-4 py-2 text-[11px] font-bold text-blue-700">
@@ -325,14 +327,14 @@ const Syncs: React.FC = () => {
                 disabled={currentPage === totalPages}
                 className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
               >
-                Siguiente →
+                {t('Next')}
               </button>
             </div>
           </div>
         )}
 
         {paginatedSyncs.length === 0 && !error && (
-          <p className="py-12 text-center text-xs text-slate-400">No se encontraron sincronizaciones con los filtros aplicados.</p>
+          <p className="py-12 text-center text-xs text-slate-400">{t('No Syncs')}</p>
         )}
         {error && (
           <p className="py-12 text-center text-xs text-red-500">{error}</p>
