@@ -19,6 +19,20 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToFront }) => {
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    return localStorage.getItem('senda_dark_mode') === 'true';
+  });
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('senda_dark_mode', 'true');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('senda_dark_mode', 'false');
+    }
+  }, [darkMode]);
+
   useEffect(() => {
     setUsername('');
     setPassword('');
@@ -95,23 +109,42 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToFront }) => {
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-slate-50 text-slate-900 flex items-center justify-center p-6">
-      <main className="w-full max-w-md rounded-3xl border border-slate-200/80 bg-white p-8 shadow-2xl space-y-4">
+    <div className="h-screen w-screen overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex items-center justify-center p-6 relative transition-colors duration-300">
+      
+      {/* SWITCH MODO OSCURO */}
+      <div className="absolute top-6 right-6 flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-2xl shadow-sm">
+        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+          {darkMode ? 'Modo Oscuro' : 'Modo Claro'}
+        </span>
+        <button
+          onClick={() => setDarkMode(!darkMode)}
+          title={darkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+          className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-slate-300 dark:bg-amber-500 transition-colors duration-200 ease-in-out focus:outline-none"
+        >
+          <span
+            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+              darkMode ? 'translate-x-5' : 'translate-x-0'
+            }`}
+          />
+        </button>
+      </div>
+
+      <main className="w-full max-w-md rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-2xl space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
             <img src="/images/senda.png" alt="SENDA Logo" className="h-[60px] w-[60px] object-contain" />
           </div>
           <button
             onClick={onBackToFront}
-            className="text-xs font-semibold text-sky-600 hover:text-sky-800 transition cursor-pointer"
+            className="text-xs font-semibold text-sky-600 dark:text-sky-400 hover:text-sky-800 dark:hover:text-sky-300 transition cursor-pointer"
           >
             ← Volver al inicio
           </button>
         </div>
 
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-950">Iniciar sesión</h1>
-          <p className="mt-1 text-xs text-slate-500">
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-950 dark:text-white">Iniciar sesión</h1>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
             {role === 'admin' ? 'Acceso exclusivo para administradores.' : (step === 1 ? 'Introduce tu correo institucional autorizado.' : 'Introduce el código temporal recibido.')}
           </p>
         </div>
@@ -121,10 +154,10 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToFront }) => {
           className="space-y-4"
           autoComplete="off"
         >
-          <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 shadow-sm">
+          <div className="space-y-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 p-4 shadow-sm">
             {role === 'admin' || step === 1 ? (
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   {role === 'admin' ? 'Usuario administrador' : 'Correo investigador/a'}
                 </label>
                 <input
@@ -134,12 +167,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToFront }) => {
                   required
                   autoComplete="new-password"
                   placeholder={role === 'admin' ? 'Introduce tu usuario' : 'usuario@correo.com'}
-                  className="w-full rounded-xl border border-slate-200 bg-white py-3 px-4 text-xs text-slate-900 shadow-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 py-3 px-4 text-xs text-slate-900 dark:text-white shadow-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                 />
               </div>
             ) : (
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Código temporal de un solo uso</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Código temporal de un solo uso</label>
                 <input
                   value={otpCode}
                   onChange={(ev) => setOtpCode(ev.target.value)}
@@ -147,12 +180,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToFront }) => {
                   required
                   autoComplete="new-password"
                   placeholder="123456"
-                  className="w-full rounded-xl border border-slate-200 bg-white py-3 px-4 text-xs text-slate-900 shadow-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 text-center tracking-widest font-mono text-base"
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 py-3 px-4 text-xs text-slate-900 dark:text-white shadow-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 text-center tracking-widest font-mono text-base"
                 />
                 <button
                   type="button"
                   onClick={() => { setStep(1); setOtpCode(''); setError(null); setInfoMessage(null); }}
-                  className="mt-2 text-[11px] text-sky-600 hover:underline block text-right w-full"
+                  className="mt-2 text-[11px] text-sky-600 dark:text-sky-400 hover:underline block text-right w-full cursor-pointer"
                 >
                   ¿Cambiar correo o reenviar código?
                 </button>
@@ -161,7 +194,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToFront }) => {
 
             {role === 'admin' && (
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Contraseña</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Contraseña</label>
                 <input
                   value={password}
                   onChange={(ev) => setPassword(ev.target.value)}
@@ -169,16 +202,16 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToFront }) => {
                   required
                   autoComplete="new-password"
                   placeholder="••••••••"
-                  className="w-full rounded-xl border border-slate-200 bg-white py-3 px-4 text-xs text-slate-900 shadow-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 py-3 px-4 text-xs text-slate-900 dark:text-white shadow-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                 />
               </div>
             )}
           </div>
 
-          <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 shadow-sm">
-            <p className="text-xs font-semibold text-slate-700">Rol</p>
+          <div className="space-y-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 p-4 shadow-sm">
+            <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Rol</p>
             <div className="grid gap-2 sm:grid-cols-2">
-              <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-medium text-slate-700 shadow-sm transition hover:border-sky-300">
+              <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 shadow-sm transition hover:border-sky-300">
                 <input
                   type="radio"
                   name="role"
@@ -189,7 +222,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToFront }) => {
                 />
                 Investigador
               </label>
-              <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-medium text-slate-700 shadow-sm transition hover:border-sky-300">
+              <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 shadow-sm transition hover:border-sky-300">
                 <input
                   type="radio"
                   name="role"
@@ -211,12 +244,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToFront }) => {
             >
               {loading ? 'Procesando...' : (role === 'researcher' && step === 1 ? 'Solicitar código de verificación' : 'Acceder al sistema')}
             </button>
-            {infoMessage && <p className="mt-2 text-xs text-emerald-600 text-center font-medium">{infoMessage}</p>}
-            {error && <p className="mt-2 text-xs text-red-500 text-center font-medium">{error}</p>}
+            {infoMessage && <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 text-center font-medium">{infoMessage}</p>}
+            {error && <p className="mt-2 text-xs text-red-500 dark:text-red-400 text-center font-medium">{error}</p>}
           </div>
         </form>
 
-        <div className="border-t border-slate-100 pt-4 text-center text-[11px] text-slate-400">
+        <div className="border-t border-slate-100 dark:border-slate-800 pt-4 text-center text-[11px] text-slate-400">
           © 2026 SENDA · Andalucía
         </div>
       </main>

@@ -75,18 +75,18 @@ const Admin: React.FC = () => {
   };
 
   return (
-    <div className="w-full text-slate-900 space-y-8">
+    <div className="w-full text-slate-900 dark:text-slate-100 space-y-8">
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900">{t('Admin Title')}</h1>
-          <p className="mt-1 text-xs font-medium text-slate-500">{t('Admin Subtitle')}</p>
+          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">{t('Admin Title')}</h1>
+          <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">{t('Admin Subtitle')}</p>
         </div>
       </div>
 
-      <div className="rounded-3xl border border-slate-200/80 bg-white p-8 shadow-xl shadow-slate-200/40">
+      <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-xl shadow-slate-200/40 dark:shadow-none transition-colors duration-300">
         <form onSubmit={submit} autoComplete="off" className="grid gap-6 sm:grid-cols-2 items-end">
           <div className="col-span-1">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">{t('Researcher Email Input')}</label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">{t('Researcher Email Input')}</label>
             <input
               type="email"
               value={email}
@@ -94,7 +94,7 @@ const Admin: React.FC = () => {
               placeholder="investigador@senda.es"
               required
               autoComplete="off"
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 px-4 py-3.5 text-xs text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+              className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/80 px-4 py-3.5 text-xs text-slate-900 dark:text-white outline-none transition focus:border-blue-500 focus:bg-white dark:focus:bg-slate-800"
             />
           </div>
           <div className="col-span-1 flex justify-end">
@@ -108,38 +108,39 @@ const Admin: React.FC = () => {
           </div>
         </form>
 
-        {message && <p className="mt-4 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 p-4 rounded-2xl shadow-sm">{message}</p>}
-        {error && <p className="mt-4 text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 p-4 rounded-2xl shadow-sm">{error}</p>}
+        {message && <p className="mt-4 text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-900 p-4 rounded-2xl shadow-sm">{message}</p>}
+        {error && <p className="mt-4 text-xs font-semibold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 p-4 rounded-2xl shadow-sm">{error}</p>}
       </div>
 
-      <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xl shadow-slate-200/40">
+      <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl shadow-slate-200/40 dark:shadow-none transition-colors duration-300">
         <div className="mb-6 flex items-center justify-between">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-700">{t('Authorized Researchers')}</p>
-          <span className="inline-flex items-center px-3 py-1 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">{t('Authorized Researchers')}</p>
+          <span className="inline-flex items-center px-3 py-1 rounded-xl text-xs font-semibold bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-900">
             {researchers.length} {t('Accounts Registered')}
           </span>
-
         </div>
 
         <div className="overflow-hidden rounded-2xl">
           <div className="overflow-x-auto">
             <table className="min-w-full table-fixed border-collapse text-left">
               <thead>
-                <tr className="bg-blue-50/60 text-blue-900 uppercase text-[10px] tracking-wider">
+                <tr className="bg-blue-50/60 dark:bg-slate-800/80 text-blue-900 dark:text-blue-300 uppercase text-[10px] tracking-wider">
                   <th className="w-[40%] px-6 py-3.5 font-bold rounded-l-2xl">{t('Email')}</th>
                   <th className="w-[30%] px-6 py-3.5 font-bold">{t('Created')}</th>
                   <th className="w-[15%] px-6 py-3.5 font-bold">{t('Status')}</th>
                   <th className="w-[15%] px-6 py-3.5 font-bold rounded-r-2xl text-right">{t('Action')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {researchers.map((r) => (
-                  <tr key={r.email} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-6 py-4 text-xs font-bold text-slate-900">{r.email}</td>
-                    <td className="px-6 py-4 text-xs text-slate-600">{new Date(r.created_at).toLocaleDateString('es-ES')}</td>
+                  <tr key={r.email} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
+                    <td className="px-6 py-4 text-xs font-bold text-slate-900 dark:text-white">{r.email}</td>
+                    <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-300">{new Date(r.created_at).toLocaleDateString('es-ES')}</td>
                     <td className="px-6 py-4 text-xs">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-semibold border ${
-                        r.is_active ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                        r.is_active 
+                          ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900' 
+                          : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900'
                       }`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${r.is_active ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
                         {r.is_active ? t('Active') : t('Pending')}
@@ -149,7 +150,7 @@ const Admin: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => deleteResearcher(r.email)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-rose-200 bg-white text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition shadow-sm cursor-pointer"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-rose-200 dark:border-rose-900 bg-white dark:bg-slate-800 text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 hover:text-rose-700 dark:hover:text-rose-300 transition shadow-sm cursor-pointer"
                         title={t('Delete Researcher')}
                       >
                         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -86,24 +86,32 @@ const Alerts: React.FC = () => {
   const paginatedAlerts = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
-    <div className="w-full text-slate-900 space-y-8">
+    <div className="w-full text-slate-900 dark:text-slate-100 space-y-8">
       
       {/* Cabecera de la sección */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900">{t('Alerts Title')}</h1>
-          <p className="mt-1 text-xs font-medium text-slate-500">{t('Alerts Subtitle')}</p>
+          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">{t('Alerts Title')}</h1>
+          <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">{t('Alerts Subtitle')}</p>
         </div>
-        <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl self-start sm:self-auto">
+        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl self-start sm:self-auto">
           <button
             onClick={() => { setShowResolved(false); setCurrentPage(1); }}
-            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${!showResolved ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${
+              !showResolved 
+                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' 
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
           >
             {t('Active Count', { count: activeAlerts.length })}
           </button>
           <button
             onClick={() => { setShowResolved(true); setCurrentPage(1); }}
-            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${showResolved ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${
+              showResolved 
+                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' 
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
           >
             {t('Resolved History')}
           </button>
@@ -115,90 +123,102 @@ const Alerts: React.FC = () => {
         <div className="grid gap-4 sm:grid-cols-3">
           <div 
             onClick={() => { setSelectedPriority('HIGH'); setCurrentPage(1); }}
-            className={`cursor-pointer rounded-3xl border bg-white p-6 shadow-xl shadow-slate-200/40 transition-all hover:-translate-y-1 ${
-              selectedPriority === 'HIGH' ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-slate-200/80'
+            className={`cursor-pointer rounded-3xl border bg-white dark:bg-slate-900 p-6 shadow-xl shadow-slate-200/40 dark:shadow-none transition-all hover:-translate-y-1 ${
+              selectedPriority === 'HIGH' ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-slate-200/80 dark:border-slate-800'
             }`}
           >
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-rose-600">{t('Critical')}</p>
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-rose-600 dark:text-rose-400">{t('Critical')}</p>
               <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse"></span>
             </div>
-            <p className="mt-2 text-3xl font-extrabold text-slate-900">{countHigh}</p>
+            <p className="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white">{countHigh}</p>
           </div>
 
           <div 
             onClick={() => { setSelectedPriority('MEDIUM'); setCurrentPage(1); }}
-            className={`cursor-pointer rounded-3xl border bg-white p-6 shadow-xl shadow-slate-200/40 transition-all hover:-translate-y-1 ${
-              selectedPriority === 'MEDIUM' ? 'border-amber-500 ring-2 ring-amber-500/20' : 'border-slate-200/80'
+            className={`cursor-pointer rounded-3xl border bg-white dark:bg-slate-900 p-6 shadow-xl shadow-slate-200/40 dark:shadow-none transition-all hover:-translate-y-1 ${
+              selectedPriority === 'MEDIUM' ? 'border-amber-500 ring-2 ring-amber-500/20' : 'border-slate-200/80 dark:border-slate-800'
             }`}
           >
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-amber-600">{t('Warnings')}</p>
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-amber-600 dark:text-amber-400">{t('Warnings')}</p>
             </div>
-            <p className="mt-2 text-3xl font-extrabold text-slate-900">{countMedium}</p>
+            <p className="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white">{countMedium}</p>
           </div>
 
           <div 
             onClick={() => { setSelectedPriority('LOW'); setCurrentPage(1); }}
-            className={`cursor-pointer rounded-3xl border bg-white p-6 shadow-xl shadow-slate-200/40 transition-all hover:-translate-y-1 ${
-              selectedPriority === 'LOW' ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-200/80'
+            className={`cursor-pointer rounded-3xl border bg-white dark:bg-slate-900 p-6 shadow-xl shadow-slate-200/40 dark:shadow-none transition-all hover:-translate-y-1 ${
+              selectedPriority === 'LOW' ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-200/80 dark:border-slate-800'
             }`}
           >
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-blue-600">{t('Informative')}</p>
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-blue-600 dark:text-blue-400">{t('Informative')}</p>
             </div>
-            <p className="mt-2 text-3xl font-extrabold text-slate-900">{countLow}</p>
+            <p className="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white">{countLow}</p>
           </div>
         </div>
       )}
 
       {/* Tarjeta contenedora de la bandeja */}
-      <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xl shadow-slate-200/40 space-y-6">
+      <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl shadow-slate-200/40 dark:shadow-none space-y-6 transition-colors duration-300">
         
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-700">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
               {showResolved ? t('Resolved Tray') : t('Active Tray')}
             </p>
-            <span className="inline-flex items-center px-3 py-1 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+            <span className="inline-flex items-center px-3 py-1 rounded-xl text-xs font-semibold bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-900">
               {filtered.length} {t('Records')}
             </span>
           </div>
 
           <div className="flex items-center gap-3">
             {/* Selector de tamaño de página */}
-            <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-full text-xs font-semibold text-slate-600">
+            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full text-xs font-semibold text-slate-600 dark:text-slate-300">
               <select
                 value={pageSize}
                 onChange={(e) => setPageSize(Number(e.target.value))}
-                className="bg-transparent font-semibold text-slate-700 focus:outline-none cursor-pointer"
+                className="bg-transparent font-semibold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
               >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={15}>15</option>
-                <option value={20}>20</option>
-                <option value={25}>25</option>
+                <option value={5} className="bg-white dark:bg-slate-900">5</option>
+                <option value={10} className="bg-white dark:bg-slate-900">10</option>
+                <option value={15} className="bg-white dark:bg-slate-900">15</option>
+                <option value={20} className="bg-white dark:bg-slate-900">20</option>
+                <option value={25} className="bg-white dark:bg-slate-900">25</option>
               </select>
               <span>{t('Per Page')}</span>
             </div>
 
             {/* Filtros rápidos por prioridad */}
-            <div className="flex items-center gap-1.5 bg-slate-50 p-1.5 rounded-2xl border border-slate-200/60">
+            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 p-1.5 rounded-2xl border border-slate-200/60 dark:border-slate-700">
               <button
                 onClick={() => { setSelectedPriority('ALL'); setCurrentPage(1); }}
-                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${selectedPriority === 'ALL' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${
+                  selectedPriority === 'ALL' 
+                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' 
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
               >
                 {t('All')}
               </button>
               <button
                 onClick={() => { setSelectedPriority('HIGH'); setCurrentPage(1); }}
-                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${selectedPriority === 'HIGH' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${
+                  selectedPriority === 'HIGH' 
+                    ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-sm' 
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
               >
                 {t('Critical')}
               </button>
               <button
                 onClick={() => { setSelectedPriority('MEDIUM'); setCurrentPage(1); }}
-                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${selectedPriority === 'MEDIUM' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${
+                  selectedPriority === 'MEDIUM' 
+                    ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-sm' 
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
               >
                 {t('Warnings')}
               </button>
@@ -218,7 +238,7 @@ const Alerts: React.FC = () => {
             value={query}
             onChange={(e) => { setQuery(e.target.value); setCurrentPage(1); }}
             placeholder={t('Search Participant')}
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 py-3.5 pl-11 pr-4 text-xs text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+            className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/80 py-3.5 pl-11 pr-4 text-xs text-slate-900 dark:text-white outline-none transition focus:border-blue-500 focus:bg-white dark:focus:bg-slate-800"
           />
         </div>
 
@@ -235,10 +255,10 @@ const Alerts: React.FC = () => {
                 : 'border-l-blue-500';
 
             const badgeStyle = isHigh
-              ? 'bg-rose-50 text-rose-700 border-rose-200'
+              ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-900'
               : isMedium
-                ? 'bg-amber-50 text-amber-700 border-amber-200'
-                : 'bg-blue-50 text-blue-700 border-blue-200';
+                ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900'
+                : 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900';
 
             const dotColor = isHigh
               ? 'bg-rose-500'
@@ -249,19 +269,19 @@ const Alerts: React.FC = () => {
             return (
               <div 
                 key={alert.id} 
-                className={`rounded-2xl border border-slate-200/80 border-l-4 ${borderLeftColor} bg-slate-50/40 p-5 transition hover:bg-white hover:shadow-md`}
+                className={`rounded-2xl border border-slate-200/80 dark:border-slate-800 border-l-4 ${borderLeftColor} bg-slate-50/40 dark:bg-slate-800/40 p-5 transition hover:bg-white dark:hover:bg-slate-800 hover:shadow-md`}
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-slate-200/70 text-slate-700">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-slate-200/70 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
                         {alert.participant_code || alert.email || 'Sistema'}
                       </span>
                       <span className="text-[11px] text-slate-400 font-medium">
                         {new Date(alert.created_at).toLocaleString('es-ES')}
                       </span>
                     </div>
-                    <p className="text-xs font-bold text-slate-900 pt-1">{alert.message}</p>
+                    <p className="text-xs font-bold text-slate-900 dark:text-white pt-1">{alert.message}</p>
                   </div>
 
                   <div className="flex items-center gap-3 shrink-0">
@@ -273,12 +293,12 @@ const Alerts: React.FC = () => {
                     {!alert.resolved ? (
                       <button 
                         onClick={() => handleResolve(alert.id)}
-                        className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition shadow-sm cursor-pointer"
+                        className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-emerald-700 dark:hover:text-emerald-300 hover:border-emerald-200 transition shadow-sm cursor-pointer"
                       >
                         {t('Resolve')}
                       </button>
                     ) : (
-                      <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100">
+                      <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1.5 rounded-xl border border-emerald-100 dark:border-emerald-900">
                         {t('Resolved')}
                       </span>
                     )}
@@ -291,7 +311,7 @@ const Alerts: React.FC = () => {
 
         {/* Paginación */}
         {filtered.length > 0 && (
-          <div className="flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 border-t border-slate-100 dark:border-slate-800 pt-5 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-[11px] font-medium text-slate-400">
               {t('Page', { page: currentPage, totalPages })}
             </p>
@@ -300,19 +320,19 @@ const Alerts: React.FC = () => {
               <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+                className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-[11px] font-bold text-slate-600 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
               >
                 {t('Previous')}
               </button>
 
-              <div className="rounded-xl bg-blue-50 px-4 py-2 text-[11px] font-bold text-blue-700">
+              <div className="rounded-xl bg-blue-50 dark:bg-blue-950 px-4 py-2 text-[11px] font-bold text-blue-700 dark:text-blue-300">
                 {currentPage}
               </div>
 
               <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+                className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-[11px] font-bold text-slate-600 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
               >
                 {t('Next')}
               </button>

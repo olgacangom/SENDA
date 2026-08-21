@@ -201,12 +201,12 @@ const Assignments: React.FC = () => {
   });
 
   return (
-    <div className="w-full text-slate-900 relative">
+    <div className="w-full text-slate-900 dark:text-slate-100 relative">
       {/* Cabecera de la sección */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900">{t('Assignments Title')}</h1>
-          <p className="mt-1 text-xs font-medium text-slate-500">{filtered.length} {t('Assignments Registered')}</p>
+          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">{t('Assignments Title')}</h1>
+          <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">{filtered.length} {t('Assignments Registered')}</p>
         </div>
         <button
           onClick={() => {
@@ -223,7 +223,7 @@ const Assignments: React.FC = () => {
       </div>
 
       {/* Tarjeta contenedora de la tabla */}
-      <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xl shadow-slate-200/40">
+      <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl shadow-slate-200/40 dark:shadow-none transition-colors duration-300">
         <div className="mb-6 relative">
           <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -235,7 +235,7 @@ const Assignments: React.FC = () => {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t('Search Assignment')}
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 py-3.5 pl-11 pr-4 text-xs text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+            className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/80 py-3.5 pl-11 pr-4 text-xs text-slate-900 dark:text-white outline-none transition focus:border-blue-500 focus:bg-white dark:focus:bg-slate-800"
           />
         </div>
 
@@ -243,7 +243,7 @@ const Assignments: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="min-w-full table-fixed border-collapse text-left">
               <thead>
-                <tr className="bg-blue-50/60 text-blue-900 uppercase text-[10px] tracking-wider">
+                <tr className="bg-blue-50/60 dark:bg-slate-800/80 text-blue-900 dark:text-blue-300 uppercase text-[10px] tracking-wider">
                   <th className="w-[18%] px-6 py-4 font-bold rounded-l-2xl">{t('Participants Resource')}</th>
                   <th className="w-[18%] px-6 py-4 font-bold">{t('Fitbit')}</th>
                   <th className="w-[18%] px-6 py-4 font-bold">{t('Start Date')}</th>
@@ -253,7 +253,7 @@ const Assignments: React.FC = () => {
                 </tr>
               </thead>
 
-              <tbody>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filtered.map((item, index) => {
                   const pCode = getParticipantCode(item);
                   const fCode = getFitbitCode(item);
@@ -269,29 +269,29 @@ const Assignments: React.FC = () => {
                         setEditRealEndDate(toLocalDateTimeInput(item.real_end_date));
                         setEditError(null);
                       }}
-                      className="cursor-pointer border-b border-slate-200 last:border-b-0 hover:bg-slate-50/80 transition-colors"
+                      className="cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors"
                     >
-                      <td className="px-6 py-5 text-xs font-bold text-slate-900">
+                      <td className="px-6 py-5 text-xs font-bold text-slate-900 dark:text-white">
                         {pCode}
                       </td>
 
-                      <td className="px-6 py-5 text-xs font-semibold text-blue-600">
+                      <td className="px-6 py-5 text-xs font-semibold text-blue-600 dark:text-blue-400">
                         {fCode}
                       </td>
 
-                      <td className="px-6 py-5 text-xs text-slate-600">
+                      <td className="px-6 py-5 text-xs text-slate-600 dark:text-slate-300">
                         {item.start_date
                           ? new Date(item.start_date).toLocaleDateString("es-ES")
                           : "-"}
                       </td>
 
-                      <td className="px-6 py-5 text-xs text-slate-600">
+                      <td className="px-6 py-5 text-xs text-slate-600 dark:text-slate-300">
                         {item.estimated_end_date
                           ? new Date(item.estimated_end_date).toLocaleDateString("es-ES")
                           : "-"}
                       </td>
 
-                      <td className="px-6 py-5 text-xs text-slate-600">
+                      <td className="px-6 py-5 text-xs text-slate-600 dark:text-slate-300">
                         {item.real_end_date ? (
                           new Date(item.real_end_date).toLocaleDateString("es-ES")
                         ) : (
@@ -302,10 +302,10 @@ const Assignments: React.FC = () => {
                       <td className="px-6 py-5">
                         <span
                           className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[11px] font-semibold ${item.status?.toLowerCase() === 'active'
-                              ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+                              ? "border-emerald-100 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300"
                               : item.status?.toLowerCase() === 'pending'
-                                ? "border-blue-100 bg-blue-50 text-blue-700"
-                                : "border-slate-200 bg-slate-50 text-slate-700"
+                                ? "border-blue-100 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300"
+                                : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300"
                             }`}
                         >
                           <span
@@ -337,13 +337,13 @@ const Assignments: React.FC = () => {
 
       {/* MODAL PARA NUEVA ASIGNACIÓN */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-900">{t('New Assignment')}</h2>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">{t('New Assignment')}</h2>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-500 hover:text-slate-900 cursor-pointer text-base font-bold"
+                className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer text-base font-bold"
               >
                 ×
               </button>
@@ -351,17 +351,17 @@ const Assignments: React.FC = () => {
 
             <form onSubmit={handleCreateAssignment} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">{t('Select Participant Label')}</label>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{t('Select Participant Label')}</label>
                 <div className="relative">
                   <select
                     value={newParticipantCode}
                     onChange={(e) => setNewParticipantCode(e.target.value)}
                     required
-                    className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-sm text-slate-900 outline-none focus:border-blue-500 focus:bg-white cursor-pointer"
+                    className="w-full appearance-none rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 pr-10 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 cursor-pointer"
                   >
                     <option value="">{t('Select a participant')}</option>
                     {participantsList.map((code) => (
-                      <option key={code} value={code}>
+                      <option key={code} value={code} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
                         {code}
                       </option>
                     ))}
@@ -375,17 +375,17 @@ const Assignments: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">{t('Select Fitbit Label')}</label>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{t('Select Fitbit Label')}</label>
                 <div className="relative">
                   <select
                     value={newFitbitCode}
                     onChange={(e) => setNewFitbitCode(e.target.value)}
                     required
-                    className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-sm text-slate-900 outline-none focus:border-blue-500 focus:bg-white cursor-pointer"
+                    className="w-full appearance-none rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 pr-10 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 cursor-pointer"
                   >
                     <option value="">{t('Select a bracelet')}</option>
                     {fitbitsList.map((code) => (
-                      <option key={code} value={code}>
+                      <option key={code} value={code} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
                         {code}
                       </option>
                     ))}
@@ -399,51 +399,51 @@ const Assignments: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">{t('Start Date')}</label>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{t('Start Date')}</label>
                 <input
                   type="datetime-local"
                   value={newStartDate}
                   onChange={(e) => setNewStartDate(e.target.value)}
                   required
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:bg-white"
+                  className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">{t('Estimated End Date')}</label>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{t('Estimated End Date')}</label>
                 <input
                   type="datetime-local"
                   value={newEstimatedEndDate}
                   onChange={(e) => setNewEstimatedEndDate(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:bg-white"
+                  className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">{t('Real End Date Optional')}</label>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{t('Real End Date Optional')}</label>
                 <input
                   type="datetime-local"
                   value={newRealEndDate}
                   onChange={(e) => setNewRealEndDate(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:bg-white"
+                  className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500"
                 />
               </div>
 
-              {submitError && <p className="text-sm text-red-600">{submitError}</p>}
-              {submitSuccess && <p className="text-sm text-emerald-600">{submitSuccess}</p>}
+              {submitError && <p className="text-sm text-red-600 dark:text-red-400">{submitError}</p>}
+              {submitSuccess && <p className="text-sm text-emerald-600 dark:text-emerald-400">{submitSuccess}</p>}
 
               <div className="mt-6 flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                  className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-5 py-3 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
                 >
                   {t('Cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-2xl bg-[#3A8FC2] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#27648A] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+                  className="rounded-2xl bg-[#3A8FC2] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#27648A] disabled:opacity-60 cursor-pointer"
                 >
                   {submitting ? t('Processing') : t('Save Assignment')}
                 </button>
@@ -455,27 +455,27 @@ const Assignments: React.FC = () => {
 
       {/* MODAL DE DETALLE Y EDICIÓN DE ASIGNACIÓN */}
       {selectedAssignment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
-          <div className="w-full max-w-2xl rounded-3xl bg-white p-7 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="w-full max-w-2xl rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-7 shadow-2xl">
             <div className="mb-6 flex items-start justify-between">
               <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400">
                   <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-xl font-extrabold text-slate-900">
+                  <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
                     {isEditing ? t('Edit Assignment') : t('Assignment Detail')}
                   </h2>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     {isEditing ? t('Edit Assignment Subtitle') : t('Assignment Detail Subtitle')}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => { setSelectedAssignment(null); setIsEditing(false); }}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900 cursor-pointer transition"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer transition"
               >
                 ✕
               </button>
@@ -484,45 +484,45 @@ const Assignments: React.FC = () => {
             {!isEditing ? (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 flex flex-col justify-center">
-                    <span className="text-[11px] font-medium text-blue-900 mb-1">{t('Participants Resource')}</span>
-                    <span className="text-sm font-bold text-slate-900">{getParticipantCode(selectedAssignment)}</span>
+                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 p-4 flex flex-col justify-center">
+                    <span className="text-[11px] font-medium text-blue-900 dark:text-blue-400 mb-1">{t('Participants Resource')}</span>
+                    <span className="text-sm font-bold text-slate-900 dark:text-white">{getParticipantCode(selectedAssignment)}</span>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 flex flex-col justify-center">
-                    <span className="text-[11px] font-medium text-blue-900 mb-1">{t('Fitbit')}</span>
-                    <span className="text-sm font-bold text-emerald-900">{getFitbitCode(selectedAssignment)}</span>
+                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 p-4 flex flex-col justify-center">
+                    <span className="text-[11px] font-medium text-blue-900 dark:text-blue-400 mb-1">{t('Fitbit')}</span>
+                    <span className="text-sm font-bold text-emerald-900 dark:text-emerald-400">{getFitbitCode(selectedAssignment)}</span>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 flex flex-col justify-center">
-                    <span className="text-[11px] font-medium text-blue-900 mb-1">{t('Start Date')}</span>
-                    <span className="text-xs font-semibold text-slate-800">
+                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 p-4 flex flex-col justify-center">
+                    <span className="text-[11px] font-medium text-blue-900 dark:text-blue-400 mb-1">{t('Start Date')}</span>
+                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
                       {selectedAssignment.start_date ? new Date(selectedAssignment.start_date).toLocaleString('es-ES') : '—'}
                     </span>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 flex flex-col justify-center">
-                    <span className="text-[11px] font-medium text-blue-900 mb-1">{t('Estimated End Date')}</span>
-                    <span className="text-xs font-semibold text-slate-900">
+                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 p-4 flex flex-col justify-center">
+                    <span className="text-[11px] font-medium text-blue-900 dark:text-blue-400 mb-1">{t('Estimated End Date')}</span>
+                    <span className="text-xs font-semibold text-slate-900 dark:text-slate-100">
                       {selectedAssignment.estimated_end_date ? new Date(selectedAssignment.estimated_end_date).toLocaleString('es-ES') : '—'}
                     </span>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 flex flex-col justify-center">
-                    <span className="text-[11px] font-medium text-blue-900 mb-1">{t('Real End Date')}</span>
-                    <span className="text-xs font-semibold text-slate-900">
+                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 p-4 flex flex-col justify-center">
+                    <span className="text-[11px] font-medium text-blue-900 dark:text-blue-400 mb-1">{t('Real End Date')}</span>
+                    <span className="text-xs font-semibold text-slate-900 dark:text-slate-100">
                       {selectedAssignment.real_end_date ? new Date(selectedAssignment.real_end_date).toLocaleString('es-ES') : t('In Progress')}
                     </span>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 flex flex-col justify-center">
-                    <span className="text-[11px] font-medium text-blue-900 mb-1">{t('Status')}</span>
+                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 p-4 flex flex-col justify-center">
+                    <span className="text-[11px] font-medium text-blue-900 dark:text-blue-400 mb-1">{t('Status')}</span>
                     <div>
                       <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold ${selectedAssignment.status?.toLowerCase() === 'active'
-                          ? 'bg-emerald-100 text-emerald-800'
+                          ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300'
                           : selectedAssignment.status?.toLowerCase() === 'pending'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-slate-200 text-slate-800'
+                            ? 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300'
+                            : 'bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-300'
                         }`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${selectedAssignment.status?.toLowerCase() === 'active'
                             ? 'bg-emerald-600'
@@ -536,7 +536,7 @@ const Assignments: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2 border-t border-slate-100">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
                   <button
                     onClick={async () => {
                       if (!selectedAssignment || !selectedAssignment.id) return;
@@ -559,7 +559,7 @@ const Assignments: React.FC = () => {
                         alert(t('Server connection error'));
                       }
                     }}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-xs font-bold text-red-600 hover:bg-red-100 transition cursor-pointer"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/50 px-5 py-3 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-100 transition cursor-pointer"
                   >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -570,7 +570,7 @@ const Assignments: React.FC = () => {
                   <div className="flex w-full sm:w-auto gap-3">
                     <button
                       onClick={() => setSelectedAssignment(null)}
-                      className="flex-1 sm:flex-none rounded-2xl border border-slate-200 bg-white px-5 py-3 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                      className="flex-1 sm:flex-none rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-5 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer"
                     >
                       {t('Close')}
                     </button>
@@ -588,49 +588,49 @@ const Assignments: React.FC = () => {
               </>
             ) : (
               <form onSubmit={handleUpdateAssignment} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3 text-sm text-slate-700 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                  <div><span className="text-[11px] text-slate-400 block">{t('Participants Resource')}</span><strong className="text-slate-900">{getParticipantCode(selectedAssignment)}</strong></div>
-                  <div><span className="text-[11px] text-slate-400 block">{t('Fitbit')}</span><strong className="text-blue-600">{getFitbitCode(selectedAssignment)}</strong></div>
+                <div className="grid grid-cols-2 gap-3 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+                  <div><span className="text-[11px] text-slate-400 block">{t('Participants Resource')}</span><strong className="text-slate-900 dark:text-white">{getParticipantCode(selectedAssignment)}</strong></div>
+                  <div><span className="text-[11px] text-slate-400 block">{t('Fitbit')}</span><strong className="text-blue-600 dark:text-blue-400">{getFitbitCode(selectedAssignment)}</strong></div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">{t('Start Date')}</label>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{t('Start Date')}</label>
                   <input
                     type="datetime-local"
                     value={editStartDate}
                     onChange={(e) => setEditStartDate(e.target.value)}
                     required
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-900 outline-none focus:border-blue-500 focus:bg-white"
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-xs text-slate-900 dark:text-white outline-none focus:border-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">{t('Estimated End Date')}</label>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{t('Estimated End Date')}</label>
                   <input
                     type="datetime-local"
                     value={editEstimatedEndDate}
                     onChange={(e) => setEditEstimatedEndDate(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-900 outline-none focus:border-blue-500 focus:bg-white"
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-xs text-slate-900 dark:text-white outline-none focus:border-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">{t('Real End Date Optional')}</label>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{t('Real End Date Optional')}</label>
                   <input
                     type="datetime-local"
                     value={editRealEndDate}
                     onChange={(e) => setEditRealEndDate(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-900 outline-none focus:border-blue-500 focus:bg-white"
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-xs text-slate-900 dark:text-white outline-none focus:border-blue-500"
                   />
                 </div>
 
-                {editError && <p className="text-xs text-red-600 font-medium">{editError}</p>}
+                {editError && <p className="text-xs text-red-600 dark:text-red-400 font-medium">{editError}</p>}
 
-                <div className="mt-6 flex justify-end gap-3 pt-2 border-t border-slate-100">
+                <div className="mt-6 flex justify-end gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
                   <button
                     type="button"
                     onClick={() => setIsEditing(false)}
-                    className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                    className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-5 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer"
                   >
                     {t('Cancel')}
                   </button>
