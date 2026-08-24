@@ -144,7 +144,7 @@ i18n
           "All": "Todos",
           "Active": "Activo",
           "Completed": "Completado",
-          "Export CSV": "Exportار a CSV",
+          "Export CSV": "Exportar a CSV",
           "Export Excel": "Exportar a Excel",
           "Clear Filters": "Limpiar filtros",
           "From": "Desde",

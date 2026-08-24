@@ -13,6 +13,7 @@ const Fitbits: React.FC = () => {
   const [fitbits, setFitbits] = useState<FitbitItem[]>([]);
   const [summary, setSummary] = useState({ in_use: 0, free: 0, maintenance: 0, inactive: 0 });
   const [query, setQuery] = useState('');
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('ALL');
   const [error, setError] = useState<string | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -87,10 +88,16 @@ const Fitbits: React.FC = () => {
     }
   };
 
-  const filtered = fitbits.filter((fitbit) =>
-    fitbit.fitbit_code.toLowerCase().includes(query.toLowerCase()) ||
-    fitbit.status.toLowerCase().includes(query.toLowerCase()),
-  );
+  const filtered = fitbits.filter((fitbit) => {
+    const matchesQuery = 
+      fitbit.fitbit_code.toLowerCase().includes(query.toLowerCase()) ||
+      fitbit.status.toLowerCase().includes(query.toLowerCase());
+
+    const matchesStatus = 
+      selectedStatusFilter === 'ALL' || fitbit.status.toUpperCase() === selectedStatusFilter.toUpperCase();
+
+    return matchesQuery && matchesStatus;
+  });
 
   return (
     <div className="w-full text-slate-900 dark:text-slate-100 relative">
@@ -112,69 +119,93 @@ const Fitbits: React.FC = () => {
         </button>
       </div>
 
-      {/* Tarjetas de resumen superior */}
+      {/* Tarjetas de resumen superior interactivas */}
       <div className="grid gap-4 sm:grid-cols-4 mb-8">
         {[
           { 
+            statusKey: 'IN_USE',
             label: t('In Use'), 
             value: summary.in_use, 
             textColor: 'text-emerald-600 dark:text-emerald-400', 
             backgroundColor: 'bg-[#E6FFEE] dark:bg-emerald-950/40',
-            borderColor: 'border-emerald-400 dark:border-emerald-800', 
-            hoverShadow: 'hover:shadow-[0_20px_25px_-5px_rgba(5,150,105,0.15)] hover:border-emerald-200' 
+            borderColor: 'border-emerald-200 dark:border-emerald-200/50',
+            activeRing: 'border-emerald-500 ring-2 ring-emerald-600/20',
+            hoverShadow: 'hover:shadow-[0_20px_25px_-5px_rgba(5,150,105,0.15)]' 
           },
           { 
+            statusKey: 'FREE',
             label: t('Free'), 
             value: summary.free, 
             textColor: 'text-blue-600 dark:text-blue-400',
             backgroundColor: 'bg-[#E6F5FF] dark:bg-blue-950/40', 
-            borderColor: 'border-blue-400 dark:border-blue-800', 
-            hoverShadow: 'hover:shadow-[0_20px_25px_-5px_rgba(37,99,235,0.15)] hover:border-blue-200' 
+            borderColor: 'border-blue-200 dark:border-blue-200/50', 
+            activeRing: 'border-blue-500 ring-2 ring-blue-600/20',
+            hoverShadow: 'hover:shadow-[0_20px_25px_-5px_rgba(37,99,235,0.15)]' 
           },
           { 
+            statusKey: 'MAINTENANCE',
             label: t('Maintenance'), 
             value: summary.maintenance, 
             textColor: 'text-amber-600 dark:text-amber-400',
             backgroundColor: 'bg-[#FFF3E6] dark:bg-amber-950/40', 
-            borderColor: 'border-amber-400 dark:border-amber-800', 
-            hoverShadow: 'hover:shadow-[0_20px_25px_-5px_rgba(217,119,6,0.15)] hover:border-amber-200' 
+            borderColor: 'border-amber-200 dark:border-amber-200/50', 
+            activeRing: 'border-amber-500 ring-2 ring-amber-600/20',
+            hoverShadow: 'hover:shadow-[0_20px_25px_-5px_rgba(217,119,6,0.15)]' 
           },
           { 
+            statusKey: 'INACTIVE',
             label: t('Inactive'), 
             value: summary.inactive, 
             textColor: 'text-red-500 dark:text-red-400', 
             backgroundColor: 'bg-[#FFE6E6] dark:bg-red-950/40',
-            borderColor: 'border-red-400 dark:border-red-800', 
-            hoverShadow: 'hover:shadow-[0_20px_25px_-5px_rgba(100,116,139,0.15)] hover:border-red-200' 
+            borderColor: 'border-red-200 dark:border-red-200/50', 
+            activeRing: 'border-red-500 ring-2 ring-red-600/20',
+            hoverShadow: 'hover:shadow-[0_20px_25px_-5px_rgba(100,116,139,0.15)]' 
           },
-        ].map((item) => (
-          <div
-            key={item.label}
-            className={`rounded-2xl border ${item.backgroundColor} p-5 shadow-lg shadow-slate-100 dark:shadow-none transition-all duration-200 hover:-translate-y-1 text-center ${item.borderColor} ${item.hoverShadow}`}
-          >
-            <p className={`text-[11px] font-bold uppercase tracking-[0.25em] ${item.textColor}`}>
-              {item.label}
-            </p>
-            <p className="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white">{item.value}</p>
-          </div>
-        ))}
+        ].map((item) => {
+          const isSelected = selectedStatusFilter === item.statusKey;
+          return (
+            <div
+              key={item.label}
+              onClick={() => setSelectedStatusFilter(isSelected ? 'ALL' : item.statusKey)}
+              className={`cursor-pointer rounded-2xl border ${item.backgroundColor} p-5 shadow-lg shadow-slate-100 dark:shadow-none transition-all duration-200 hover:-translate-y-1 text-center ${item.hoverShadow} ${
+                isSelected ? item.activeRing : item.borderColor
+              }`}
+            >
+              <p className={`text-[11px] font-extrabold uppercase tracking-[0.25em] ${item.textColor}`}>
+                {item.label}
+              </p>
+              <p className="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white">{item.value}</p>
+            </div>
+          );
+        })}
       </div>
 
       {/* Tarjeta contenedora de la tabla */}
       <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl shadow-slate-200/40 dark:shadow-none transition-colors duration-300">
-        <div className="mb-6 relative">
-          <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </span>
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t('Search Fitbit')}
-            className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/80 py-3.5 pl-11 pr-4 text-xs text-slate-900 dark:text-white outline-none transition focus:border-blue-500 focus:bg-white dark:focus:bg-slate-800"
-          />
+        <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="relative w-full">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </span>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t('Search Fitbit')}
+              className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/80 py-3.5 pl-11 pr-4 text-xs text-slate-900 dark:text-white outline-none transition focus:border-blue-500 focus:bg-white dark:focus:bg-slate-800"
+            />
+          </div>
+          {selectedStatusFilter !== 'ALL' && (
+            <button
+              onClick={() => setSelectedStatusFilter('ALL')}
+              className="shrink-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition cursor-pointer"
+            >
+              {t('Clear filter')} ({selectedStatusFilter})
+            </button>
+          )}
         </div>
 
         <div className="overflow-hidden rounded-2xl">

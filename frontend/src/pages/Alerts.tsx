@@ -87,7 +87,7 @@ const Alerts: React.FC = () => {
 
   return (
     <div className="w-full text-slate-900 dark:text-slate-100 space-y-8">
-      
+
       {/* Cabecera de la sección */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -97,21 +97,19 @@ const Alerts: React.FC = () => {
         <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl self-start sm:self-auto">
           <button
             onClick={() => { setShowResolved(false); setCurrentPage(1); }}
-            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${
-              !showResolved 
-                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' 
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${!showResolved
+                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
+              }`}
           >
             {t('Active Count', { count: activeAlerts.length })}
           </button>
           <button
             onClick={() => { setShowResolved(true); setCurrentPage(1); }}
-            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${
-              showResolved 
-                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' 
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${showResolved
+                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
+              }`}
           >
             {t('Resolved History')}
           </button>
@@ -121,38 +119,44 @@ const Alerts: React.FC = () => {
       {/* Tarjetas de métricas superiores */}
       {!showResolved && (
         <div className="grid gap-4 sm:grid-cols-3">
-          <div 
+          <div
             onClick={() => { setSelectedPriority('HIGH'); setCurrentPage(1); }}
-            className={`cursor-pointer rounded-3xl border bg-white dark:bg-slate-900 p-6 shadow-xl shadow-slate-200/40 dark:shadow-none transition-all hover:-translate-y-1 ${
-              selectedPriority === 'HIGH' ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-slate-200/80 dark:border-slate-800'
-            }`}
+            className={`cursor-pointer rounded-2xl border bg-white dark:bg-slate-900 p-5 shadow-lg shadow-slate-100 dark:shadow-none transition-all duration-200 hover:-translate-y-1 text-center 
+              ${selectedPriority === 'HIGH' 
+                ? 'border-rose-500 ring-2 ring-rose-500/20' 
+                : 'border-rose-200 dark:border-rose-200/50'
+              }`}
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-center gap-2">
               <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-rose-600 dark:text-rose-400">{t('Critical')}</p>
               <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse"></span>
             </div>
             <p className="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white">{countHigh}</p>
           </div>
 
-          <div 
+          <div
             onClick={() => { setSelectedPriority('MEDIUM'); setCurrentPage(1); }}
-            className={`cursor-pointer rounded-3xl border bg-white dark:bg-slate-900 p-6 shadow-xl shadow-slate-200/40 dark:shadow-none transition-all hover:-translate-y-1 ${
-              selectedPriority === 'MEDIUM' ? 'border-amber-500 ring-2 ring-amber-500/20' : 'border-slate-200/80 dark:border-slate-800'
-            }`}
+            className={`cursor-pointer rounded-2xl border bg-white dark:bg-slate-900 p-5 shadow-lg shadow-slate-100 dark:shadow-none transition-all duration-200 hover:-translate-y-1 text-center 
+              ${selectedPriority === 'MEDIUM' 
+                ? 'border-amber-500 ring-2 ring-amber-500/20' 
+                : 'border-amber-200 dark:border-amber-200/50'
+              }`}
           >
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-amber-600 dark:text-amber-400">{t('Warnings')}</p>
+            <div className="flex items-center justify-center">
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-amber-600 dark:text-amber-400 dark:border-amber-200">{t('Warnings')}</p>
             </div>
             <p className="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white">{countMedium}</p>
           </div>
 
-          <div 
+          <div
             onClick={() => { setSelectedPriority('LOW'); setCurrentPage(1); }}
-            className={`cursor-pointer rounded-3xl border bg-white dark:bg-slate-900 p-6 shadow-xl shadow-slate-200/40 dark:shadow-none transition-all hover:-translate-y-1 ${
-              selectedPriority === 'LOW' ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-200/80 dark:border-slate-800'
-            }`}
+            className={`cursor-pointer rounded-2xl border bg-white dark:bg-slate-900 p-5 shadow-lg shadow-slate-100 dark:shadow-none transition-all duration-200 hover:-translate-y-1 text-center 
+              ${selectedPriority === 'LOW' 
+                ? 'border-blue-500 ring-2 ring-blue-500/20' 
+                : 'border-blue-200 dark:border-blue-200/50'
+              }`}
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-center">
               <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-blue-600 dark:text-blue-400">{t('Informative')}</p>
             </div>
             <p className="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white">{countLow}</p>
@@ -162,7 +166,7 @@ const Alerts: React.FC = () => {
 
       {/* Tarjeta contenedora de la bandeja */}
       <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl shadow-slate-200/40 dark:shadow-none space-y-6 transition-colors duration-300">
-        
+
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <p className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
@@ -194,31 +198,28 @@ const Alerts: React.FC = () => {
             <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 p-1.5 rounded-2xl border border-slate-200/60 dark:border-slate-700">
               <button
                 onClick={() => { setSelectedPriority('ALL'); setCurrentPage(1); }}
-                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${
-                  selectedPriority === 'ALL' 
-                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' 
+                className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.25em] rounded-xl transition cursor-pointer ${selectedPriority === 'ALL'
+                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 {t('All')}
               </button>
               <button
                 onClick={() => { setSelectedPriority('HIGH'); setCurrentPage(1); }}
-                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${
-                  selectedPriority === 'HIGH' 
-                    ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-sm' 
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${selectedPriority === 'HIGH'
+                    ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-sm'
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 {t('Critical')}
               </button>
               <button
                 onClick={() => { setSelectedPriority('MEDIUM'); setCurrentPage(1); }}
-                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${
-                  selectedPriority === 'MEDIUM' 
-                    ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-sm' 
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${selectedPriority === 'MEDIUM'
+                    ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-sm'
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 {t('Warnings')}
               </button>
@@ -267,8 +268,8 @@ const Alerts: React.FC = () => {
                 : 'bg-blue-500';
 
             return (
-              <div 
-                key={alert.id} 
+              <div
+                key={alert.id}
                 className={`rounded-2xl border border-slate-200/80 dark:border-slate-800 border-l-4 ${borderLeftColor} bg-slate-50/40 dark:bg-slate-800/40 p-5 transition hover:bg-white dark:hover:bg-slate-800 hover:shadow-md`}
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -291,7 +292,7 @@ const Alerts: React.FC = () => {
                     </span>
 
                     {!alert.resolved ? (
-                      <button 
+                      <button
                         onClick={() => handleResolve(alert.id)}
                         className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-emerald-700 dark:hover:text-emerald-300 hover:border-emerald-200 transition shadow-sm cursor-pointer"
                       >
