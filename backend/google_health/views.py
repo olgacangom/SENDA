@@ -21,6 +21,8 @@ from django.core.mail import send_mail, EmailMultiAlternatives
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.urls import reverse
+from django.conf import settings
+from collections import defaultdict
 
 User = get_user_model()
 
@@ -243,13 +245,29 @@ def api_fitbits_list(request):
 
 
 def api_fitbits(request):
-    """Devuelve pulseras y su estado operativo."""
+    """Devuelve pulseras y su estado operativo calculado según las asignaciones activas."""
+    now = timezone.now()
     fitbits = []
+    
     for f in Fitbit.objects.all():
-        status = f.operational_status
+        has_active_assignment = f.assignments.filter(
+            models.Q(real_end_date__isnull=True) | models.Q(real_end_date__gt=now),
+            start_date__lte=now
+        ).exists()
+
+        # Si está en mantenimiento o inactiva manualmente, respetamos ese estado
+        if f.status in ['MAINTENANCE', 'INACTIVE']:
+            operational_status = f.status
+        else:
+            operational_status = 'IN_USE' if has_active_assignment else 'FREE'
+            
+            if f.status != operational_status:
+                f.status = operational_status
+                f.save(update_fields=['status'])
+
         fitbits.append({
             'fitbit_code': f.fitbit_code,
-            'status': status,
+            'status': operational_status,
         })
 
     counts = {
@@ -258,6 +276,7 @@ def api_fitbits(request):
         'maintenance': sum(1 for f in fitbits if f['status'] == 'MAINTENANCE'),
         'inactive': sum(1 for f in fitbits if f['status'] == 'INACTIVE'),
     }
+    
     resp = JsonResponse({'count': len(fitbits), 'items': fitbits, 'counts': counts})
     return _add_cors_headers(request, resp)
 
@@ -289,6 +308,42 @@ def api_fitbits_create(request):
 
     fb = Fitbit.objects.create(fitbit_code=fitbit_code, status=status)
     return _json_response(request, {'ok': True, 'fitbit_code': fb.fitbit_code, 'status': fb.status}, status=201)
+
+
+@csrf_exempt
+def api_fitbits_update_status(request):
+    """Permite cambiar manualmente el estado operativo de una Fitbit (FREE, IN_USE, MAINTENANCE, INACTIVE)."""
+    if request.method == 'OPTIONS':
+        resp = JsonResponse({'ok': True})
+        resp['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        resp['Access-Control-Allow-Headers'] = 'Content-Type'
+        return _add_cors_headers(request, resp)
+
+    if request.method != 'POST':
+        return _json_response(request, {'ok': False, 'error': 'method_not_allowed'}, status=405)
+
+    try:
+        payload = json.loads(request.body.decode('utf-8'))
+        fitbit_code = payload.get('fitbit_code')
+        new_status = payload.get('status')
+        
+        if not fitbit_code or not new_status:
+            return _validation_error(request, 'missing_required_fields', status=400)
+            
+        valid_statuses = ['FREE', 'IN_USE', 'MAINTENANCE', 'INACTIVE']
+        if new_status not in valid_statuses:
+            return _validation_error(request, 'invalid_status', status=400)
+
+        fitbit = Fitbit.objects.filter(fitbit_code=fitbit_code).first()
+        if not fitbit:
+            return _validation_error(request, 'Fitbit not found', status=404)
+
+        fitbit.status = new_status
+        fitbit.save(update_fields=['status'])
+
+        return _json_response(request, {'ok': True, 'fitbit_code': fitbit.fitbit_code, 'status': fitbit.status})
+    except Exception as e:
+        return _validation_error(request, str(e), status=400)
 
 
 @csrf_exempt
@@ -482,51 +537,178 @@ def api_physiological_data(request):
         resp['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
         resp['Access-Control-Allow-Headers'] = 'Content-Type'
         return _add_cors_headers(request, resp)
+
     if request.method != 'GET':
         return _validation_error(request, 'method_not_allowed', status=405)
 
     participant_code = request.GET.get('participant')
-    fitbit_code = request.GET.get('fitbit')        
-    variable_type = request.GET.get('variable_type')      
+    fitbit_code = request.GET.get('fitbit')
+    variable_type = request.GET.get('variable_type')
     date_from = request.GET.get('from')
     date_to = request.GET.get('to')
+    status_filter = request.GET.get('status')
 
-    qs = PhysiologicalData.objects.select_related('assignment__participant', 'assignment__fitbit')
-    
+    qs = PhysiologicalData.objects.select_related(
+        'assignment__participant',
+        'assignment__fitbit'
+    )
+
+    # -----------------------------------------------------
+    # FILTRAR POR PARTICIPANTE
+    # -----------------------------------------------------
     if participant_code:
-        codes = [c.strip() for c in participant_code.split(',') if c.strip()]
-        qs = qs.filter(assignment__participant__participant_code__in=codes)
-        
+        codes = [
+            c.strip()
+            for c in participant_code.split(',')
+            if c.strip()
+        ]
+
+        qs = qs.filter(
+            assignment__participant__participant_code__in=codes
+        )
+
+    # -----------------------------------------------------
+    # FILTRAR POR FITBIT
+    # -----------------------------------------------------
     if fitbit_code:
-        f_codes = [f.strip() for f in fitbit_code.split(',') if f.strip()]
-        qs = qs.filter(assignment__fitbit__fitbit_code__in=f_codes)
-        
+        f_codes = [
+            f.strip()
+            for f in fitbit_code.split(',')
+            if f.strip()
+        ]
+
+        qs = qs.filter(
+            assignment__fitbit__fitbit_code__in=f_codes
+        )
+
+    # -----------------------------------------------------
+    # FILTRAR POR VARIABLE
+    # -----------------------------------------------------
     if variable_type:
-        vars_list = [v.strip() for v in variable_type.split(',') if v.strip()]
+        vars_list = [
+            v.strip()
+            for v in variable_type.split(',')
+            if v.strip()
+        ]
+
         qs = qs.filter(variable_type__in=vars_list)
 
+    # -----------------------------------------------------
+    # FILTRAR POR FECHAS
+    # -----------------------------------------------------
     if date_from:
         try:
-            qs = qs.filter(physical_time__gte=datetime.fromisoformat(date_from))
-        except ValueError:
-            pass
-    if date_to:
-        try:
-            qs = qs.filter(physical_time__lte=datetime.fromisoformat(date_to))
+            qs = qs.filter(
+                physical_time__gte=datetime.fromisoformat(date_from)
+            )
         except ValueError:
             pass
 
-    items = [
-        {
-            'participant_code': item.assignment.participant.participant_code,
-            'fitbit_code': item.assignment.fitbit.fitbit_code,
-            'variable_type': item.variable_type,
+    if date_to:
+        try:
+            qs = qs.filter(
+                physical_time__lte=datetime.fromisoformat(date_to)
+            )
+        except ValueError:
+            pass
+
+    # -----------------------------------------------------
+    # FILTRAR POR ESTADO DEL PARTICIPANTE
+    # -----------------------------------------------------
+    if status_filter and status_filter != 'ALL':
+        valid_participants = []
+
+        for participant in Participant.objects.all():
+
+            assignment = (
+                Assignment.objects
+                .filter(participant=participant)
+                .order_by('-start_date')
+                .first()
+            )
+
+            if not assignment:
+                p_status = 'PENDING'
+
+            elif (
+                assignment.real_end_date
+                and assignment.real_end_date <= timezone.now()
+            ):
+                p_status = 'COMPLETED'
+
+            elif assignment.start_date > timezone.now():
+                p_status = 'PENDING'
+
+            else:
+                p_status = 'ACTIVE'
+
+            if p_status == status_filter:
+                valid_participants.append(
+                    participant.participant_code
+                )
+
+        qs = qs.filter(
+            assignment__participant__participant_code__in=valid_participants
+        )
+
+    # =====================================================
+    # ACUMULACIÓN DE STEPS Y DISTANCE POR DÍA (CRONOLÓGICA)
+    # =====================================================
+
+    # Ordenamos estrictamente ASCENDENTE para sumar los pasos/distancia según van ocurriendo en el día
+    records = list(
+        qs.order_by('physical_time')[:500]
+    )
+
+    accumulated_values = defaultdict(float)
+    items = []
+
+    for item in records:
+        participant = item.assignment.participant.participant_code
+        fitbit = item.assignment.fitbit.fitbit_code
+        variable = item.variable_type
+
+        # Día del registro
+        day = timezone.localtime(item.physical_time).date()
+        value = item.metric_value
+
+        accumulation_key = (
+            participant,
+            fitbit,
+            variable,
+            day
+        )
+
+        # Solo acumulamos STEPS y DISTANCE 
+        if variable in [
+            VariableType.STEPS,
+            VariableType.DISTANCE
+        ]:
+            if value is not None:
+                accumulated_values[accumulation_key] += float(value)
+
+            display_value = accumulated_values[accumulation_key]
+        else:
+            display_value = value
+
+        items.append({
+            'participant_code': participant,
+            'fitbit_code': fitbit,
+            'variable_type': variable,
             'physical_time': item.physical_time.isoformat(),
-            'metric_value': item.metric_value,
+            'metric_value': display_value,
+        })
+
+    # Mostramos los registros más recientes primero
+    items.reverse()
+
+    return _json_response(
+        request,
+        {
+            'count': len(items),
+            'items': items
         }
-        for item in qs.order_by('-physical_time')[:200]
-    ]
-    return _json_response(request, {'count': len(items), 'items': items})
+    )
 
 
 @csrf_exempt
@@ -870,9 +1052,22 @@ def api_export(request):
             # -------------------------------------------------
 
             val = item.metric_value
-            # Si el valor es cero o nulo, dejamos la celda vacía ('')
+
             if val is not None and float(val) > 0:
-                pivot_data[row_key]['variables'][item.variable_type] = val
+                try:
+                    num_val = float(val)
+
+                    # Convertimos a texto para que CSV y XLSX muestren siempre el punto decimal
+                    if num_val.is_integer():
+                        formatted_value = str(int(num_val))
+                    else:
+                        formatted_value = format(num_val, '.15g')
+
+                    pivot_data[row_key]['variables'][item.variable_type] = formatted_value
+
+                except (ValueError, TypeError):
+                    pivot_data[row_key]['variables'][item.variable_type] = str(val)
+
             else:
                 pivot_data[row_key]['variables'][item.variable_type] = 'null'
 
@@ -1302,10 +1497,15 @@ def api_admin_create_researcher(request):
 """
 
     subject = 'Autorización como investigador/a en SENDA'
-    from_email = config('DEFAULT_FROM_EMAIL', default='admin@proyectosenda.org')
+    from_email = config('DEFAULT_FROM_EMAIL', default='admin@sendaproject.es')
     text_content = f"Hola,\n\nTe han autorizado como investigador/a en SENDA.\n\nAcepta aquí: {yes_url}\nRechaza aquí: {no_url}\n\nEquipo SENDA"
 
-    email_msg = EmailMultiAlternatives(subject, text_content, from_email, [email])
+    email_msg = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[email],
+    )
     email_msg.attach_alternative(html_content, "text/html")
     email_msg.send(fail_silently=False)
 
@@ -1380,7 +1580,7 @@ def api_researcher_request_code(request):
     send_mail(
         subject='Verificación de cuenta en SENDA',
         message=f'Tu código de verificación es: {code}',
-        from_email=config('DEFAULT_FROM_EMAIL'),
+        from_email=settings.DEAULT_FROM_EMAIL,
         recipient_list=[email],
         fail_silently=False, 
     )

@@ -25,22 +25,33 @@ class FitbitStatus(models.TextChoices):
 
 
 class VariableType(models.TextChoices):
-    # --- Datos diarios de sueño ---
-    SLEEP = 'SLEEP', 'Sueño'
+    # DATOS DE SUEÑO
     SLEEP_DURATION = 'SLEEP_DURATION', 'Duración total del sueño'
     SLEEP_LIGHT = 'SLEEP_LIGHT', 'Minutos en sueño ligero'
     SLEEP_DEEP = 'SLEEP_DEEP', 'Minutos en sueño profundo'
     SLEEP_REM = 'SLEEP_REM', 'Minutos en sueño REM'
     SLEEP_AWAKE = 'SLEEP_AWAKE', 'Tiempo despierto durante el periodo de sueño'
-    SLEEP_START_END = 'SLEEP_START_END', 'Hora de inicio y finalización del sueño'
+    SLEEP_START = 'SLEEP_START', 'Hora de inicio del sueño'
+    SLEEP_END = 'SLEEP_END', 'Hora de finalización del sueño'
+    SLEEP_MINUTES_TO_FALL_ASLEEP = 'SLEEP_MINUTES_TO_FALL_ASLEEP', 'Minutos hasta que te duermes'
+    SLEEP_MINUTES_ASLEEP = 'SLEEP_MINUTES_ASLEEP', 'Minutos reales dormidos'
+    SLEEP_AFTER_WAKE_UP = 'SLEEP_AFTER_WAKE_UP', 'Minutos despierto tras levantarse'
 
-    # --- Variables fisiológicas diarias ---
+    # FRECUENCIA RESPIRATORIA 
+    RESPIRATORY_RATE_NOCTURNAL = 'RESPIRATORY_RATE_NOCTURNAL', 'Frecuencia respiratoria global (respiraciones/min)'
+    RESPIRATORY_RATE_LIGHT = 'RESPIRATORY_RATE_LIGHT', 'Frecuencia respiratoria en sueño ligero'
+    RESPIRATORY_RATE_DEEP = 'RESPIRATORY_RATE_DEEP', 'Frecuencia respiratoria en sueño profundo'
+    RESPIRATORY_RATE_REM = 'RESPIRATORY_RATE_REM', 'Frecuencia respiratoria en sueño REM'
+
+    # VARIABLES FISIOLÓGICAS 
     HEART_RATE = 'HEART_RATE', 'Frecuencia cardíaca'
     HEART_RATE_RESTING = 'HEART_RATE_RESTING', 'Frecuencia cardíaca en reposo'
-    HRV_NOCTURNAL = 'HRV_NOCTURNAL', 'Variabilidad de la frecuencia cardíaca nocturna'
-    RESPIRATORY_RATE_NOCTURNAL = 'RESPIRATORY_RATE_NOCTURNAL', 'Frecuencia respiratoria nocturna'
+    HRV_AVERAGE_MS = 'HRV_AVERAGE_MS', 'Promedio de variabilidad cardíaca (ms)'
+    HRV_RMSSD = 'HRV_RMSSD', 'RMSSD en sueño profundo (ms)'
+    HRV_NON_REM_HR = 'HRV_NON_REM_HR', 'Frecuencia cardíaca en sueño no-REM (bpm)'
+    HRV_ENTROPY = 'HRV_ENTROPY', 'Entropía de la variabilidad cardíaca'
 
-    # --- Actividad y zonas de frecuencia cardíaca ---
+    # ACTIVIDAD Y ZONAS CARDÍACAS 
     HR_ZONE_FAT_BURN = 'HR_ZONE_FAT_BURN', 'Minutos en zona de quema de grasa'
     HR_ZONE_CARDIO = 'HR_ZONE_CARDIO', 'Minutos en zona cardio'
     HR_ZONE_PEAK = 'HR_ZONE_PEAK', 'Minutos en zona pico'

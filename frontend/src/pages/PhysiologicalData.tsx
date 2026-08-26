@@ -12,13 +12,24 @@ type PhysiologicalDataItem = {
 const API_BASE = 'http://localhost:1574';
 
 const VARIABLE_OPTIONS = [
+  // --- Datos diarios de sueño ---
   'SLEEP_DURATION', 'SLEEP_LIGHT', 'SLEEP_DEEP', 'SLEEP_REM',
-  'SLEEP_AWAKE', 'SLEEP_START_END', 'HEART_RATE', 'HEART_RATE_RESTING',
-  'HRV_NOCTURNAL', 'RESPIRATORY_RATE_NOCTURNAL', 'HR_ZONE_FAT_BURN',
-  'HR_ZONE_CARDIO', 'HR_ZONE_PEAK', 'ACTIVE_ZONE_MINUTES', 'STEPS', 'DISTANCE'
+  'SLEEP_AWAKE', 'SLEEP_START', 'SLEEP_END', 'SLEEP_MINUTES_TO_FALL_ASLEEP',
+  'SLEEP_MINUTES_ASLEEP', 'SLEEP_AFTER_WAKE_UP',
+
+  // --- Frecuencia respiratoria nocturna ---
+  'RESPIRATORY_RATE_NOCTURNAL', 'RESPIRATORY_RATE_LIGHT',
+  'RESPIRATORY_RATE_DEEP', 'RESPIRATORY_RATE_REM',
+
+  // --- Variables fisiológicas diarias ---
+  'HEART_RATE', 'HEART_RATE_RESTING', 'HRV_AVERAGE_MS', 'HRV_RMSSD',
+  'HRV_NON_REM_HR', 'HRV_ENTROPY',
+
+  // --- Actividad y zonas de frecuencia cardíaca ---
+  'HR_ZONE_FAT_BURN', 'HR_ZONE_CARDIO', 'HR_ZONE_PEAK',
+  'ACTIVE_ZONE_MINUTES', 'STEPS', 'DISTANCE'
 ];
 
-// --- Componente reutilizable para desplegables de SELECCIÓN MÚLTIPLE con buscador ---
 const CustomMultiSearchableSelect: React.FC<{
   label: string;
   selectedValues: string[];
@@ -205,6 +216,7 @@ const PhysiologicalData: React.FC = () => {
     if (selectedVariables.length > 0) params.append('variable_type', selectedVariables.join(','));
     if (from) params.append('from', from);
     if (to) params.append('to', to);
+    if (statusFilter && statusFilter !== 'ALL') params.append('status', statusFilter);
 
     fetch(`${API_BASE}/api/physiological-data/?${params.toString()}`, { credentials: 'include' })
       .then((res) => res.json())
@@ -217,7 +229,7 @@ const PhysiologicalData: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, [selectedParticipants, selectedFitbits, selectedVariables, from, to]);
+  }, [selectedParticipants, selectedFitbits, selectedVariables, from, to, statusFilter]);
 
   const filteredDataByStatus = data.filter((item) => {
     const pStatus = participantsStatusMap[item.participant_code] || 'ACTIVE';
@@ -298,31 +310,28 @@ const PhysiologicalData: React.FC = () => {
       <div className="flex items-center gap-1.5 bg-slate-100/80 dark:bg-slate-800 p-1 rounded-xl w-fit">
         <button
           onClick={() => { setStatusFilter('ALL'); setCurrentPage(1); }}
-          className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
-            statusFilter === 'ALL' 
-              ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' 
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-          }`}
+          className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${statusFilter === 'ALL'
+            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+            : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
         >
           {t('All')}
         </button>
         <button
           onClick={() => { setStatusFilter('ACTIVE'); setCurrentPage(1); }}
-          className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
-            statusFilter === 'ACTIVE' 
-              ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' 
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-          }`}
+          className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${statusFilter === 'ACTIVE'
+            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+            : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
         >
           {t('Active')}
         </button>
         <button
           onClick={() => { setStatusFilter('COMPLETED'); setCurrentPage(1); }}
-          className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
-            statusFilter === 'COMPLETED' 
-              ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' 
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-          }`}
+          className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${statusFilter === 'COMPLETED'
+            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+            : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
         >
           {t('Completed')}
         </button>
@@ -439,11 +448,10 @@ const PhysiologicalData: React.FC = () => {
                     <tr key={`${item.participant_code}-${index}`} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
                       <td className="px-6 py-4 text-xs font-bold text-slate-900 dark:text-white">{item.participant_code}</td>
                       <td className="px-6 py-4 text-xs">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-xl text-[10px] font-bold ${
-                          status === 'COMPLETED'
-                            ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-100 dark:border-amber-900'
-                            : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900'
-                        }`}>
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-xl text-[10px] font-bold ${status === 'COMPLETED'
+                          ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-100 dark:border-amber-900'
+                          : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900'
+                          }`}>
                           {status === 'COMPLETED' ? t('Completed') : t('Active')}
                         </span>
                       </td>
@@ -455,7 +463,21 @@ const PhysiologicalData: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-300">{new Date(item.physical_time).toLocaleString('es-ES')}</td>
                       <td className="px-6 py-4 text-xs font-bold text-slate-900 dark:text-white">
-                        {item.metric_value !== null && item.metric_value !== undefined ? item.metric_value : 'null'}
+                        {item.metric_value !== null && item.metric_value !== undefined ? (() => {
+                          const v = item.variable_type;
+                          const val = item.metric_value;
+
+                          if (v.startsWith('SLEEP_') && v !== 'SLEEP_START' && v !== 'SLEEP_END') return `${val} ${t('unit_min')}`;
+                          if (v.includes('ZONE') || v === 'ACTIVE_ZONE_MINUTES') return `${val} ${t('unit_min')}`;
+                          if (v === 'HEART_RATE' || v === 'HEART_RATE_RESTING' || v === 'HRV_NON_REM_HR') return `${val} ${t('unit_bpm')}`;
+                          if (v.startsWith('RESPIRATORY_RATE_')) return `${val} ${t('unit_resp')}`;
+                          if (v === 'HRV_AVERAGE_MS' || v === 'HRV_RMSSD') return `${val} ${t('unit_ms')}`;
+                          if (v === 'HRV_ENTROPY') return `${val}`;
+                          if (v === 'DISTANCE') return `${Number(val).toFixed(4)} ${t('unit_km')}`;
+                          if (v === 'STEPS') return `${val} ${t('unit_steps')}`;
+
+                          return val;
+                        })() : '-'}
                       </td>
                     </tr>
                   );

@@ -164,6 +164,12 @@ i18n
           "No results found": "No se encontraron resultados",
           "Error loading physiological data": "No se pudieron cargar los datos fisiológicos",
           "Search Variable": "Buscar variable...",
+          "unit_min": "min",
+          "unit_bpm": "lpm",
+          "unit_resp": "resp/min",
+          "unit_ms": "ms",
+          "unit_km": "km",
+          "unit_steps": "pasos",
 
           // Alerts
           "Alerts Title": "Alertas y Notificaciones",
@@ -404,6 +410,12 @@ i18n
           "No results found": "No results found",
           "Error loading physiological data": "Could not load physiological data",
           "Search Variable": "Search variable...",
+          "unit_min": "min",
+          "unit_bpm": "bpm",
+          "unit_resp": "breaths/min",
+          "unit_ms": "ms",
+          "unit_km": "km",
+          "unit_steps": "steps",
 
           // Alerts
           "Alerts Title": "Alerts & Notifications",

@@ -57,7 +57,7 @@ const FrontPage: React.FC<FrontPageProps> = ({ onGoToLogin }) => {
 
         <div className="relative z-10 space-y-4">
           <span className="inline-flex rounded-full bg-white/10 px-4 py-1.5 text-xs uppercase tracking-[0.24em] text-slate-100 backdrop-blur-md border border-white/20 shadow-sm">
-            Universidad de Sevilla · Financiado por CENTRA
+            Universidad de Sevilla
           </span>
           <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl leading-snug sm:leading-tight">
             Salud Emocional y Neurociencia para el Desarrollo de Andalucía

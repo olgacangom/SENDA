@@ -30,6 +30,7 @@ from .views import (
     researcher_response_view,
     api_assignments_update,
     api_assignments_delete,
+    api_fitbits_update_status,
 )
 
 urlpatterns = [
@@ -54,7 +55,8 @@ urlpatterns = [
     path('api/export/', api_export, name='api_export'),
     path('api/participants/', api_participants, name='api_participants'),
     path('api/fitbits/', api_fitbits, name='api_fitbits'),
-    path('api/fitbits/create/', api_fitbits_create, name='api_fitbits_create'),
+    path('api/fitbits/create/', api_fitbits_create, name='api_fitbits_create'), 
+    path('api/fitbits/update/status/', api_fitbits_update_status, name='api_fitbits_update_status'),
     path('api/fitbits/delete/', api_fitbits_delete, name='api_fitbits_delete'),
     path('api/synclogs/', api_synclogs, name='api_synclogs'),
     path('api/clear/synclogs/', api_clear_synclogs, name='api_clear_synclogs'),

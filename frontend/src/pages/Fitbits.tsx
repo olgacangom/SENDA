@@ -75,7 +75,7 @@ const Fitbits: React.FC = () => {
       setSubmitSuccess(`${t('Fitbit registered')} ${nextCode}.`);
       setSelectedStatus('FREE');
       loadFitbits();
-      
+
       setTimeout(() => {
         setIsModalOpen(false);
         setSubmitSuccess(null);
@@ -89,11 +89,11 @@ const Fitbits: React.FC = () => {
   };
 
   const filtered = fitbits.filter((fitbit) => {
-    const matchesQuery = 
+    const matchesQuery =
       fitbit.fitbit_code.toLowerCase().includes(query.toLowerCase()) ||
       fitbit.status.toLowerCase().includes(query.toLowerCase());
 
-    const matchesStatus = 
+    const matchesStatus =
       selectedStatusFilter === 'ALL' || fitbit.status.toUpperCase() === selectedStatusFilter.toUpperCase();
 
     return matchesQuery && matchesStatus;
@@ -122,45 +122,45 @@ const Fitbits: React.FC = () => {
       {/* Tarjetas de resumen superior interactivas */}
       <div className="grid gap-4 sm:grid-cols-4 mb-8">
         {[
-          { 
+          {
             statusKey: 'IN_USE',
-            label: t('In Use'), 
-            value: summary.in_use, 
-            textColor: 'text-emerald-600 dark:text-emerald-400', 
+            label: t('In Use'),
+            value: summary.in_use,
+            textColor: 'text-emerald-600 dark:text-emerald-400',
             backgroundColor: 'bg-[#E6FFEE] dark:bg-emerald-950/40',
             borderColor: 'border-emerald-200 dark:border-emerald-200/50',
             activeRing: 'border-emerald-500 ring-2 ring-emerald-600/20',
-            hoverShadow: 'hover:shadow-[0_20px_25px_-5px_rgba(5,150,105,0.15)]' 
+            hoverShadow: 'hover:shadow-[0_20px_25px_-5px_rgba(5,150,105,0.15)]'
           },
-          { 
+          {
             statusKey: 'FREE',
-            label: t('Free'), 
-            value: summary.free, 
+            label: t('Free'),
+            value: summary.free,
             textColor: 'text-blue-600 dark:text-blue-400',
-            backgroundColor: 'bg-[#E6F5FF] dark:bg-blue-950/40', 
-            borderColor: 'border-blue-200 dark:border-blue-200/50', 
+            backgroundColor: 'bg-[#E6F5FF] dark:bg-blue-950/40',
+            borderColor: 'border-blue-200 dark:border-blue-200/50',
             activeRing: 'border-blue-500 ring-2 ring-blue-600/20',
-            hoverShadow: 'hover:shadow-[0_20px_25px_-5px_rgba(37,99,235,0.15)]' 
+            hoverShadow: 'hover:shadow-[0_20px_25px_-5px_rgba(37,99,235,0.15)]'
           },
-          { 
+          {
             statusKey: 'MAINTENANCE',
-            label: t('Maintenance'), 
-            value: summary.maintenance, 
+            label: t('Maintenance'),
+            value: summary.maintenance,
             textColor: 'text-amber-600 dark:text-amber-400',
-            backgroundColor: 'bg-[#FFF3E6] dark:bg-amber-950/40', 
-            borderColor: 'border-amber-200 dark:border-amber-200/50', 
+            backgroundColor: 'bg-[#FFF3E6] dark:bg-amber-950/40',
+            borderColor: 'border-amber-200 dark:border-amber-200/50',
             activeRing: 'border-amber-500 ring-2 ring-amber-600/20',
-            hoverShadow: 'hover:shadow-[0_20px_25px_-5px_rgba(217,119,6,0.15)]' 
+            hoverShadow: 'hover:shadow-[0_20px_25px_-5px_rgba(217,119,6,0.15)]'
           },
-          { 
+          {
             statusKey: 'INACTIVE',
-            label: t('Inactive'), 
-            value: summary.inactive, 
-            textColor: 'text-red-500 dark:text-red-400', 
+            label: t('Inactive'),
+            value: summary.inactive,
+            textColor: 'text-red-500 dark:text-red-400',
             backgroundColor: 'bg-[#FFE6E6] dark:bg-red-950/40',
-            borderColor: 'border-red-200 dark:border-red-200/50', 
+            borderColor: 'border-red-200 dark:border-red-200/50',
             activeRing: 'border-red-500 ring-2 ring-red-600/20',
-            hoverShadow: 'hover:shadow-[0_20px_25px_-5px_rgba(100,116,139,0.15)]' 
+            hoverShadow: 'hover:shadow-[0_20px_25px_-5px_rgba(100,116,139,0.15)]'
           },
         ].map((item) => {
           const isSelected = selectedStatusFilter === item.statusKey;
@@ -168,9 +168,8 @@ const Fitbits: React.FC = () => {
             <div
               key={item.label}
               onClick={() => setSelectedStatusFilter(isSelected ? 'ALL' : item.statusKey)}
-              className={`cursor-pointer rounded-2xl border ${item.backgroundColor} p-5 shadow-lg shadow-slate-100 dark:shadow-none transition-all duration-200 hover:-translate-y-1 text-center ${item.hoverShadow} ${
-                isSelected ? item.activeRing : item.borderColor
-              }`}
+              className={`cursor-pointer rounded-2xl border ${item.backgroundColor} p-5 shadow-lg shadow-slate-100 dark:shadow-none transition-all duration-200 hover:-translate-y-1 text-center ${item.hoverShadow} ${isSelected ? item.activeRing : item.borderColor
+                }`}
             >
               <p className={`text-[11px] font-extrabold uppercase tracking-[0.25em] ${item.textColor}`}>
                 {item.label}
@@ -368,17 +367,48 @@ const Fitbits: React.FC = () => {
 
               <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 p-4 flex flex-col justify-center">
                 <span className="text-[11px] font-medium text-blue-900 dark:text-blue-400 mb-1">{t('Status')}</span>
-                <div>
-                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold capitalize ${
-                    selectedFitbit.status.toLowerCase().includes('in_use') || selectedFitbit.status.toLowerCase().includes('uso')
-                      ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300'
-                      : selectedFitbit.status.toLowerCase().includes('free') || selectedFitbit.status.toLowerCase().includes('libre')
-                        ? 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300'
-                        : 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300'
-                  }`}>
-                    <span className="h-1.5 w-1.5 rounded-full bg-current"></span>
-                    {selectedFitbit.status.replace('_', ' ').toLowerCase()}
-                  </span>
+                <div className="flex flex-col gap-2">
+                  <div>
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold capitalize ${selectedFitbit.status.toLowerCase().includes('in_use') || selectedFitbit.status.toLowerCase().includes('uso')
+                        ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300'
+                        : selectedFitbit.status.toLowerCase().includes('free') || selectedFitbit.status.toLowerCase().includes('libre')
+                          ? 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300'
+                          : 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300'
+                      }`}>
+                      <span className="h-1.5 w-1.5 rounded-full bg-current"></span>
+                      {selectedFitbit.status.replace('_', ' ').toLowerCase()}
+                    </span>
+                  </div>
+
+                  {/* Selector para cambiar el estado manualmente */}
+                  <select
+                    value={selectedFitbit.status}
+                    onChange={async (e) => {
+                      const newStatus = e.target.value;
+                      try {
+                        const resp = await fetch(`${API_BASE}/api/fitbits/update/status/`, {
+                          method: 'POST',
+                          credentials: 'include',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ fitbit_code: selectedFitbit.fitbit_code, status: newStatus }),
+                        });
+                        if (resp.ok) {
+                          setSelectedFitbit({ ...selectedFitbit, status: newStatus });
+                          loadFitbits(); // Recarga la lista principal y contadores
+                        } else {
+                          alert(t('Error updating status'));
+                        }
+                      } catch {
+                        alert(t('Server connection error'));
+                      }
+                    }}
+                    className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white outline-none cursor-pointer mt-1"
+                  >
+                    <option value="FREE">{t('Free')}</option>
+                    <option value="IN_USE">{t('In Use')}</option>
+                    <option value="MAINTENANCE">{t('Maintenance')}</option>
+                    <option value="INACTIVE">{t('Inactive')}</option>
+                  </select>
                 </div>
               </div>
             </div>

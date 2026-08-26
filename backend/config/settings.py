@@ -143,16 +143,40 @@ CELERY_RESULT_BACKEND = config('REDIS_URL', default='redis://redis:6379/0')
 CELERY_BEAT_SCHEDULE = {
     'sincronizar-datos-cada-5min': {
         'task': 'google_health.tasks.sync_all_users_data',
-        'schedule': 300.0, # 300 segundos = 5 minutos (actualización de datos fisiologicos)
+        'schedule': 120.0, # 120 segundos = 2 minutos (actualización de datos fisiologicos)
     },
 }
 
 
+EMAIL_BACKEND = config(
+    'EMAIL_BACKEND',
+    default='django.core.mail.backends.smtp.EmailBackend'
+)
 
-EMAIL_BACKEND = config('EMAIL_BACKEND')
 EMAIL_HOST = config('EMAIL_HOST')
-EMAIL_PORT = config('EMAIL_PORT')
-EMAIL_USE_SSL = config('EMAIL_USE_SSL')
+
+EMAIL_PORT = config(
+    'EMAIL_PORT',
+    cast=int
+)
+
+EMAIL_USE_SSL = config(
+    'EMAIL_USE_SSL',
+    cast=bool,
+    default=True
+)
+
+EMAIL_USE_TLS = config(
+    'EMAIL_USE_TLS',
+    cast=bool,
+    default=False
+)
+
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
+
+DEFAULT_FROM_EMAIL = config(
+    'DEFAULT_FROM_EMAIL',
+    default=EMAIL_HOST_USER
+)
