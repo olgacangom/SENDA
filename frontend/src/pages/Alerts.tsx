@@ -6,10 +6,16 @@ type AlertItem = {
   message: string;
   priority: string;
   type: string;
+  type_label: string;
   resolved: boolean;
   participant_code: string | null;
+  fitbit_code: string | null;
   email: string | null;
+  details: Record<string, unknown>;
+  first_detected_at: string | null;
+  last_detected_at: string | null;
   created_at: string;
+  resolved_at: string | null;
 };
 
 const API_BASE = 'http://localhost:1574';
@@ -98,8 +104,8 @@ const Alerts: React.FC = () => {
           <button
             onClick={() => { setShowResolved(false); setCurrentPage(1); }}
             className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${!showResolved
-                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
           >
             {t('Active Count', { count: activeAlerts.length })}
@@ -107,8 +113,8 @@ const Alerts: React.FC = () => {
           <button
             onClick={() => { setShowResolved(true); setCurrentPage(1); }}
             className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${showResolved
-                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
           >
             {t('Resolved History')}
@@ -122,8 +128,8 @@ const Alerts: React.FC = () => {
           <div
             onClick={() => { setSelectedPriority('HIGH'); setCurrentPage(1); }}
             className={`cursor-pointer rounded-2xl border bg-white dark:bg-slate-900 p-5 shadow-lg shadow-slate-100 dark:shadow-none transition-all duration-200 hover:-translate-y-1 text-center 
-              ${selectedPriority === 'HIGH' 
-                ? 'border-rose-500 ring-2 ring-rose-500/20' 
+              ${selectedPriority === 'HIGH'
+                ? 'border-rose-500 ring-2 ring-rose-500/20'
                 : 'border-rose-200 dark:border-rose-200/50'
               }`}
           >
@@ -137,8 +143,8 @@ const Alerts: React.FC = () => {
           <div
             onClick={() => { setSelectedPriority('MEDIUM'); setCurrentPage(1); }}
             className={`cursor-pointer rounded-2xl border bg-white dark:bg-slate-900 p-5 shadow-lg shadow-slate-100 dark:shadow-none transition-all duration-200 hover:-translate-y-1 text-center 
-              ${selectedPriority === 'MEDIUM' 
-                ? 'border-amber-500 ring-2 ring-amber-500/20' 
+              ${selectedPriority === 'MEDIUM'
+                ? 'border-amber-500 ring-2 ring-amber-500/20'
                 : 'border-amber-200 dark:border-amber-200/50'
               }`}
           >
@@ -151,8 +157,8 @@ const Alerts: React.FC = () => {
           <div
             onClick={() => { setSelectedPriority('LOW'); setCurrentPage(1); }}
             className={`cursor-pointer rounded-2xl border bg-white dark:bg-slate-900 p-5 shadow-lg shadow-slate-100 dark:shadow-none transition-all duration-200 hover:-translate-y-1 text-center 
-              ${selectedPriority === 'LOW' 
-                ? 'border-blue-500 ring-2 ring-blue-500/20' 
+              ${selectedPriority === 'LOW'
+                ? 'border-blue-500 ring-2 ring-blue-500/20'
                 : 'border-blue-200 dark:border-blue-200/50'
               }`}
           >
@@ -199,8 +205,8 @@ const Alerts: React.FC = () => {
               <button
                 onClick={() => { setSelectedPriority('ALL'); setCurrentPage(1); }}
                 className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.25em] rounded-xl transition cursor-pointer ${selectedPriority === 'ALL'
-                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
               >
                 {t('All')}
@@ -208,8 +214,8 @@ const Alerts: React.FC = () => {
               <button
                 onClick={() => { setSelectedPriority('HIGH'); setCurrentPage(1); }}
                 className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${selectedPriority === 'HIGH'
-                    ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-sm'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
               >
                 {t('Critical')}
@@ -217,8 +223,8 @@ const Alerts: React.FC = () => {
               <button
                 onClick={() => { setSelectedPriority('MEDIUM'); setCurrentPage(1); }}
                 className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${selectedPriority === 'MEDIUM'
-                    ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-sm'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
               >
                 {t('Warnings')}
@@ -274,15 +280,41 @@ const Alerts: React.FC = () => {
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-slate-200/70 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
-                        {alert.participant_code || alert.email || 'Sistema'}
+                        {t(`${alert.type}_title`)}
                       </span>
-                      <span className="text-[11px] text-slate-400 font-medium">
-                        {new Date(alert.created_at).toLocaleString('es-ES')}
-                      </span>
+
+                      {alert.participant_code && (
+                        <span className="text-[11px] font-semibold text-slate-500">
+                          {alert.participant_code}
+                        </span>
+                      )}
+
+                      {alert.fitbit_code && (
+                        <span className="text-[11px] text-slate-400">
+                          · {alert.fitbit_code}
+                        </span>
+                      )}
                     </div>
-                    <p className="text-xs font-bold text-slate-900 dark:text-white pt-1">{alert.message}</p>
+
+                    <p className="text-xs font-bold text-slate-900 dark:text-white">
+                      {t(`${alert.type}_msg`)}
+                    </p>
+
+                    {/* MOSTRAR HORAS DE DETECCIÓN Y RESOLUCIÓN */}
+                    <div className="text-[10px] text-slate-400 space-x-2 pt-1">
+                      {alert.first_detected_at && (
+                        <span>
+                          <strong>Detectada:</strong> {new Date(alert.first_detected_at).toLocaleString('es-ES')}
+                        </span>
+                      )}
+                      {alert.resolved && alert.resolved_at && (
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                          · <strong>Resuelta:</strong> {new Date(alert.resolved_at).toLocaleString('es-ES')}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-3 shrink-0">

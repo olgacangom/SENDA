@@ -652,13 +652,13 @@ def api_physiological_data(request):
         )
 
     # =====================================================
-    # ACUMULACIÓN DE STEPS Y DISTANCE POR DÍA (CRONOLÓGICA)
+    # ACUMULACIÓN DE STEPS Y DISTANCE POR DÍA
     # =====================================================
 
-    # Ordenamos estrictamente ASCENDENTE para sumar los pasos/distancia según van ocurriendo en el día
-    records = list(
-        qs.order_by('physical_time')[:500]
-    )
+    # Obtenemos los 500 registros más recientes de la base de datos (orden descendente)
+    recent_qs = qs.order_by('-physical_time')[:500]
+    records = list(recent_qs)
+    records.sort(key=lambda x: x.physical_time)
 
     accumulated_values = defaultdict(float)
     items = []
@@ -667,8 +667,6 @@ def api_physiological_data(request):
         participant = item.assignment.participant.participant_code
         fitbit = item.assignment.fitbit.fitbit_code
         variable = item.variable_type
-
-        # Día del registro
         day = timezone.localtime(item.physical_time).date()
         value = item.metric_value
 
@@ -679,7 +677,7 @@ def api_physiological_data(request):
             day
         )
 
-        # Solo acumulamos STEPS y DISTANCE 
+        # Solo acumulamos STEPS y DISTANCE de forma progresiva
         if variable in [
             VariableType.STEPS,
             VariableType.DISTANCE
@@ -699,7 +697,6 @@ def api_physiological_data(request):
             'metric_value': display_value,
         })
 
-    # Mostramos los registros más recientes primero
     items.reverse()
 
     return _json_response(
@@ -726,49 +723,205 @@ def api_variable_types_list(request):
 
 @csrf_exempt
 def api_alerts(request):
+
     if request.method == 'OPTIONS':
         resp = JsonResponse({'ok': True})
         resp['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
         resp['Access-Control-Allow-Headers'] = 'Content-Type'
         return _add_cors_headers(request, resp)
-    if request.method != 'GET':
-        return _validation_error(request, 'method_not_allowed', status=405)
 
-    alerts = Alert.objects.select_related('assignment__participant', 'google_account').order_by('-created_at')[:100]
-    items = [
-        {
+    if request.method != 'GET':
+        return _validation_error(
+            request,
+            'method_not_allowed',
+            status=405
+        )
+
+    status_filter = request.GET.get('status', 'ALL')
+    priority_filter = request.GET.get('priority', 'ALL')
+    participant_filter = request.GET.get('participant', '').strip()
+    alert_type_filter = request.GET.get('type', 'ALL')
+
+    alerts = (
+        Alert.objects
+        .select_related(
+            'assignment__participant',
+            'assignment__fitbit',
+            'google_account'
+        )
+    )
+
+    # ----------------------------------------
+    # FILTRO POR ESTADO
+    # ----------------------------------------
+
+    if status_filter == 'ACTIVE':
+        alerts = alerts.filter(resolved=False)
+
+    elif status_filter == 'RESOLVED':
+        alerts = alerts.filter(resolved=True)
+
+    # ----------------------------------------
+    # FILTRO POR PRIORIDAD
+    # ----------------------------------------
+
+    if priority_filter in ['HIGH', 'MEDIUM']:
+        alerts = alerts.filter(priority=priority_filter)
+
+    # ----------------------------------------
+    # FILTRO POR TIPO DE ALERTA
+    # ----------------------------------------
+
+    if alert_type_filter != 'ALL':
+        alerts = alerts.filter(alert_type=alert_type_filter)
+
+    # ----------------------------------------
+    # FILTRO POR PARTICIPANTE
+    # ----------------------------------------
+
+    if participant_filter:
+        alerts = alerts.filter(
+            assignment__participant__participant_code__icontains=participant_filter
+        )
+
+    # ----------------------------------------
+    # ORDEN
+    # Activas primero y más recientes primero
+    # ----------------------------------------
+
+    alerts = alerts.order_by(
+        'resolved',
+        '-last_detected_at'
+    )[:500]
+
+    items = []
+
+    for alert in alerts:
+
+        participant_code = None
+        fitbit_code = None
+
+        if alert.assignment:
+            if alert.assignment.participant:
+                participant_code = (
+                    alert.assignment.participant.participant_code
+                )
+
+            if alert.assignment.fitbit:
+                fitbit_code = (
+                    alert.assignment.fitbit.fitbit_code
+                )
+
+        items.append({
             'id': str(alert.id),
+
+            'type': alert.alert_type,
+            'type_label': alert.get_alert_type_display(),
+
             'message': alert.message,
             'priority': alert.priority,
-            'type': alert.alert_type,
-            'resolved': alert.resolved,
-            'participant_code': alert.assignment.participant.participant_code if alert.assignment else None,
-            'email': alert.google_account.email if alert.google_account else None,
-            'created_at': alert.created_at.isoformat(),
-        }
-        for alert in alerts
-    ]
-    return _json_response(request, {'count': len(items), 'items': items})
 
+            'resolved': alert.resolved,
+
+            'participant_code': participant_code,
+
+            'fitbit_code': fitbit_code,
+
+            'email': (
+                alert.google_account.email
+                if alert.google_account
+                else None
+            ),
+
+            'details': alert.details or {},
+
+            'first_detected_at': (
+                alert.first_detected_at.isoformat()
+                if alert.first_detected_at
+                else None
+            ),
+
+            'last_detected_at': (
+                alert.last_detected_at.isoformat()
+                if alert.last_detected_at
+                else None
+            ),
+
+            'created_at': (
+                alert.created_at.isoformat()
+                if alert.created_at
+                else None
+            ),
+
+            'resolved_at': (
+                alert.resolved_at.isoformat()
+                if alert.resolved_at
+                else None
+            ),
+        })
+
+    return _json_response(
+        request,
+        {
+            'count': len(items),
+            'items': items,
+        }
+    )
 
 @csrf_exempt
 def api_resolve_alert(request, alert_id):
+
     if request.method == 'OPTIONS':
         resp = JsonResponse({'ok': True})
         resp['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
         resp['Access-Control-Allow-Headers'] = 'Content-Type'
         return _add_cors_headers(request, resp)
+
     if request.method != 'POST':
-        return _validation_error(request, 'method_not_allowed', status=405)
+        return _validation_error(
+            request,
+            'method_not_allowed',
+            status=405
+        )
 
     try:
         alert = Alert.objects.get(id=alert_id)
+
+        if alert.resolved:
+            return _json_response(
+                request,
+                {
+                    'ok': True,
+                    'already_resolved': True,
+                    'message': 'La alerta ya estaba resuelta'
+                }
+            )
+
         alert.resolved = True
         alert.resolved_at = timezone.now()
-        alert.save(update_fields=['resolved', 'resolved_at'])
-        return _json_response(request, {'ok': True, 'message': 'Alerta resuelta correctamente'})
+
+        alert.save(
+            update_fields=[
+                'resolved',
+                'resolved_at'
+            ]
+        )
+
+        return _json_response(
+            request,
+            {
+                'ok': True,
+                'message': 'Alerta marcada como resuelta correctamente',
+                'resolved_at': alert.resolved_at.isoformat()
+            }
+        )
+
     except Alert.DoesNotExist:
-        return _validation_error(request, 'alert_not_found', status=404)
+        return _validation_error(
+            request,
+            'alert_not_found',
+            status=404
+        )
 
 
 @csrf_exempt
@@ -1007,7 +1160,7 @@ def api_export(request):
         pivot_data = {}
         variables_found = set()
 
-        for item in qs.order_by('physical_time')[:5000]:
+        for item in qs.order_by('-physical_time')[:5000]:
 
             if not item.assignment:
                 continue

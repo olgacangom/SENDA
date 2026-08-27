@@ -1,13 +1,13 @@
 from celery import shared_task
 from django.utils import timezone
 from django.db import models
-from datetime import datetime
+from datetime import datetime, timedelta
 import requests
 
 from google_health.services import GoogleAuthService
 from google_health.models import (
     Alert, GoogleAccount, Assignment, PhysiologicalData,
-    SyncLog, VariableType, AlertType, trigger_alert
+    SyncLog, VariableType, AlertType, AlertPriority, activate_alert, resolve_alert_automatically
 )
 
 API_BASE = "https://health.googleapis.com/v4/users/me/dataTypes"
@@ -228,114 +228,457 @@ ENDPOINTS = [
 ]
 
 
+def calculate_wear_time_hours(assignment, day_date):
+    """
+    Calcula las horas totales de uso de la pulsera en base al primer y último registro del día
+    o a la suma de los intervalos registrados.
+    """
+    records = PhysiologicalData.objects.filter(
+        assignment=assignment,
+        physical_time__date=day_date
+    ).exclude(variable_type__in=[VariableType.SLEEP_START, VariableType.SLEEP_END])
+
+    if not records.exists():
+        return 0.0
+
+    # Lógica estimada basada en la diferencia entre el primer y último registro del día
+    earliest = records.order_by('physical_time').first().physical_time
+    latest = records.order_by('-physical_time').first().physical_time
+    
+    diff_hours = (latest - earliest).total_seconds() / 3600.0
+    return min(diff_hours, 24.0)
+
+
+def evaluate_data_alerts(account, assignment, now):
+
+    today = now.date()
+
+    # =========================================================
+    # PARTICIPANTE SIN REGISTROS
+    # =========================================================
+
+    has_records = PhysiologicalData.objects.filter(
+    assignment=assignment
+).exists()
+
+    if not has_records:
+        activate_alert(
+            AlertType.NO_RECORDS,
+            google_account=account,
+            assignment=assignment,
+            details={
+                'reason': 'No existen registros fisiológicos para esta asignación.'
+            }
+        )
+    else:
+        resolve_alert_automatically(
+            AlertType.NO_RECORDS,
+            google_account=account,
+            assignment=assignment
+        )
+
+    resolve_alert_automatically(
+        AlertType.NO_RECORDS,
+        google_account=account,
+        assignment=assignment,
+    )
+
+    # =========================================================
+    # SIN DATOS DURANTE MÁS DE 24 HORAS
+    # =========================================================
+
+    last_record = (
+        PhysiologicalData.objects
+        .filter(assignment=assignment)
+        .order_by('-physical_time')
+        .first()
+    )
+
+    if last_record:
+        time_diff = now - last_record.physical_time
+
+        if time_diff.total_seconds() > 86400:
+            activate_alert(
+                AlertType.NO_DATA_24H,
+                google_account=account,
+                assignment=assignment,
+                details={
+                    'last_record_at': last_record.physical_time.isoformat(),
+                    'hours_without_data': round(
+                        time_diff.total_seconds() / 3600,
+                        1
+                    ),
+                }
+            )
+        else:
+            resolve_alert_automatically(
+                AlertType.NO_DATA_24H,
+                google_account=account,
+                assignment=assignment
+            )
+
+    # =========================================================
+    # PULSERA POSIBLEMENTE APAGADA
+    # =========================================================
+
+    recent_threshold = now - timedelta(hours=2)
+
+    recent_records = PhysiologicalData.objects.filter(
+        assignment=assignment,
+        physical_time__gte=recent_threshold
+    ).exists()
+
+    if not recent_records:
+
+        activate_alert(
+            AlertType.DEVICE_OFF,
+            google_account=account,
+            assignment=assignment,
+        )
+
+    else:
+
+        resolve_alert_automatically(
+            AlertType.DEVICE_OFF,
+            google_account=account,
+            assignment=assignment,
+        )
+
+    # =========================================================
+    # HRV NO DISPONIBLE - Solo comprobar después del mediodía
+    # =========================================================
+
+    if now.hour >= 12:
+
+        hrv_exists = PhysiologicalData.objects.filter(
+            assignment=assignment,
+            variable_type=VariableType.HRV_AVERAGE_MS,
+            physical_time__date=today
+        ).exists()
+
+        if not hrv_exists:
+
+            activate_alert(
+                AlertType.HRV_UNAVAILABLE,
+                google_account=account,
+                assignment=assignment,
+            )
+
+        else:
+
+            resolve_alert_automatically(
+                AlertType.HRV_UNAVAILABLE,
+                google_account=account,
+                assignment=assignment,
+            )
+
+    # =========================================================
+    # SUEÑO INSUFICIENTE
+    # =========================================================
+
+    MINIMUM_SLEEP_MINUTES = 420
+
+    sleep_record = (
+        PhysiologicalData.objects
+        .filter(
+            assignment=assignment,
+            variable_type=VariableType.SLEEP_DURATION,
+            physical_time__date=today
+        )
+        .order_by('-physical_time')
+        .first()
+    )
+
+    if sleep_record and sleep_record.metric_value is not None:
+
+        if sleep_record.metric_value < MINIMUM_SLEEP_MINUTES:
+
+            activate_alert(
+                AlertType.INSUFFICIENT_SLEEP,
+                google_account=account,
+                assignment=assignment,
+            )
+
+        else:
+
+            resolve_alert_automatically(
+                AlertType.INSUFFICIENT_SLEEP,
+                google_account=account,
+                assignment=assignment,
+            )
+
+    # =========================================================
+    # TIEMPO DE USO INSUFICIENTE
+    # Solo comprobar al final del día
+    # =========================================================
+
+    if now.hour >= 20:
+
+        wear_time_hours = calculate_wear_time_hours(
+            assignment,
+            today
+        )
+
+        if wear_time_hours < 18:
+
+            activate_alert(
+                AlertType.INSUFFICIENT_USAGE,
+                google_account=account,
+                assignment=assignment,
+            )
+
+        else:
+
+            resolve_alert_automatically(
+                AlertType.INSUFFICIENT_USAGE,
+                google_account=account,
+                assignment=assignment,
+            )
+
+
 @shared_task
 def sync_all_users_data():
     accounts = GoogleAccount.objects.filter(authentication_status='ACTIVE')
     now = timezone.now()
 
     for account in accounts:
+
+        assignment = Assignment.objects.filter(
+            participant=account.participant,
+            start_date__lte=now,
+            real_end_date__isnull=True
+        ).first()
+
+        if not assignment:
+            continue
+
         try:
+            # =====================================================
+            # 1. REFRESCAR TOKEN
+            # =====================================================
+
             success = GoogleAuthService.refresh_access_token(account)
+
             if not success:
-                SyncLog.objects.create(google_account=account, result='TOKEN_ERROR', downloaded_records=0)
-                continue
-
-            assignment = Assignment.objects.filter(
-                participant=account.participant,
-                start_date__lte=now,
-                real_end_date__isnull=True
-            ).first()
-
-            if not assignment:
-                continue
-
-            # -----------------------------------------------------
-            # Gestión de alertas automáticas
-
-            has_records = PhysiologicalData.objects.filter(assignment=assignment).exists()
-            if not has_records:
-                trigger_alert(AlertType.NO_RECORDS, google_account=account, assignment=assignment)
-            else:
-                Alert.objects.filter(assignment=assignment, alert_type=AlertType.NO_RECORDS, resolved=False).update(
-                    resolved=True, resolved_at=timezone.now()
+                activate_alert(
+                    AlertType.TOKEN_EXPIRED,
+                    google_account=account,
+                    assignment=assignment,
                 )
 
-            last_record = PhysiologicalData.objects.filter(assignment=assignment).order_by('-physical_time').first()
-            if last_record:
-                time_diff = now - last_record.physical_time
-                if time_diff.total_seconds() > 86400:
-                    trigger_alert(AlertType.NO_DATA_24H, google_account=account, assignment=assignment)
-                else:
-                    Alert.objects.filter(assignment=assignment, alert_type=AlertType.NO_DATA_24H, resolved=False).update(
-                        resolved=True, resolved_at=timezone.now()
-                    )
+                SyncLog.objects.create(
+                    google_account=account,
+                    result='TOKEN_ERROR',
+                    downloaded_records=0
+                )
 
-            # Descarga y procesamiento
+                continue
+
+            # Si ahora funciona, resolver alerta de token
+            resolve_alert_automatically(
+                AlertType.TOKEN_EXPIRED,
+                google_account=account,
+                assignment=assignment,
+            )
+
+            headers = {
+                "Authorization": f"Bearer {account.access_token}"
+            }
 
             total_downloaded = 0
-            headers = {"Authorization": f"Bearer {account.access_token}"}
-            daily_totals = {}   # Acumuladores diarios para variables tipo STEPS/DISTANCE
+            successful_endpoints = 0
+            daily_totals = {}
+
+            # =====================================================
+            # 2. DESCARGAR TODOS LOS ENDPOINTS
+            # =====================================================
 
             for endpoint in ENDPOINTS:
-                url = f"{API_BASE}/{endpoint['endpoint_path']}/dataPoints"
-                response = requests.get(url, headers=headers)
+                url = (
+                    f"{API_BASE}/"
+                    f"{endpoint['endpoint_path']}/"
+                    f"dataPoints"
+                )
 
-                if response.status_code != 200:
+                try:
+                    response = requests.get(
+                        url,
+                        headers=headers,
+                        timeout=30
+                    )
+
+                except requests.RequestException:
                     continue
 
-                data = response.json()
+                # ---------------------------------------------
+                # TOKEN INVÁLIDO
+                # ---------------------------------------------
+                if response.status_code in [401, 403]:
+                    activate_alert(
+                        AlertType.TOKEN_EXPIRED,
+                        google_account=account,
+                        assignment=assignment,
+                    )
+                    break  # Rompemos el bucle porque el token no es válido
+
+                # ---------------------------------------------
+                # ERROR DEL SERVIDOR / API EN ESTE ENDPOINT
+                # ---------------------------------------------
+                if response.status_code != 200:
+                    continue  # Este endpoint falló, pero permitimos que los demás sigan
+
+                # Si la respuesta es 200 OK, sumamos un éxito
+                successful_endpoints += 1
+
+                try:
+                    data = response.json()
+                except ValueError:
+                    continue
+
                 points = data.get('dataPoints', [])
                 endpoint_downloaded = 0
 
+                # =================================================
+                # 3. PROCESAR CADA PUNTO
+                # =================================================
+
                 for point in points:
-                    device_info = point.get('dataSource', {}).get('device', {})
-                    device_name = device_info.get('displayName') or 'Fitbit Device'
-                    platform = point.get('dataSource', {}).get('platform') or 'FITBIT'
-                    recording_method = point.get('dataSource', {}).get('recordingMethod') or 'UNKNOWN'
+                    device_info = (
+                        point.get('dataSource', {})
+                        .get('device', {})
+                    )
 
-                    payload = point.get(endpoint['data_key'], point)
-                    extracted = endpoint['extractor'](payload, now)
+                    device_name = (
+                        device_info.get('displayName')
+                        or 'Fitbit Device'
+                    )
 
-                    for variable_type, physical_time, metric_value, start_time, end_time in extracted:
+                    platform = (
+                        point.get('dataSource', {})
+                        .get('platform')
+                        or 'FITBIT'
+                    )
+
+                    recording_method = (
+                        point.get('dataSource', {})
+                        .get('recordingMethod')
+                        or 'UNKNOWN'
+                    )
+
+                    payload = point.get(
+                        endpoint['data_key'],
+                        point
+                    )
+
+                    extracted = endpoint['extractor'](
+                        payload,
+                        now
+                    )
+
+                    for (
+                        variable_type,
+                        physical_time,
+                        metric_value,
+                        start_time,
+                        end_time
+                    ) in extracted:
+
                         if physical_time is None:
                             continue
-                        if metric_value is None and variable_type not in [VariableType.SLEEP_START, VariableType.SLEEP_END]:
+
+                        if (
+                            metric_value is None
+                            and variable_type not in [
+                                VariableType.SLEEP_START,
+                                VariableType.SLEEP_END
+                            ]
+                        ):
                             continue
 
+                        # =========================================
+                        # STEPS Y DISTANCE ACUMULADOS POR DÍA
+                        # =========================================
+
                         if variable_type in DAILY_AGGREGATE_VARIABLES:
-                            # PASOS y DISTANCIA: se acumulan en memoria durante todo el ciclo
-                            day_date = start_time.date() if start_time else physical_time.date()
-                            key = (variable_type, day_date)
+
+                            day_date = (
+                                start_time.date()
+                                if start_time
+                                else physical_time.date()
+                            )
+
+                            key = (
+                                variable_type,
+                                day_date
+                            )
 
                             if key not in daily_totals:
+
                                 daily_totals[key] = {
                                     'sum': 0.0,
-                                    'earliest_start': start_time or physical_time,
-                                    'latest_end': end_time or physical_time,
+                                    'earliest_start': (
+                                        start_time
+                                        or physical_time
+                                    ),
+                                    'latest_end': (
+                                        end_time
+                                        or physical_time
+                                    ),
                                     'device_name': device_name,
                                     'platform': platform,
                                     'recording_method': recording_method,
                                 }
 
-                            daily_totals[key]['sum'] += metric_value
+                            daily_totals[key]['sum'] += float(
+                                metric_value
+                            )
 
-                            candidate_start = start_time or physical_time
-                            if candidate_start < daily_totals[key]['earliest_start']:
-                                daily_totals[key]['earliest_start'] = candidate_start
+                            candidate_start = (
+                                start_time
+                                or physical_time
+                            )
 
-                            candidate_end = end_time or physical_time
-                            if candidate_end > daily_totals[key]['latest_end']:
-                                daily_totals[key]['latest_end'] = candidate_end
+                            candidate_end = (
+                                end_time
+                                or physical_time
+                            )
+
+                            if (
+                                candidate_start
+                                < daily_totals[key]['earliest_start']
+                            ):
+                                daily_totals[key][
+                                    'earliest_start'
+                                ] = candidate_start
+
+                            if (
+                                candidate_end
+                                > daily_totals[key]['latest_end']
+                            ):
+                                daily_totals[key][
+                                    'latest_end'
+                                ] = candidate_end
+
+                        # =========================================
+                        # RESTO DE VARIABLES
+                        # =========================================
 
                         else:
+
                             PhysiologicalData.objects.get_or_create(
                                 assignment=assignment,
                                 variable_type=variable_type,
                                 physical_time=physical_time,
                                 defaults={
                                     'metric_value': metric_value,
-                                    'start_time': start_time or physical_time,
-                                    'end_time': end_time or physical_time,
+                                    'start_time': (
+                                        start_time
+                                        or physical_time
+                                    ),
+                                    'end_time': (
+                                        end_time
+                                        or physical_time
+                                    ),
                                     'device_name': device_name,
                                     'platform': platform,
                                     'recording_method': recording_method,
@@ -346,36 +689,104 @@ def sync_all_users_data():
 
                 total_downloaded += endpoint_downloaded
 
-            # Para STEPS y DISTANCE se reemplaza el valor anterior por el total recalculado de este ciclo.
-            for (variable_type, day_date), info in daily_totals.items():
-                obj, created = PhysiologicalData.objects.get_or_create(
-                    assignment=assignment,
-                    variable_type=variable_type,
-                    physical_time__date=day_date,
-                    defaults={
-                        'physical_time': info['earliest_start'],
-                        'metric_value': info['sum'],
-                        'start_time': info['earliest_start'],
-                        'end_time': info['latest_end'],
-                        'device_name': info['device_name'],
-                        'platform': info['platform'],
-                        'recording_method': info['recording_method'],
-                    }
-                )
-                if not created:
-                    obj.metric_value = info['sum']
-                    obj.end_time = info['latest_end']
-                    obj.save()
+            # =====================================================
+            # 4. GUARDAR TOTALES DIARIOS DE STEPS Y DISTANCE
+            # =====================================================
 
-            SyncLog.objects.create(
-                google_account=account,
-                result='SUCCESS',
-                downloaded_records=total_downloaded
+            for (
+                variable_type,
+                day_date
+            ), info in daily_totals.items():
+
+                existing = (
+                    PhysiologicalData.objects
+                    .filter(
+                        assignment=assignment,
+                        variable_type=variable_type,
+                        physical_time__date=day_date
+                    )
+                    .order_by('physical_time')
+                    .first()
+                )
+
+                if existing:
+
+                    existing.metric_value = info['sum']
+                    existing.start_time = info['earliest_start']
+                    existing.end_time = info['latest_end']
+                    existing.device_name = info['device_name']
+                    existing.platform = info['platform']
+                    existing.recording_method = info['recording_method']
+
+                    existing.save(
+                        update_fields=[
+                            'metric_value',
+                            'start_time',
+                            'end_time',
+                            'device_name',
+                            'platform',
+                            'recording_method',
+                        ]
+                    )
+
+                else:
+
+                    PhysiologicalData.objects.create(
+                        assignment=assignment,
+                        variable_type=variable_type,
+                        physical_time=info['earliest_start'],
+                        metric_value=info['sum'],
+                        start_time=info['earliest_start'],
+                        end_time=info['latest_end'],
+                        device_name=info['device_name'],
+                        platform=info['platform'],
+                        recording_method=info['recording_method'],
+                    )
+
+            # =====================================================
+            # 5. RESULTADO DE LA SINCRONIZACIÓN
+            # =====================================================
+            if successful_endpoints == 0 and len(ENDPOINTS) > 0:
+                activate_alert(
+                    AlertType.SYNC_ERROR,
+                    google_account=account,
+                    assignment=assignment,
+                )
+                SyncLog.objects.create(
+                    google_account=account,
+                    result='TOTAL_ERROR',
+                    downloaded_records=total_downloaded,
+                )
+            else:
+                # ÉXITO: Resolvemos la alerta de sincronización limpiamente
+                resolve_alert_automatically(
+                    AlertType.SYNC_ERROR,
+                    google_account=account,
+                    assignment=assignment,
+                )
+                SyncLog.objects.create(
+                    google_account=account,
+                    result='SUCCESS',
+                    downloaded_records=total_downloaded,
+                )
+
+            # =====================================================
+            # 6. EVALUAR ALERTAS BASADAS EN DATOS REALES
+            # =====================================================
+            evaluate_data_alerts(
+                account=account,
+                assignment=assignment,
+                now=now,
             )
 
         except Exception as e:
+            activate_alert(
+                AlertType.SYNC_ERROR,
+                google_account=account,
+                assignment=assignment,
+            )
             SyncLog.objects.create(
                 google_account=account,
-                result=f'ERROR: {str(e)[:50]}',
+                result=f'ERROR: {str(e)[:100]}',
                 downloaded_records=0
             )
