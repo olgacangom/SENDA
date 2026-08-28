@@ -1615,48 +1615,121 @@ def api_admin_create_researcher(request):
     no_url = f"http://localhost:1574/api/auth/researcher/respond/?uid={uid}&action=no"
 
     html_content = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        body {{ font-family: Arial, sans-serif; color: #333; background-color: #f8fafc; margin: 0; padding: 20px; }}
-        .container {{ max-width: 600px; background: #ffffff; padding: 30px; border-radius: 12px; border: 1px solid #e2e8f0; }}
-        .button-yes {{ background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin-right: 10px; }}
-        .button-no {{ background-color: #ef4444; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; }}
-        .footer {{ margin-top: 25px; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h2 style="color: #1e293b;">Verificación de cuenta - SENDA</h2>
-        <p>Hola,</p>
-        <p>Has sido autorizado/a para colaborar como investigador/a en la plataforma <strong>SENDA</strong>.</p>
-        <p>Para confirmar tu identidad y activar tu acceso institucional, por favor haz clic en una de las siguientes opciones:</p>
-        
-        <div style="margin: 30px 0;">
-            <a href="{yes_url}" class="button-yes">Sí, aceptar autorización</a>
-            <a href="{no_url}" class="button-no">No, rechazar</a>
-        </div>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Verificación de cuenta - SENDA</title>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: fixed; background-color: #f1f5f9; padding: 40px 0;">
+            <tr>
+                <td align="center">
+                    <!-- Contenedor Principal -->
+                    <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                        
+                    <!-- Cabecera con Logo y Texto SENDA -->
+                        <tr>
+                            <td style="padding: 32px 40px 24px 40px; border-bottom: 1px solid #f1f5f9;">
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                    <tr>
+                                        <td style="vertical-align: middle;">
+                                            <table border="0" cellpadding="0" cellspacing="0">
+                                                <tr>
+                                                    <td style="padding-right: 12px; vertical-align: middle;">
+                                                        <img 
+                                                            src="https://sendaproject.es/images/senda.png" 
+                                                            alt="SENDA" 
+                                                            width="38" 
+                                                            style="display: block; border: 0; outline: none; text-decoration: none;" />
+                                                    </td>
+                                                    <td style="vertical-align: middle;">
+                                                        <span style="font-size: 24px; font-weight: 800; color: #0f766e; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">SENDA</span>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                        <td align="right" style="vertical-align: middle; font-size: 12px; color: #64748b; font-weight: 600;">
+                                            Plataforma de investigación
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
 
-        <p>Si tú no has solicitado este acceso, puedes ignorar este mensaje de forma segura.</p>
-        
-        <div class="footer">
-            <p>Atentamente,<br><strong>Equipo SENDA</strong></p>
-        </div>
-    </div>
-</body>
-</html>
-"""
+                        <!-- Contenido del Mensaje -->
+                        <tr>
+                            <td style="padding: 40px;">
+                                <h2 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 700; color: #1e293b;">
+                                    Verificación de cuenta
+                                </h2>
+                                <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #334155;">
+                                    Hola,
+                                </p>
+                                <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #334155;">
+                                    Has sido autorizado/a para colaborar como investigador/a en la plataforma <strong style="color: #0f766e;">SENDA</strong> (Salud Emocional y Neurociencia para el Desarrollo de Andalucía).
+                                </p>
+                                <p style="margin: 0 0 28px 0; font-size: 15px; line-height: 1.6; color: #334155;">
+                                    Para confirmar tu identidad y activar tu acceso, por favor elige una opción:
+                                </p>
+
+                                <!-- Botones de Acción (Sí / No) -->
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 32px;">
+                                    <tr>
+                                        <td>
+                                            <a href="{yes_url}" target="_blank" style="background-color: #059669; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 14px; display: inline-block; margin-right: 12px; box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);">
+                                                Sí, aceptar autorización
+                                            </a>
+                                            <a href="{no_url}" target="_blank" style="background-color: #ffffff; color: #dc2626; border: 1px solid #fca5a5; padding: 13px 24px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 14px; display: inline-block;">
+                                                No, rechazar
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </table>
+
+                                <!-- Tarjeta de Aviso de Seguridad -->
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+                                    <tr>
+                                        <td style="padding: 16px 20px; font-size: 13px; color: #64748b; line-height: 1.5;">
+                                            🔒 <strong>Aviso de seguridad:</strong> Si tú no has solicitado este acceso, puedes ignorar o rechazar este mensaje de forma segura.
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                        <!-- Pie de Página -->
+                        <tr>
+                            <td style="background-color: #f8fafc; padding: 24px 40px; border-top: 1px solid #e2e8f0;">
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                    <tr>
+                                        <td style="font-size: 12px; color: #64748b; line-height: 1.5;">
+                                            Este enlace es seguro y único para ti.<br>
+                                            Atentamente, <strong style="color: #0f766e;">Equipo SENDA</strong><br>
+                                            Universidad de Sevilla
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
 
     subject = 'Autorización como investigador/a en SENDA'
-    from_email = config('DEFAULT_FROM_EMAIL', default='admin@sendaproject.es')
-    text_content = f"Hola,\n\nTe han autorizado como investigador/a en SENDA.\n\nAcepta aquí: {yes_url}\nRechaza aquí: {no_url}\n\nEquipo SENDA"
+    from_email = f"SENDA <{config('DEFAULT_FROM_EMAIL', default='admin@sendaproject.es')}>"
+    text_content = f"Hola,\n\nTe han autorizado como investigador/a en SENDA.\n\nAcepta la autorización aquí: {yes_url}\nO recházala aquí: {no_url}\n\nAtentamente,\nEquipo SENDA"
 
     email_msg = EmailMultiAlternatives(
         subject=subject,
         body=text_content,
-        from_email=settings.DEFAULT_FROM_EMAIL,
+        from_email=from_email,
         to=[email],
     )
     email_msg.attach_alternative(html_content, "text/html")
@@ -1730,13 +1803,121 @@ def api_researcher_request_code(request):
     code = f"{random.randint(100000, 999999)}"
     cache.set(f"otp_{email}", code, timeout=300)  # 5 minutos de validez
 
-    send_mail(
-        subject='Verificación de cuenta en SENDA',
-        message=f'Tu código de verificación es: {code}',
-        from_email=settings.DEAULT_FROM_EMAIL,
-        recipient_list=[email],
-        fail_silently=False, 
+    subject = 'Tu código de verificación - SENDA'
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Código de verificación - SENDA</title>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: fixed; background-color: #f1f5f9; padding: 40px 0;">
+            <tr>
+                <td align="center">
+                    <!-- Contenedor Principal -->
+                    <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                        
+                    <!-- Cabecera con Logo y Texto SENDA -->
+                    <tr>
+                            <td style="padding: 32px 40px 24px 40px; border-bottom: 1px solid #f1f5f9;">
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                    <tr>
+                                        <td style="vertical-align: middle;">
+                                            <table border="0" cellpadding="0" cellspacing="0">
+                                                <tr>
+                                                    <td style="padding-right: 12px; vertical-align: middle;">
+                                                        <img 
+                                                            src="https://sendaproject.es/images/senda.png" 
+                                                            alt="SENDA" 
+                                                            width="38" 
+                                                            style="display: block; border: 0; outline: none; text-decoration: none;" />
+                                                    </td>
+                                                    <td style="vertical-align: middle;">
+                                                        <span style="font-size: 24px; font-weight: 800; color: #0f766e; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">SENDA</span>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                        <td align="right" style="vertical-align: middle; font-size: 12px; color: #64748b; font-weight: 600;">
+                                            Plataforma de investigación
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                        <!-- Contenido del Mensaje -->
+                        <tr>
+                            <td style="padding: 40px;">
+                                <h2 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 700; color: #1e293b;">
+                                    Código de acceso
+                                </h2>
+                                <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #334155;">
+                                    Hola,
+                                </p>
+                                <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #334155;">
+                                    Has solicitado iniciar sesión en la plataforma <strong style="color: #0f766e;">SENDA</strong>. Utiliza el siguiente código de verificación de un solo uso (válido por 5 minutos):
+                                </p>
+
+                                <!-- Bloque Destacado del Código OTP -->
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 28px;">
+                                    <tr>
+                                        <td align="center" style="background-color: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 20px;">
+                                            <span style="font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #0f766e;">{code}</span>
+                                        </td>
+                                    </tr>
+                                </table>
+
+                                <!-- Tarjeta de Aviso de Seguridad -->
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+                                    <tr>
+                                        <td style="padding: 16px 20px; font-size: 13px; color: #64748b; line-height: 1.5;">
+                                            🔒 <strong>Aviso de seguridad:</strong> Si no has solicitado este código, puedes ignorar este mensaje con total seguridad. Nadie podrá acceder a tu cuenta sin él.
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                        <!-- Pie de Página -->
+                        <tr>
+                            <td style="background-color: #f8fafc; padding: 24px 40px; border-top: 1px solid #e2e8f0;">
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                    <tr>
+                                        <td style="font-size: 12px; color: #64748b; line-height: 1.5;">
+                                            Este código es confidencial.<br>
+                                            Atentamente, <strong style="color: #0f766e;">Equipo SENDA</strong><br>
+                                            Universidad de Sevilla
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+
+    text_content = f"Hola,\n\nTu código de verificación para SENDA es: {code}\n\nEste código caduca en 5 minutos.\n\nAtentamente,\nEquipo SENDA"
+
+    from_email = f"SENDA <{settings.DEFAULT_FROM_EMAIL}>"
+    
+    email_msg = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,
+        from_email=from_email,
+        to=[email],
     )
+    email_msg.attach_alternative(html_content, "text/html")
+    email_msg.send(fail_silently=False)
+
     return _json_response(request, {'ok': True, 'message': 'Código enviado correctamente'})
 
 

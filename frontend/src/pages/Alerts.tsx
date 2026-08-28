@@ -86,7 +86,6 @@ const Alerts: React.FC = () => {
   const activeAlerts = alerts.filter((item) => !item.resolved);
   const countHigh = activeAlerts.filter((item) => item.priority === 'HIGH').length;
   const countMedium = activeAlerts.filter((item) => item.priority === 'MEDIUM').length;
-  const countLow = activeAlerts.filter((item) => item.priority === 'LOW').length;
 
   const totalPages = Math.ceil(filtered.length / pageSize) || 1;
   const paginatedAlerts = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -124,7 +123,7 @@ const Alerts: React.FC = () => {
 
       {/* Tarjetas de métricas superiores */}
       {!showResolved && (
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div
             onClick={() => { setSelectedPriority('HIGH'); setCurrentPage(1); }}
             className={`cursor-pointer rounded-2xl border bg-white dark:bg-slate-900 p-5 shadow-lg shadow-slate-100 dark:shadow-none transition-all duration-200 hover:-translate-y-1 text-center 
@@ -152,20 +151,6 @@ const Alerts: React.FC = () => {
               <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-amber-600 dark:text-amber-400 dark:border-amber-200">{t('Warnings')}</p>
             </div>
             <p className="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white">{countMedium}</p>
-          </div>
-
-          <div
-            onClick={() => { setSelectedPriority('LOW'); setCurrentPage(1); }}
-            className={`cursor-pointer rounded-2xl border bg-white dark:bg-slate-900 p-5 shadow-lg shadow-slate-100 dark:shadow-none transition-all duration-200 hover:-translate-y-1 text-center 
-              ${selectedPriority === 'LOW'
-                ? 'border-blue-500 ring-2 ring-blue-500/20'
-                : 'border-blue-200 dark:border-blue-200/50'
-              }`}
-          >
-            <div className="flex items-center justify-center">
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-blue-600 dark:text-blue-400">{t('Informative')}</p>
-            </div>
-            <p className="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white">{countLow}</p>
           </div>
         </div>
       )}
@@ -256,10 +241,10 @@ const Alerts: React.FC = () => {
             const isMedium = alert.priority === 'MEDIUM';
 
             const borderLeftColor = isHigh
-              ? 'border-l-rose-500'
+              ? 'border-l-rose-500 dark:border-l-rose-400'
               : isMedium
-                ? 'border-l-amber-500'
-                : 'border-l-blue-500';
+                ? 'border-l-amber-500 dark:border-l-amber-400'
+                : 'border-l-blue-500 dark:border-l-blue-400';
 
             const badgeStyle = isHigh
               ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-900'
