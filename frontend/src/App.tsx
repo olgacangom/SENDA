@@ -32,6 +32,7 @@ const App: React.FC = () => {
   });
 
   const [isHovered, setIsHovered] = useState<boolean>(false);
+  const [activeAlertsCount, setActiveAlertsCount] = useState<number>(0);
 
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     return localStorage.getItem('senda_dark_mode') === 'true';
@@ -46,6 +47,19 @@ const App: React.FC = () => {
       localStorage.setItem('senda_dark_mode', 'false');
     }
   }, [darkMode]);
+
+  useEffect(() => {
+    if (loggedIn) {
+      fetch('http://localhost:1574/api/alerts/', { credentials: 'include' })
+        .then((res) => res.json())
+        .then((data) => {
+          const items = data.items || [];
+          const activeCount = items.filter((item: any) => !item.resolved).length;
+          setActiveAlertsCount(activeCount);
+        })
+        .catch(() => console.error('Error fetching initial alerts count'));
+    }
+  }, [loggedIn]);
 
   const handleSetPage = (newPage: string) => {
     setPage(newPage);
@@ -75,6 +89,7 @@ const App: React.FC = () => {
     setPage('front');
     setRole(null);
     setCurrentUser('');
+    setActiveAlertsCount(0);
 
     localStorage.removeItem('senda_logged_in');
     localStorage.removeItem('senda_role');
@@ -188,9 +203,8 @@ const App: React.FC = () => {
           <aside
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className={`shrink-0 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6 lg:border-r lg:border-b-0 flex flex-col justify-between transition-all duration-300 ease-in-out z-20 shadow-lg lg:shadow-none ${
-              isHovered ? 'lg:w-72 px-6' : 'lg:w-20 px-4'
-            } w-full`}
+            className={`shrink-0 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6 lg:border-r lg:border-b-0 flex flex-col justify-between transition-all duration-300 ease-in-out z-20 shadow-lg lg:shadow-none ${isHovered ? 'lg:w-72 px-6' : 'lg:w-20 px-4'
+              } w-full`}
           >
             <div>
               {/* Logotipo SENDA */}
@@ -215,23 +229,36 @@ const App: React.FC = () => {
                     key={item.key}
                     onClick={() => handleSetPage(item.key)}
                     title={!isHovered ? item.label : undefined}
-                    className={`flex w-full items-center rounded-2xl py-3 text-left text-xs font-bold transition cursor-pointer ${
-                      isHovered ? 'px-4 justify-between' : 'lg:px-3 lg:justify-center px-4 justify-between'
-                    } ${
-                      page === item.key
+                    className={`relative flex w-full items-center rounded-2xl py-3 text-left text-xs font-bold transition cursor-pointer ${isHovered ? 'px-4 justify-between' : 'lg:px-3 lg:justify-center px-4 justify-between'
+                      } ${page === item.key
                         ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400 shadow-sm'
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200'
-                    }`}
+                      }`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 relative">
                       <span className={`${page === item.key ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`}>
                         {item.icon}
                       </span>
                       <span className={`whitespace-nowrap transition-opacity duration-200 ${isHovered ? 'opacity-100' : 'lg:opacity-0 lg:w-0 lg:overflow-hidden'}`}>
                         {item.label}
                       </span>
+
+                      {/* BADGE FLOTANTE CUANDO EL MENÚ ESTÁ CONTRAÍDO */}
+                      {item.key === 'alerts' && activeAlertsCount > 0 && !isHovered && (
+                        <span className="absolute -top-1.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-extrabold text-white shadow-sm">
+                          {activeAlertsCount}
+                        </span>
+                      )}
                     </div>
-                    {page === item.key && (
+
+                    {/* BADGE EN LÍNEA CUANDO EL MENÚ ESTÁ EXTENDIDO POR HOVER */}
+                    {item.key === 'alerts' && activeAlertsCount > 0 && isHovered && (
+                      <span className="inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-extrabold rounded-full bg-rose-500 text-white shrink-0 shadow-sm">
+                        {activeAlertsCount}
+                      </span>
+                    )}
+
+                    {page === item.key && activeAlertsCount === 0 && (
                       <span className={`h-1.5 w-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0 ${isHovered ? 'block' : 'lg:hidden'}`}></span>
                     )}
                   </button>
@@ -241,7 +268,7 @@ const App: React.FC = () => {
 
             {/* SWITCH DE MODO OSCURO */}
             <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
-              <div 
+              <div
                 className={`flex items-center ${isHovered ? 'justify-between px-2' : 'lg:justify-center justify-between px-2'}`}
                 title={darkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
               >
@@ -253,9 +280,8 @@ const App: React.FC = () => {
                   className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-slate-300 dark:bg-amber-500 transition-colors duration-200 ease-in-out focus:outline-none"
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                      darkMode ? 'translate-x-5' : 'translate-x-0'
-                    }`}
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${darkMode ? 'translate-x-5' : 'translate-x-0'
+                      }`}
                   />
                 </button>
               </div>
@@ -277,22 +303,20 @@ const App: React.FC = () => {
               <div className="flex items-center rounded-[25px] border border-slate-200 dark:border-slate-700 bg-[#f3f5f7] dark:bg-slate-800 p-0.5">
                 <button
                   onClick={() => i18n.changeLanguage('es')}
-                  className={`flex h-7 items-center justify-center gap-2.5 rounded-[22px] px-2 transition-all duration-300 cursor-pointer ${
-                    i18n.language === 'es'
-                      ? 'bg-white dark:bg-slate-700 text-emerald-950 dark:text-emerald-300 shadow-sm font-bold border border-emerald-700 dark:border-emerald-500'
-                      : 'text-slate-500 dark:text-slate-400 font-medium'
-                  }`}
+                  className={`flex h-7 items-center justify-center gap-2.5 rounded-[22px] px-2 transition-all duration-300 cursor-pointer ${i18n.language === 'es'
+                    ? 'bg-white dark:bg-slate-700 text-emerald-950 dark:text-emerald-300 shadow-sm font-bold border border-emerald-700 dark:border-emerald-500'
+                    : 'text-slate-500 dark:text-slate-400 font-medium'
+                    }`}
                 >
                   <img src="https://flagcdn.com/w40/es.png" alt="Español" className="h-5 w-5 rounded-full object-cover shadow-sm" />
                   <span className="text-xs tracking-wide">ES</span>
                 </button>
                 <button
                   onClick={() => i18n.changeLanguage('en')}
-                  className={`flex h-7 items-center justify-center gap-2.5 rounded-[22px] px-2 flex-row-reverse transition-all duration-300 cursor-pointer ${
-                    i18n.language === 'en'
-                      ? 'bg-white dark:bg-slate-700 text-emerald-950 dark:text-emerald-300 shadow-sm font-bold border border-emerald-700 dark:border-emerald-500'
-                      : 'text-slate-500 dark:text-slate-400 font-medium'
-                  }`}
+                  className={`flex h-7 items-center justify-center gap-2.5 rounded-[22px] px-2 flex-row-reverse transition-all duration-300 cursor-pointer ${i18n.language === 'en'
+                    ? 'bg-white dark:bg-slate-700 text-emerald-950 dark:text-emerald-300 shadow-sm font-bold border border-emerald-700 dark:border-emerald-500'
+                    : 'text-slate-500 dark:text-slate-400 font-medium'
+                    }`}
                 >
                   <img src="https://flagcdn.com/w40/gb.png" alt="English" className="h-5 w-5 rounded-full object-cover shadow-sm" />
                   <span className="text-xs tracking-wide">EN</span>
@@ -328,7 +352,7 @@ const App: React.FC = () => {
               {page === 'assignments' && <Assignments />}
               {page === 'syncs' && <Syncs />}
               {page === 'physiological' && <PhysiologicalData />}
-              {page === 'alerts' && <Alerts />}
+              {page === 'alerts' && <Alerts onActiveCountChange={setActiveAlertsCount} />}
               {page === 'exports' && <Exports userEmail={currentUser} onNavigate={handleSetPage} />}
               {page === 'admin' && <Admin />}
             </main>
