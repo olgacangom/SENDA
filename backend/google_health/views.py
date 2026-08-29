@@ -1621,37 +1621,63 @@ def api_admin_create_researcher(request):
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Verificación de cuenta - SENDA</title>
+        <style>
+            /* Estilos responsivos para clientes de correo */
+            @media only screen and (max-width: 600px) {{
+                .main-container {{
+                    width: 100% !important;
+                    border-radius: 0 !important;
+                }}
+                .content-padding {{
+                    padding: 20px !important;
+                }}
+                .header-padding {{
+                    padding: 20px 20px 16px 20px !important;
+                }}
+                .footer-padding {{
+                    padding: 20px !important;
+                }}
+                .button-stack {{
+                    display: block !important;
+                    width: 100% !important;
+                    margin-right: 0 !important;
+                    margin-bottom: 12px !important;
+                }}
+                .button-full {{
+                    display: block !important;
+                    width: 100% !important;
+                    box-sizing: border-box !important;
+                }}
+            }}
+        </style>
     </head>
-    <body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: fixed; background-color: #f1f5f9; padding: 40px 0;">
+    <body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: auto; background-color: #f1f5f9;">
             <tr>
-                <td align="center">
-                    <!-- Contenedor Principal -->
-                    <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                <td align="center" style="padding: 20px 0;">
+                    <!-- Contenedor Principal (ancho fijo máx 600px, flexible en móvil) -->
+                    <table border="0" cellpadding="0" cellspacing="0" class="main-container" width="600" style="background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
                         
-                    <!-- Cabecera con Logo y Texto SENDA -->
+                        <!-- Cabecera con Logo SENDA -->
                         <tr>
-                            <td style="padding: 32px 40px 24px 40px; border-bottom: 1px solid #f1f5f9;">
-                                <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                            <td class="header-padding" style="padding: 32px 40px 24px 40px; border-bottom: 1px solid #f1f5f9;">
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: auto;">
                                     <tr>
-                                        <td style="vertical-align: middle;">
-                                            <table border="0" cellpadding="0" cellspacing="0">
+                                        <td class="header-padding" style="padding: 28px 40px 20px 40px; border-bottom: 1px solid #f1f5f9;">
+                                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: auto;">
                                                 <tr>
-                                                    <td style="padding-right: 12px; vertical-align: middle;">
+                                                    <td style="vertical-align: middle;">
                                                         <img 
                                                             src="https://sendaproject.es/images/senda.png" 
                                                             alt="SENDA" 
-                                                            width="38" 
-                                                            style="display: block; border: 0; outline: none; text-decoration: none;" />
+                                                            width="150" 
+                                                            style="display: block; border: 0; outline: none; text-decoration: none; max-height: 75px; width: auto;" />
                                                     </td>
-                                                    <td style="vertical-align: middle;">
-                                                        <span style="font-size: 24px; font-weight: 800; color: #0f766e; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">SENDA</span>
+                                                    <td align="right" style="vertical-align: middle; font-size: 12px; color: #64748b; font-weight: 600;">
+                                                        Plataforma de investigación
                                                     </td>
                                                 </tr>
                                             </table>
-                                        </td>
-                                        <td align="right" style="vertical-align: middle; font-size: 12px; color: #64748b; font-weight: 600;">
-                                            Plataforma de investigación
                                         </td>
                                     </tr>
                                 </table>
@@ -1660,8 +1686,8 @@ def api_admin_create_researcher(request):
 
                         <!-- Contenido del Mensaje -->
                         <tr>
-                            <td style="padding: 40px;">
-                                <h2 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 700; color: #1e293b;">
+                            <td class="content-padding" style="padding: 40px;">
+                                <h2 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 700; color: #1e293b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                                     Verificación de cuenta
                                 </h2>
                                 <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #334155;">
@@ -1674,14 +1700,14 @@ def api_admin_create_researcher(request):
                                     Para confirmar tu identidad y activar tu acceso, por favor elige una opción:
                                 </p>
 
-                                <!-- Botones de Acción (Sí / No) -->
-                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 32px;">
+                                <!-- Botones de Acción (Sí / No) - Responsive Stack -->
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: auto; margin-bottom: 32px;">
                                     <tr>
                                         <td>
-                                            <a href="{yes_url}" target="_blank" style="background-color: #059669; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 14px; display: inline-block; margin-right: 12px; box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);">
+                                            <a href="{yes_url}" target="_blank" class="button-stack button-full" style="background-color: #059669; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 14px; display: inline-block; margin-right: 12px; box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2); text-align: center;">
                                                 Sí, aceptar autorización
                                             </a>
-                                            <a href="{no_url}" target="_blank" style="background-color: #ffffff; color: #dc2626; border: 1px solid #fca5a5; padding: 13px 24px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 14px; display: inline-block;">
+                                            <a href="{no_url}" target="_blank" class="button-full" style="background-color: #ffffff; color: #dc2626; border: 1px solid #fca5a5; padding: 13px 24px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 14px; display: inline-block; text-align: center;">
                                                 No, rechazar
                                             </a>
                                         </td>
@@ -1689,7 +1715,7 @@ def api_admin_create_researcher(request):
                                 </table>
 
                                 <!-- Tarjeta de Aviso de Seguridad -->
-                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: auto; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
                                     <tr>
                                         <td style="padding: 16px 20px; font-size: 13px; color: #64748b; line-height: 1.5;">
                                             🔒 <strong>Aviso de seguridad:</strong> Si tú no has solicitado este acceso, puedes ignorar o rechazar este mensaje de forma segura.
@@ -1701,8 +1727,8 @@ def api_admin_create_researcher(request):
 
                         <!-- Pie de Página -->
                         <tr>
-                            <td style="background-color: #f8fafc; padding: 24px 40px; border-top: 1px solid #e2e8f0;">
-                                <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                            <td class="footer-padding" style="background-color: #f8fafc; padding: 24px 40px; border-top: 1px solid #e2e8f0;">
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: auto;">
                                     <tr>
                                         <td style="font-size: 12px; color: #64748b; line-height: 1.5;">
                                             Este enlace es seguro y único para ti.<br>
@@ -1812,37 +1838,56 @@ def api_researcher_request_code(request):
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Código de verificación - SENDA</title>
+        <style>
+            /* Estilos responsivos para clientes de correo */
+            @media only screen and (max-width: 600px) {{
+                .main-container {{
+                    width: 100% !important;
+                    border-radius: 0 !important;
+                }}
+                .content-padding {{
+                    padding: 20px !important;
+                }}
+                .header-padding {{
+                    padding: 20px 20px 16px 20px !important;
+                }}
+                .footer-padding {{
+                    padding: 20px !important;
+                }}
+                .otp-text {{
+                    font-size: 24px !important;
+                    letter-spacing: 4px !important;
+                }}
+            }}
+        </style>
     </head>
-    <body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: fixed; background-color: #f1f5f9; padding: 40px 0;">
+    <body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: auto; background-color: #f1f5f9;">
             <tr>
-                <td align="center">
+                <td align="center" style="padding: 20px 0;">
                     <!-- Contenedor Principal -->
-                    <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                    <table border="0" cellpadding="0" cellspacing="0" class="main-container" width="600" style="background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
                         
-                    <!-- Cabecera con Logo y Texto SENDA -->
-                    <tr>
-                            <td style="padding: 32px 40px 24px 40px; border-bottom: 1px solid #f1f5f9;">
-                                <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                        <!-- Cabecera con Logo SENDA -->
+                        <tr>
+                            <td class="header-padding" style="padding: 32px 40px 24px 40px; border-bottom: 1px solid #f1f5f9;">
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: auto;">
                                     <tr>
-                                        <td style="vertical-align: middle;">
-                                            <table border="0" cellpadding="0" cellspacing="0">
+                                        <td class="header-padding" style="padding: 28px 40px 20px 40px; border-bottom: 1px solid #f1f5f9;">
+                                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: auto;">
                                                 <tr>
-                                                    <td style="padding-right: 12px; vertical-align: middle;">
+                                                    <td style="vertical-align: middle;">
                                                         <img 
                                                             src="https://sendaproject.es/images/senda.png" 
                                                             alt="SENDA" 
-                                                            width="38" 
-                                                            style="display: block; border: 0; outline: none; text-decoration: none;" />
+                                                            width="150" 
+                                                            style="display: block; border: 0; outline: none; text-decoration: none; max-height: 75px; width: auto;" />
                                                     </td>
-                                                    <td style="vertical-align: middle;">
-                                                        <span style="font-size: 24px; font-weight: 800; color: #0f766e; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">SENDA</span>
+                                                    <td align="right" style="vertical-align: middle; font-size: 12px; color: #64748b; font-weight: 600;">
+                                                        Plataforma de investigación
                                                     </td>
                                                 </tr>
                                             </table>
-                                        </td>
-                                        <td align="right" style="vertical-align: middle; font-size: 12px; color: #64748b; font-weight: 600;">
-                                            Plataforma de investigación
                                         </td>
                                     </tr>
                                 </table>
@@ -1851,8 +1896,8 @@ def api_researcher_request_code(request):
 
                         <!-- Contenido del Mensaje -->
                         <tr>
-                            <td style="padding: 40px;">
-                                <h2 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 700; color: #1e293b;">
+                            <td class="content-padding" style="padding: 40px;">
+                                <h2 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 700; color: #1e293b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                                     Código de acceso
                                 </h2>
                                 <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #334155;">
@@ -1862,17 +1907,17 @@ def api_researcher_request_code(request):
                                     Has solicitado iniciar sesión en la plataforma <strong style="color: #0f766e;">SENDA</strong>. Utiliza el siguiente código de verificación de un solo uso (válido por 5 minutos):
                                 </p>
 
-                                <!-- Bloque Destacado del Código OTP -->
-                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 28px;">
+                                <!-- Bloque Destacado del Código OTP - Responsive -->
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: auto; margin-bottom: 28px;">
                                     <tr>
                                         <td align="center" style="background-color: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 20px;">
-                                            <span style="font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #0f766e;">{code}</span>
+                                            <span class="otp-text" style="font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #0f766e;">{code}</span>
                                         </td>
                                     </tr>
                                 </table>
 
                                 <!-- Tarjeta de Aviso de Seguridad -->
-                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: auto; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
                                     <tr>
                                         <td style="padding: 16px 20px; font-size: 13px; color: #64748b; line-height: 1.5;">
                                             🔒 <strong>Aviso de seguridad:</strong> Si no has solicitado este código, puedes ignorar este mensaje con total seguridad. Nadie podrá acceder a tu cuenta sin él.
@@ -1884,8 +1929,8 @@ def api_researcher_request_code(request):
 
                         <!-- Pie de Página -->
                         <tr>
-                            <td style="background-color: #f8fafc; padding: 24px 40px; border-top: 1px solid #e2e8f0;">
-                                <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                            <td class="footer-padding" style="background-color: #f8fafc; padding: 24px 40px; border-top: 1px solid #e2e8f0;">
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: auto;">
                                     <tr>
                                         <td style="font-size: 12px; color: #64748b; line-height: 1.5;">
                                             Este código es confidencial.<br>

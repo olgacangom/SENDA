@@ -26,17 +26,20 @@ i18n
 
           // FrontPage
           "Login": "Iniciar sesión",
-          "University of Seville": "Universidad de Sevilla · Financiado por CENTRA",
-          "Main Title": "Salud Emocional y Neurociencia para el Desarrollo de Andalucía",
+          "FrontCardTitle": "Universidad de Sevilla",
+          "Main Title Line 1": "Salud Emocional y",
+          "Main Title Line 2": "Neurociencia para el",
+          "Main Title Line 3": "Desarrollo de Andalucía",
           "Subtitle": "Proyecto del Departamento de Psicología Experimental y Psicología Social de la Universidad de Sevilla",
           "Registered Participants": "Participantes",
           "Registered Fitbits": "Fitbit registradas",
           "Records": "Registros",
+          "FooterText": "© 2026 SENDA · Universidad de Sevilla / Fundación CENTRA",
           "Secure Access": "Acceso protegido · Cumplimiento RGPD",
 
           // Login
           "Admin Access": "Acceso exclusivo para administradores.",
-          "Researcher Step 1": "Introduce tu correo institucional autorizado.",
+          "Researcher Step 1": "Introduce tu correo autorizado.",
           "Researcher Step 2": "Introduce el código temporal recibido.",
           "Admin User": "Usuario administrador",
           "Researcher Email": "Correo investigador/a",
@@ -292,17 +295,20 @@ i18n
 
           // FrontPage
           "Login": "Sign in",
-          "University of Seville": "University of Seville · Funded by CENTRA",
-          "Main Title": "Emotional Health and Neuroscience for the Development of Andalusia",
+          "FrontCardTitle": "University of Seville",
+          "Main Title Line 1": "Emotional Health and",
+          "Main Title Line 2": "Neuroscience for the",
+          "Main Title Line 3": "Development of Andalusia",
           "Subtitle": "Project of the Department of Experimental Psychology and Social Psychology of the University of Seville",
           "Registered Participants": "Participants",
           "Registered Fitbits": "Registered Fitbits",
           "Records": "Records",
+          "FooterText": "© 2026 SENDA · University of Seville / Foundation CENTRA",
           "Secure Access": "Secure access · GDPR compliance",
 
           // Login
           "Admin Access": "Exclusive access for administrators.",
-          "Researcher Step 1": "Enter your authorized institutional email.",
+          "Researcher Step 1": "Enter your authorized email.",
           "Researcher Step 2": "Enter the temporary code received.",
           "Admin User": "Admin user",
           "Researcher Email": "Researcher email",
@@ -313,6 +319,7 @@ i18n
           "Request Code": "Request verification code",
           "Access System": "Access system",
           "Processing": "Processing...",
+          "Back to home": "Back to home",
 
           // Participants
           "Participants Title": "Participants",
