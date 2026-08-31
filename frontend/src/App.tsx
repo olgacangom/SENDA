@@ -71,7 +71,7 @@ const App: React.FC = () => {
       ? email
       : (userRole === 'admin' ? 'admin@senda.es' : 'investigador@senda.es');
 
-    const defaultPage = userRole === 'researcher' ? 'assignments' : 'participants';
+    const defaultPage = userRole === 'researcher' ? 'fitbits' : 'participants';
 
     setRole(userRole);
     setPage(defaultPage);
@@ -178,7 +178,7 @@ const App: React.FC = () => {
   const menuItems = getMenuItems(role);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+    <div className="min-h-screen bg-senda-light dark:bg-senda-dark text-senda-main dark:text-senda-darktext transition-colors duration-500">
       {!loggedIn ? (
         page === 'login' ? (
           <Login
@@ -199,25 +199,26 @@ const App: React.FC = () => {
       ) : (
         <div className="flex min-h-screen w-full flex-col lg:flex-row">
 
-          {/* BARRA LATERAL RETRÁCTIL POR HOVER */}
+          {/* BARRA LATERAL FIJA */}
           <aside
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className={`shrink-0 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6 lg:border-r lg:border-b-0 flex flex-col justify-between transition-all duration-300 ease-in-out z-20 shadow-lg lg:shadow-none ${isHovered ? 'lg:w-72 px-6' : 'lg:w-20 px-4'
-              } w-full`}
+            className={`shrink-0 border-b border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-card py-6 lg:border-r lg:border-b-0 flex flex-col justify-between transition-all duration-300 ease-in-out z-20 shadow-lg lg:shadow-none lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto ${
+              isHovered ? 'lg:w-72 px-6' : 'lg:w-20 px-4'
+            } w-full`}
           >
             <div>
-              {/* Logotipo SENDA */}
+              {/* Logo SENDA */}
               <div className="flex items-center gap-3 mb-6 overflow-hidden whitespace-nowrap">
-                <img src="/images/senda.png" alt="SENDA Logo" className="h-[50px] w-[50px] shrink-0 object-contain" />
-                <div className={`transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'lg:opacity-0 lg:pointer-events-none'}`}>
-                  <p className="text-[22px] font-bold text-green-900 dark:text-green-400 tracking-wider">SENDA</p>
-                  <p className="text-[9px] text-slate-400 tracking-tight uppercase">Salud · Neurociencia</p>
-                </div>
+                <img
+                  src={darkMode ? '/images/senda-dark-sin.png' : '/images/senda-claro-sin.png'}
+                  alt="SENDA Logo"
+                  className="h-[50px] w-auto shrink-0 object-contain object-left"
+                />
               </div>
 
               <div className={`overflow-hidden transition-all duration-300 mb-3 ${isHovered ? 'opacity-100' : 'lg:opacity-0 lg:h-0'}`}>
-                <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-slate-400">
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#6B6F66] dark:text-[#9AA093]">
                   {role === 'admin' ? 'ADMINISTRACIÓN' : 'INVESTIGACIÓN'}
                 </p>
               </div>
@@ -229,14 +230,16 @@ const App: React.FC = () => {
                     key={item.key}
                     onClick={() => handleSetPage(item.key)}
                     title={!isHovered ? item.label : undefined}
-                    className={`relative flex w-full items-center rounded-2xl py-3 text-left text-xs font-bold transition cursor-pointer ${isHovered ? 'px-4 justify-between' : 'lg:px-3 lg:justify-center px-4 justify-between'
-                      } ${page === item.key
-                        ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400 shadow-sm'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200'
-                      }`}
+                    className={`relative flex w-full items-center rounded-2xl py-3 text-left text-xs font-bold transition cursor-pointer ${
+                      isHovered ? 'px-4 justify-between' : 'lg:px-3 lg:justify-center px-4 justify-between'
+                    } ${
+                      page === item.key
+                        ? 'bg-[#DCEBE1] dark:bg-senda-darkborder text-senda-primary dark:text-senda-accent shadow-sm border border-[#8DC29A]/40 dark:border-[#3E8563]'
+                        : 'text-[#6B6F66] dark:text-[#9AA093] hover:bg-senda-light dark:hover:bg-senda-input hover:text-senda-main dark:hover:text-senda-darktext'
+                    }`}
                   >
                     <div className="flex items-center gap-3 relative">
-                      <span className={`${page === item.key ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`}>
+                      <span className={`${page === item.key ? 'text-senda-primary dark:text-senda-accent' : 'text-[#6B6F66] dark:text-[#9AA093]'}`}>
                         {item.icon}
                       </span>
                       <span className={`whitespace-nowrap transition-opacity duration-200 ${isHovered ? 'opacity-100' : 'lg:opacity-0 lg:w-0 lg:overflow-hidden'}`}>
@@ -259,84 +262,107 @@ const App: React.FC = () => {
                     )}
 
                     {page === item.key && activeAlertsCount === 0 && (
-                      <span className={`h-1.5 w-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0 ${isHovered ? 'block' : 'lg:hidden'}`}></span>
+                      <span className={`h-1.5 w-1.5 rounded-full bg-senda-primary dark:bg-senda-accent shrink-0 ${isHovered ? 'block' : 'lg:hidden'}`}></span>
                     )}
                   </button>
                 ))}
               </nav>
             </div>
 
-            {/* SWITCH DE MODO OSCURO */}
-            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
-              <div
-                className={`flex items-center ${isHovered ? 'justify-between px-2' : 'lg:justify-center justify-between px-2'}`}
-                title={darkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
-              >
-                <span className={`text-xs font-semibold text-slate-500 dark:text-slate-400 transition-opacity duration-200 ${isHovered ? 'opacity-100' : 'lg:opacity-0 lg:w-0 lg:overflow-hidden'}`}>
-                  {darkMode ? 'Modo Oscuro' : 'Modo Claro'}
-                </span>
-                <button
-                  onClick={() => setDarkMode(!darkMode)}
-                  className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-slate-300 dark:bg-amber-500 transition-colors duration-200 ease-in-out focus:outline-none"
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${darkMode ? 'translate-x-5' : 'translate-x-0'
-                      }`}
-                  />
-                </button>
-              </div>
+            {/* ZONA INFERIOR: IDIOMA + MODO CLARO/OSCURO  */}
+            <div>
+              <div className={`flex items-center transition-all duration-300 ${isHovered ? 'justify-between px-2' : 'lg:justify-center justify-between px-2'}`}>
 
-              <div className={`text-[11px] font-medium text-slate-400 flex items-center gap-2 overflow-hidden whitespace-nowrap ${isHovered ? 'opacity-100' : 'lg:opacity-0'}`}>
-                <svg className="h-4 w-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-                <span className={`transition-opacity duration-200 ${isHovered ? 'opacity-100' : 'lg:opacity-0'}`}>SENDA · Entorno Seguro</span>
+                {/* SI ESTÁ EXTENDIDO: SELECTOR COMPLETO CON FONDO SÓLIDO Y CONTRASTE */}
+                <div className={`flex items-center justify-between gap-3 overflow-hidden whitespace-nowrap rounded-full border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-input p-1.5 shadow-md transition-all duration-300 ${isHovered ? 'opacity-100 w-full px-3 py-2' : 'lg:opacity-0 lg:w-0 lg:overflow-hidden'}`}>
+
+                  {/* SELECTOR DE IDIOMA */}
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => i18n.changeLanguage('es')}
+                      className={`flex h-7 items-center justify-center gap-1.5 rounded-full px-2.5 text-xs transition-all cursor-pointer ${
+                        currentI18n.language === 'es'
+                          ? 'bg-white dark:bg-senda-darkborder text-senda-main dark:text-white shadow-sm font-bold border border-[#8DC29A] dark:border-[#3E8563]'
+                          : 'text-[#6B6F66] dark:text-[#9AA093] font-medium hover:text-senda-main'
+                      }`}
+                    >
+                      <img src="https://flagcdn.com/w40/es.png" alt="ES" className="h-4 w-4 rounded-full object-cover shadow-sm" />
+                      <span>ES</span>
+                    </button>
+                    <button
+                      onClick={() => i18n.changeLanguage('en')}
+                      className={`flex h-7 items-center justify-center gap-1.5 rounded-full px-2.5 text-xs transition-all cursor-pointer ${
+                        currentI18n.language === 'en'
+                          ? 'bg-white dark:bg-senda-darkborder text-senda-main dark:text-white shadow-sm font-bold border border-[#8DC29A] dark:border-[#3E8563]'
+                          : 'text-[#6B6F66] dark:text-[#9AA093] font-medium hover:text-senda-main'
+                      }`}
+                    >
+                      <img src="https://flagcdn.com/w40/gb.png" alt="EN" className="h-4 w-4 rounded-full object-cover shadow-sm" />
+                      <span>EN</span>
+                    </button>
+                  </div>
+
+                  <span className="h-5 w-[1px] bg-senda-border dark:border-senda-darkborder" />
+
+                  {/* SWITCH MODO CON ICONO DE LUNA / SOL */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#6B6F66] dark:text-[#9AA093]">
+                      {darkMode ? (
+                        <svg className="h-4 w-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                      ) : (
+                        <svg className="h-4 w-4 text-[#6B6F66]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                      )}
+                    </span>
+
+                    <button
+                      onClick={() => setDarkMode(!darkMode)}
+                      title={darkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+                      className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-senda-border dark:bg-senda-accent transition-colors duration-200 ease-in-out focus:outline-none shadow-inner"
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${darkMode ? 'translate-x-5' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* SI ESTÁ CONTRAÍDO: BOTÓN RÁPIDO DE TEMA */}
+                <div className={`hidden lg:flex items-center justify-center w-full ${isHovered ? 'lg:hidden' : 'lg:opacity-100'}`}>
+                  <button
+                    onClick={() => setDarkMode(!darkMode)}
+                    title={darkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+                    className="p-2.5 rounded-2xl bg-senda-light dark:bg-senda-input border border-senda-border dark:border-senda-darkborder text-[#6B6F66] dark:text-[#9AA093] hover:bg-slate-200 dark:hover:bg-slate-800 transition cursor-pointer shadow-sm"
+                  >
+                    {darkMode ? (
+                      <svg className="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                    ) : (
+                      <svg className="h-5 w-5 text-[#6B6F66]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                    )}
+                  </button>
+                </div>
+
               </div>
             </div>
           </aside>
 
-          {/* CONTENEDOR DERECHO */}
-          <div className="flex flex-1 flex-col min-w-0">
+          {/* CONTENEDOR DERECHO CON SCROLL NATURAL DE PÁGINA */}
+          <div className="flex flex-1 flex-col min-w-0 min-h-screen">
 
-            {/* BARRA SUPERIOR */}
-            <header className="h-[65px] border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-8 flex items-center justify-between shrink-0">
-              <div className="flex items-center rounded-[25px] border border-slate-200 dark:border-slate-700 bg-[#f3f5f7] dark:bg-slate-800 p-0.5">
-                <button
-                  onClick={() => i18n.changeLanguage('es')}
-                  className={`flex h-7 items-center justify-center gap-2.5 rounded-[22px] px-2 transition-all duration-300 cursor-pointer ${i18n.language === 'es'
-                    ? 'bg-white dark:bg-slate-700 text-emerald-950 dark:text-emerald-300 shadow-sm font-bold border border-emerald-700 dark:border-emerald-500'
-                    : 'text-slate-500 dark:text-slate-400 font-medium'
-                    }`}
-                >
-                  <img src="https://flagcdn.com/w40/es.png" alt="Español" className="h-5 w-5 rounded-full object-cover shadow-sm" />
-                  <span className="text-xs tracking-wide">ES</span>
-                </button>
-                <button
-                  onClick={() => i18n.changeLanguage('en')}
-                  className={`flex h-7 items-center justify-center gap-2.5 rounded-[22px] px-2 flex-row-reverse transition-all duration-300 cursor-pointer ${i18n.language === 'en'
-                    ? 'bg-white dark:bg-slate-700 text-emerald-950 dark:text-emerald-300 shadow-sm font-bold border border-emerald-700 dark:border-emerald-500'
-                    : 'text-slate-500 dark:text-slate-400 font-medium'
-                    }`}
-                >
-                  <img src="https://flagcdn.com/w40/gb.png" alt="English" className="h-5 w-5 rounded-full object-cover shadow-sm" />
-                  <span className="text-xs tracking-wide">EN</span>
-                </button>
-              </div>
+            {/* BARRA SUPERIOR STICKY */}
+            <header className="h-[65px] border-b border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-card px-8 flex items-center justify-end shrink-0 sticky top-0 z-10">
               <div className="flex items-center gap-6">
-                <span className="text-xs text-slate-400 font-medium capitalize">{currentDate}</span>
-                <div className="flex items-center gap-3 pl-6 border-l border-slate-200 dark:border-slate-800">
-                  <div className="h-9 w-9 rounded-full bg-emerald-700 text-white flex items-center justify-center text-xs font-bold shadow-sm">
+                <span className="text-xs text-[#6B6F66] dark:text-[#9AA093] font-medium capitalize">{currentDate}</span>
+                <div className="flex items-center gap-3 pl-6 border-l border-senda-border dark:border-senda-darkborder">
+                  <div className="h-9 w-9 rounded-full bg-senda-primary dark:bg-senda-accent dark:text-[#0F1712] text-white flex items-center justify-center text-xs font-bold shadow-sm">
                     {getInitials(currentUser)}
                   </div>
                   <div className="text-left">
-                    <p className="text-xs font-bold text-slate-900 dark:text-slate-100">{currentUser}</p>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">
+                    <p className="text-xs font-bold text-senda-main dark:text-senda-darktext">{currentUser}</p>
+                    <p className="text-[10px] text-[#6B6F66] dark:text-[#9AA093] font-bold uppercase tracking-wide">
                       {role === 'admin' ? 'Administrador' : 'Investigador'}
                     </p>
                   </div>
                   <button
                     onClick={handleLogout}
-                    className="ml-4 flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-red-600 transition cursor-pointer"
+                    className="ml-4 flex items-center gap-1.5 text-xs font-bold text-[#6B6F66] dark:text-[#9AA093] hover:text-red-600 dark:hover:text-red-400 transition cursor-pointer"
                   >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
                     <span>{t('Logout')}</span>
@@ -346,7 +372,7 @@ const App: React.FC = () => {
             </header>
 
             {/* ÁREA DE CONTENIDO */}
-            <main className="flex-1 bg-slate-50 dark:bg-slate-950 px-8 py-8 overflow-y-auto">
+            <main className="flex-1 bg-senda-light dark:bg-senda-dark px-8 py-8">
               {page === 'participants' && <Participants />}
               {page === 'fitbits' && <Fitbits />}
               {page === 'assignments' && <Assignments />}

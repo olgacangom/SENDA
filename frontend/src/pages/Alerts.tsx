@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { CustomSelect } from '../components/CustomSelect';
+import { Pagination } from '../components/Pagination';
 
 type AlertItem = {
   id: string;
@@ -61,323 +63,292 @@ const Alerts: React.FC<AlertsProps> = ({ onActiveCountChange }) => {
     }
   }, [activeAlerts.length, onActiveCountChange]);
 
-
-const handleResolve = async (id: string) => {
-  try {
-    const res = await fetch(`${API_BASE}/api/alerts/${id}/resolve/`, {
-      method: 'POST',
-      credentials: 'include',
-    });
-    if (res.ok) {
-      setAlerts((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, resolved: true } : item))
-      );
-    } else {
-      setError(t('Error resolving alert'));
+  const handleResolve = async (id: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/alerts/${id}/resolve/`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (res.ok) {
+        setAlerts((prev) =>
+          prev.map((item) => (item.id === id ? { ...item, resolved: true } : item))
+        );
+      } else {
+        setError(t('Error resolving alert'));
+      }
+    } catch {
+      setError(t('Server connection error'));
     }
-  } catch {
-    setError(t('Server connection error'));
-  }
-};
+  };
 
-const filtered = alerts.filter((alert) => {
-  if (!showResolved && alert.resolved) return false;
-  if (showResolved && !alert.resolved) return false;
+  const filtered = alerts.filter((alert) => {
+    if (!showResolved && alert.resolved) return false;
+    if (showResolved && !alert.resolved) return false;
 
-  const matchesQuery =
-    alert.message.toLowerCase().includes(query.toLowerCase()) ||
-    (alert.participant_code && alert.participant_code.toLowerCase().includes(query.toLowerCase())) ||
-    (alert.email && alert.email.toLowerCase().includes(query.toLowerCase()));
+    const matchesQuery =
+      alert.message.toLowerCase().includes(query.toLowerCase()) ||
+      (alert.participant_code && alert.participant_code.toLowerCase().includes(query.toLowerCase())) ||
+      (alert.email && alert.email.toLowerCase().includes(query.toLowerCase()));
 
-  const matchesPriority =
-    selectedPriority === 'ALL' || alert.priority === selectedPriority;
+    const matchesPriority =
+      selectedPriority === 'ALL' || alert.priority === selectedPriority;
 
-  return matchesQuery && matchesPriority;
-});
+    return matchesQuery && matchesPriority;
+  });
 
-const countHigh = activeAlerts.filter((item) => item.priority === 'HIGH').length;
-const countMedium = activeAlerts.filter((item) => item.priority === 'MEDIUM').length;
+  const countHigh = activeAlerts.filter((item) => item.priority === 'HIGH').length;
+  const countMedium = activeAlerts.filter((item) => item.priority === 'MEDIUM').length;
 
-const totalPages = Math.ceil(filtered.length / pageSize) || 1;
-const paginatedAlerts = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  const paginatedAlerts = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-return (
-  <div className="w-full text-slate-900 dark:text-slate-100 space-y-8">
+  const pageSizeOptions = [
+    { label: 5, value: 5 },
+    { label: 10, value: 10 },
+    { label: 15, value: 15 },
+    { label: 20, value: 20 },
+    { label: 25, value: 25 },
+  ];
 
-    {/* Cabecera de la sección */}
-    <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div>
-        <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">{t('Alerts Title')}</h1>
-        <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">{t('Alerts Subtitle')}</p>
+  return (
+    <div className="w-full text-senda-main dark:text-senda-darktext space-y-8">
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-senda-main dark:text-white" style={{ fontFamily: 'Fraunces, serif' }}>{t('Alerts Title')}</h1>
+          <p className="mt-1 text-xs font-medium text-[#6B6F66] dark:text-[#9AA093]">{t('Alerts Subtitle')}</p>
+        </div>
+        <div className="flex items-center gap-1.5 bg-senda-light dark:bg-senda-card p-1 rounded-xl self-start sm:self-auto border border-senda-border dark:border-senda-darkborder">
+          <button
+            onClick={() => { setShowResolved(false); setCurrentPage(1); }}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${!showResolved
+              ? 'bg-white dark:bg-senda-darkborder text-senda-main dark:text-white shadow-sm'
+              : 'text-[#6B6F66] dark:text-[#9AA093] hover:text-senda-main dark:hover:text-white'
+              }`}
+          >
+            {t('Active Count', { count: activeAlerts.length })}
+          </button>
+          <button
+            onClick={() => { setShowResolved(true); setCurrentPage(1); }}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${showResolved
+              ? 'bg-white dark:bg-senda-darkborder text-senda-main dark:text-white shadow-sm'
+              : 'text-[#6B6F66] dark:text-[#9AA093] hover:text-senda-main dark:hover:text-white'
+              }`}
+          >
+            {t('Resolved History')}
+          </button>
+        </div>
       </div>
-      <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl self-start sm:self-auto">
-        <button
-          onClick={() => { setShowResolved(false); setCurrentPage(1); }}
-          className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${!showResolved
-            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-            : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-        >
-          {t('Active Count', { count: activeAlerts.length })}
-        </button>
-        <button
-          onClick={() => { setShowResolved(true); setCurrentPage(1); }}
-          className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${showResolved
-            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-            : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-        >
-          {t('Resolved History')}
-        </button>
-      </div>
-    </div>
 
-    {/* Tarjetas de métricas superiores */}
-    {!showResolved && (
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div
-          onClick={() => { setSelectedPriority('HIGH'); setCurrentPage(1); }}
-          className={`cursor-pointer rounded-2xl border bg-white dark:bg-slate-900 p-5 shadow-lg shadow-slate-100 dark:shadow-none transition-all duration-200 hover:-translate-y-1 text-center 
+      {!showResolved && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div
+            onClick={() => { setSelectedPriority('HIGH'); setCurrentPage(1); }}
+            className={`cursor-pointer rounded-2xl border bg-white dark:bg-senda-card p-5 shadow-lg shadow-slate-100 dark:shadow-none transition-all duration-200 hover:-translate-y-1 text-center 
               ${selectedPriority === 'HIGH'
               ? 'border-rose-500 ring-2 ring-rose-500/20'
-              : 'border-rose-200 dark:border-rose-200/50'
-            }`}
-        >
-          <div className="flex items-center justify-center gap-2">
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-rose-600 dark:text-rose-400">{t('Critical')}</p>
-            <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse"></span>
+              : 'border-rose-200 dark:border-rose-900'
+              }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-rose-600 dark:text-rose-400">{t('Critical')}</p>
+              <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse"></span>
+            </div>
+            <p className="mt-2 text-3xl font-extrabold text-senda-main dark:text-white">{countHigh}</p>
           </div>
-          <p className="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white">{countHigh}</p>
-        </div>
 
-        <div
-          onClick={() => { setSelectedPriority('MEDIUM'); setCurrentPage(1); }}
-          className={`cursor-pointer rounded-2xl border bg-white dark:bg-slate-900 p-5 shadow-lg shadow-slate-100 dark:shadow-none transition-all duration-200 hover:-translate-y-1 text-center 
+          <div
+            onClick={() => { setSelectedPriority('MEDIUM'); setCurrentPage(1); }}
+            className={`cursor-pointer rounded-2xl border bg-white dark:bg-senda-card p-5 shadow-lg shadow-slate-100 dark:shadow-none transition-all duration-200 hover:-translate-y-1 text-center 
               ${selectedPriority === 'MEDIUM'
               ? 'border-amber-500 ring-2 ring-amber-500/20'
-              : 'border-amber-200 dark:border-amber-200/50'
-            }`}
-        >
-          <div className="flex items-center justify-center">
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-amber-600 dark:text-amber-400 dark:border-amber-200">{t('Warnings')}</p>
+              : 'border-amber-200 dark:border-amber-900'
+              }`}
+          >
+            <div className="flex items-center justify-center">
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-amber-600 dark:text-amber-400">{t('Warnings')}</p>
+            </div>
+            <p className="mt-2 text-3xl font-extrabold text-senda-main dark:text-white">{countMedium}</p>
           </div>
-          <p className="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white">{countMedium}</p>
         </div>
-      </div>
-    )}
+      )}
 
-    {/* Tarjeta contenedora de la bandeja */}
-    <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl shadow-slate-200/40 dark:shadow-none space-y-6 transition-colors duration-300">
+      <div className="rounded-3xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-card p-6 shadow-xl space-y-6 transition-colors duration-300">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-senda-main dark:text-slate-300">
+              {showResolved ? t('Resolved Tray') : t('Active Tray')}
+            </p>
+            <span className="inline-flex items-center px-3 py-1 rounded-xl text-xs font-semibold bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900">
+              {filtered.length} {t('Records')}
+            </span>
+          </div>
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-            {showResolved ? t('Resolved Tray') : t('Active Tray')}
-          </p>
-          <span className="inline-flex items-center px-3 py-1 rounded-xl text-xs font-semibold bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-900">
-            {filtered.length} {t('Records')}
-          </span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 bg-senda-light dark:bg-senda-input p-1.5 rounded-2xl border border-senda-border dark:border-senda-darkborder">
+              <button
+                onClick={() => { setSelectedPriority('ALL'); setCurrentPage(1); }}
+                className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.25em] rounded-xl transition cursor-pointer ${selectedPriority === 'ALL'
+                  ? 'bg-white dark:bg-senda-darkborder text-senda-primary dark:text-senda-accent shadow-sm'
+                  : 'text-[#6B6F66] dark:text-[#9AA093] hover:text-senda-main dark:hover:text-white'
+                  }`}
+              >
+                {t('All')}
+              </button>
+              <button
+                onClick={() => { setSelectedPriority('HIGH'); setCurrentPage(1); }}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${selectedPriority === 'HIGH'
+                  ? 'bg-white dark:bg-senda-darkborder text-rose-600 dark:text-rose-400 shadow-sm'
+                  : 'text-[#6B6F66] dark:text-[#9AA093] hover:text-senda-main dark:hover:text-white'
+                  }`}
+              >
+                {t('Critical')}
+              </button>
+              <button
+                onClick={() => { setSelectedPriority('MEDIUM'); setCurrentPage(1); }}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${selectedPriority === 'MEDIUM'
+                  ? 'bg-white dark:bg-senda-darkborder text-amber-600 dark:text-amber-400 shadow-sm'
+                  : 'text-[#6B6F66] dark:text-[#9AA093] hover:text-senda-main dark:hover:text-white'
+                  }`}
+              >
+                {t('Warnings')}
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Selector de tamaño de página */}
-          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full text-xs font-semibold text-slate-600 dark:text-slate-300">
-            <select
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </span>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setCurrentPage(1); }}
+              placeholder={t('Search Participant')}
+              className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/60 dark:bg-senda-dark h-[37px] pl-11 pr-4 text-xs text-senda-main dark:text-white outline-none transition focus:border-senda-secondary"
+            />
+          </div>
+
+          <div className="flex items-center gap-1.5 bg-senda-light dark:bg-senda-input px-3 h-[37px] rounded-2xl text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] border border-senda-border dark:border-senda-darkborder shrink-0 self-start sm:self-auto">
+            <CustomSelect
               value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
-              className="bg-transparent font-semibold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
-            >
-              <option value={5} className="bg-white dark:bg-slate-900">5</option>
-              <option value={10} className="bg-white dark:bg-slate-900">10</option>
-              <option value={15} className="bg-white dark:bg-slate-900">15</option>
-              <option value={20} className="bg-white dark:bg-slate-900">20</option>
-              <option value={25} className="bg-white dark:bg-slate-900">25</option>
-            </select>
+              onChange={(val) => setPageSize(Number(val))}
+              options={pageSizeOptions}
+              width="w-28"
+            />
             <span>{t('Per Page')}</span>
           </div>
-
-          {/* Filtros rápidos por prioridad */}
-          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 p-1.5 rounded-2xl border border-slate-200/60 dark:border-slate-700">
-            <button
-              onClick={() => { setSelectedPriority('ALL'); setCurrentPage(1); }}
-              className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.25em] rounded-xl transition cursor-pointer ${selectedPriority === 'ALL'
-                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-            >
-              {t('All')}
-            </button>
-            <button
-              onClick={() => { setSelectedPriority('HIGH'); setCurrentPage(1); }}
-              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${selectedPriority === 'HIGH'
-                ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-sm'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-            >
-              {t('Critical')}
-            </button>
-            <button
-              onClick={() => { setSelectedPriority('MEDIUM'); setCurrentPage(1); }}
-              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${selectedPriority === 'MEDIUM'
-                ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-sm'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-            >
-              {t('Warnings')}
-            </button>
-          </div>
         </div>
-      </div>
 
-      {/* Barra de búsqueda interna */}
-      <div className="relative">
-        <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-        </span>
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => { setQuery(e.target.value); setCurrentPage(1); }}
-          placeholder={t('Search Participant')}
-          className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/80 py-3.5 pl-11 pr-4 text-xs text-slate-900 dark:text-white outline-none transition focus:border-blue-500 focus:bg-white dark:focus:bg-slate-800"
-        />
-      </div>
+        <div className="space-y-3">
+          {paginatedAlerts.map((alert) => {
+            const isHigh = alert.priority === 'HIGH';
+            const isMedium = alert.priority === 'MEDIUM';
 
-      {/* Listado de alertas */}
-      <div className="space-y-3">
-        {paginatedAlerts.map((alert) => {
-          const isHigh = alert.priority === 'HIGH';
-          const isMedium = alert.priority === 'MEDIUM';
+            const borderLeftColor = isHigh
+              ? 'border-l-rose-500 dark:border-l-rose-400'
+              : isMedium
+                ? 'border-l-amber-500 dark:border-l-amber-400'
+                : 'border-l-blue-500 dark:border-l-blue-400';
 
-          const borderLeftColor = isHigh
-            ? 'border-l-rose-500 dark:border-l-rose-400'
-            : isMedium
-              ? 'border-l-amber-500 dark:border-l-amber-400'
-              : 'border-l-blue-500 dark:border-l-blue-400';
+            const badgeStyle = isHigh
+              ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-900'
+              : isMedium
+                ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900'
+                : 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900';
 
-          const badgeStyle = isHigh
-            ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-900'
-            : isMedium
-              ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900'
-              : 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900';
+            const dotColor = isHigh
+              ? 'bg-rose-500'
+              : isMedium
+                ? 'bg-amber-500'
+                : 'bg-blue-500';
 
-          const dotColor = isHigh
-            ? 'bg-rose-500'
-            : isMedium
-              ? 'bg-amber-500'
-              : 'bg-blue-500';
+            return (
+              <div
+                key={alert.id}
+                className={`rounded-2xl border border-senda-border dark:border-senda-darkborder border-l-4 ${borderLeftColor} bg-senda-light/40 dark:bg-senda-dark/40 p-5 transition hover:bg-white dark:hover:bg-senda-dark hover:shadow-md`}
+              >
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-[#DCEBE1] dark:bg-senda-darkborder text-senda-primary dark:text-senda-accent">
+                        {t(`${alert.type}_title`)}
+                      </span>
 
-          return (
-            <div
-              key={alert.id}
-              className={`rounded-2xl border border-slate-200/80 dark:border-slate-800 border-l-4 ${borderLeftColor} bg-slate-50/40 dark:bg-slate-800/40 p-5 transition hover:bg-white dark:hover:bg-slate-800 hover:shadow-md`}
-            >
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-slate-200/70 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
-                      {t(`${alert.type}_title`)}
+                      {alert.participant_code && (
+                        <span className="text-[11px] font-semibold text-[#6B6F66] dark:text-[#9AA093]">
+                          {alert.participant_code}
+                        </span>
+                      )}
+
+                      {alert.fitbit_code && (
+                        <span className="text-[11px] text-[#6B6F66] dark:text-[#9AA093]">
+                          · {alert.fitbit_code}
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-xs font-bold text-senda-main dark:text-white">
+                      {t(`${alert.type}_msg`)}
+                    </p>
+
+                    <div className="text-[10px] text-[#6B6F66] dark:text-[#9AA093] space-x-2 pt-1">
+                      {alert.first_detected_at && (
+                        <span>
+                          <strong>Detectada:</strong> {new Date(alert.first_detected_at).toLocaleString('es-ES')}
+                        </span>
+                      )}
+                      {alert.resolved && alert.resolved_at && (
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                          · <strong>Resuelta:</strong> {new Date(alert.resolved_at).toLocaleString('es-ES')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold border shadow-sm ${badgeStyle}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${dotColor}`}></span>
+                      {alert.priority}
                     </span>
 
-                    {alert.participant_code && (
-                      <span className="text-[11px] font-semibold text-slate-500">
-                        {alert.participant_code}
-                      </span>
-                    )}
-
-                    {alert.fitbit_code && (
-                      <span className="text-[11px] text-slate-400">
-                        · {alert.fitbit_code}
+                    {!alert.resolved ? (
+                      <button
+                        onClick={() => handleResolve(alert.id)}
+                        className="rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-4 py-2 text-xs font-semibold text-senda-main dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-emerald-700 dark:hover:text-emerald-300 hover:border-emerald-200 transition shadow-sm cursor-pointer"
+                      >
+                        {t('Resolve')}
+                      </button>
+                    ) : (
+                      <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1.5 rounded-xl border border-emerald-100 dark:border-emerald-900">
+                        {t('Resolved')}
                       </span>
                     )}
                   </div>
-
-                  <p className="text-xs font-bold text-slate-900 dark:text-white">
-                    {t(`${alert.type}_msg`)}
-                  </p>
-
-                  {/* MOSTRAR HORAS DE DETECCIÓN Y RESOLUCIÓN */}
-                  <div className="text-[10px] text-slate-400 space-x-2 pt-1">
-                    {alert.first_detected_at && (
-                      <span>
-                        <strong>Detectada:</strong> {new Date(alert.first_detected_at).toLocaleString('es-ES')}
-                      </span>
-                    )}
-                    {alert.resolved && alert.resolved_at && (
-                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                        · <strong>Resuelta:</strong> {new Date(alert.resolved_at).toLocaleString('es-ES')}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold border shadow-sm ${badgeStyle}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${dotColor}`}></span>
-                    {alert.priority}
-                  </span>
-
-                  {!alert.resolved ? (
-                    <button
-                      onClick={() => handleResolve(alert.id)}
-                      className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-emerald-700 dark:hover:text-emerald-300 hover:border-emerald-200 transition shadow-sm cursor-pointer"
-                    >
-                      {t('Resolve')}
-                    </button>
-                  ) : (
-                    <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1.5 rounded-xl border border-emerald-100 dark:border-emerald-900">
-                      {t('Resolved')}
-                    </span>
-                  )}
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Paginación */}
-      {filtered.length > 0 && (
-        <div className="flex flex-col gap-3 border-t border-slate-100 dark:border-slate-800 pt-5 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-[11px] font-medium text-slate-400">
-            {t('Page', { page: currentPage, totalPages })}
-          </p>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-[11px] font-bold text-slate-600 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
-            >
-              {t('Previous')}
-            </button>
-
-            <div className="rounded-xl bg-blue-50 dark:bg-blue-950 px-4 py-2 text-[11px] font-bold text-blue-700 dark:text-blue-300">
-              {currentPage}
-            </div>
-
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-[11px] font-bold text-slate-600 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
-            >
-              {t('Next')}
-            </button>
-          </div>
+            );
+          })}
         </div>
-      )}
 
-      {filtered.length === 0 && !error && (
-        <p className="py-12 text-center text-xs text-slate-400">{t('No Alerts')}</p>
-      )}
-      {error && (
-        <p className="py-12 text-center text-xs text-red-500">{error}</p>
-      )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
+
+        {filtered.length === 0 && !error && (
+          <p className="py-12 text-center text-xs text-slate-400">{t('No Alerts')}</p>
+        )}
+        {error && (
+          <p className="py-12 text-center text-xs text-red-500">{error}</p>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
 };
 
 export default Alerts;

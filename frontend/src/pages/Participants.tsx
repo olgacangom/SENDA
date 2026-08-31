@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { CustomSelect } from '../components/CustomSelect';
+import { Pagination } from '../components/Pagination';
+import { SectionHeader } from '../components/SectionHeader';
 
 const API_BASE = 'http://localhost:1574';
 
@@ -27,6 +30,12 @@ const Participants: React.FC = () => {
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [pageSize, setPageSize] = useState<number>(() => {
+    const savedSize = localStorage.getItem('participants_page_size');
+    return savedSize ? Number(savedSize) : 10;
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+
   const loadParticipants = () => {
     fetch(`${API_BASE}/api/participants/`, { credentials: 'include' })
       .then((res) => res.json())
@@ -40,6 +49,11 @@ const Participants: React.FC = () => {
   useEffect(() => {
     loadParticipants();
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('participants_page_size', pageSize.toString());
+    setCurrentPage(1);
+  }, [pageSize]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -126,41 +140,44 @@ const Participants: React.FC = () => {
     );
   });
 
+  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  const paginatedParticipants = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const pageSizeOptions = [
+    { label: 5, value: 5 },
+    { label: 10, value: 10 },
+    { label: 15, value: 15 },
+    { label: 20, value: 20 },
+    { label: 25, value: 25 },
+  ];
+
   const avatarColors = [
-    { bg: 'bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400', border: 'border-sky-100 dark:border-sky-900' },
-    { bg: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400', border: 'border-emerald-100 dark:border-emerald-900' },
-    { bg: 'bg-violet-50 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400', border: 'border-violet-100 dark:border-violet-900' },
+    { bg: 'bg-[#DCEBE1] dark:bg-senda-darkborder text-senda-primary dark:text-senda-accent', border: 'border-[#8DC29A]/40 dark:border-[#3E8563]' },
+    { bg: 'bg-[#DCEBE1] dark:bg-senda-darkborder text-senda-primary dark:text-senda-accent', border: 'border-[#8DC29A]/40 dark:border-[#3E8563]' },
+    { bg: 'bg-[#DCEBE1] dark:bg-senda-darkborder text-senda-primary dark:text-senda-accent', border: 'border-[#8DC29A]/40 dark:border-[#3E8563]' },
   ];
 
   return (
-    <div className="w-full text-slate-900 dark:text-slate-100 relative">
-      {/* Cabecera de la sección */}
-      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">{t('Participants Title')}</h1>
-          <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">{filtered.length} {t('Enrolled People')}</p>
-        </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="mt-4 sm:mt-0 inline-flex items-center justify-center px-5 py-3 bg-[#3A8FC2] hover:bg-[#27648A] text-white font-bold rounded-2xl shadow-lg shadow-blue-500/20 transition gap-2 cursor-pointer"
-        >
-          <span className="text-base font-bold leading-none">+</span>
-          <span className="text-[12px]">{t('Register Participant')}</span>
-        </button>
-      </div>
+    <div className="w-full text-senda-main dark:text-senda-darktext relative space-y-8">
+      <SectionHeader
+        title={t('Participants Title')}
+        subtitle={`${filtered.length} ${t('Enrolled People')}`}
+        actionLabel={t('Register Participant')}
+        onAction={() => setShowModal(true)}
+      />
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-senda-card border border-senda-border dark:border-senda-darkborder p-6 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">{t('Add Participant')}</h2>
+              <h2 className="text-lg font-bold text-senda-main dark:text-white" style={{ fontFamily: 'Fraunces, serif' }}>{t('Add Participant')}</h2>
               <button
                 onClick={() => {
                   setShowModal(false);
                   setSubmitError(null);
                   setSubmitSuccess(null);
                 }}
-                className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer text-base font-bold"
+                className="text-[#6B6F66] dark:text-[#9AA093] hover:text-senda-main dark:hover:text-white cursor-pointer text-base font-bold"
               >
                 ×
               </button>
@@ -168,25 +185,25 @@ const Participants: React.FC = () => {
 
             <form onSubmit={(e) => { e.preventDefault(); handleCreateParticipant(); }} className="space-y-4" autoComplete="off">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{t('Email')}</label>
+                <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">{t('Email')}</label>
                 <input
                   type="email"
                   value={newEmail}
                   autoComplete="off"
                   onChange={(e) => setNewEmail(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500"
+                  className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark px-4 py-3 text-sm text-senda-main dark:text-white outline-none focus:border-senda-secondary"
                   placeholder="usuario@email.com"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{t('Password')}</label>
+                <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">{t('Password')}</label>
                 <input
                   type="password"
                   value={newPassword}
                   autoComplete="new-password"
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500"
+                  className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark px-4 py-3 text-sm text-senda-main dark:text-white outline-none focus:border-senda-secondary"
                   placeholder={t('Password Placeholder')}
                 />
               </div>
@@ -198,14 +215,14 @@ const Participants: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-5 py-3 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
+                  className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-5 py-3 text-sm font-semibold text-senda-main dark:text-slate-300 hover:bg-senda-light dark:hover:bg-slate-800 cursor-pointer"
                 >
                   {t('Cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="rounded-2xl bg-[#3A8FC2] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#27648A] disabled:opacity-60 cursor-pointer"
+                  className="rounded-2xl bg-senda-primary hover:bg-[#184232] dark:bg-senda-accent dark:text-senda-dark dark:hover:bg-[#59a67e] px-5 py-3 text-sm font-semibold text-white transition disabled:opacity-60 cursor-pointer"
                 >
                   {isSubmitting ? t('Processing') : t('Save Participant')}
                 </button>
@@ -215,43 +232,42 @@ const Participants: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL DE DETALLE DE PARTICIPANTE */}
       {selectedParticipant && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-2xl rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-7 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-2xl rounded-3xl bg-white dark:bg-senda-card border border-senda-border dark:border-senda-darkborder p-7 shadow-2xl">
             <div className="mb-6 flex items-start justify-between">
               <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#DCEBE1] dark:bg-senda-darkborder text-senda-primary dark:text-senda-accent">
                   <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">{t('Participant Detail')}</h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{t('Full Info')}</p>
+                  <h2 className="text-xl font-extrabold text-senda-main dark:text-white" style={{ fontFamily: 'Fraunces, serif' }}>{t('Participant Detail')}</h2>
+                  <p className="text-xs text-[#6B6F66] dark:text-[#9AA093]">{t('Full Info')}</p>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedParticipant(null)}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer transition"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-senda-light dark:bg-senda-input text-[#6B6F66] dark:text-slate-300 hover:border-senda-border dark:hover:bg-slate-700 cursor-pointer transition"
               >
                 ✕
               </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 p-4 flex flex-col justify-center">
-                <span className="text-[11px] font-medium text-blue-900 dark:text-blue-400 mb-1">{t('Code')}</span>
-                <span className="text-sm font-bold text-slate-900 dark:text-white">{selectedParticipant.participant_code}</span>
+              <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
+                <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Code')}</span>
+                <span className="text-sm font-bold text-senda-main dark:text-white">{selectedParticipant.participant_code}</span>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 p-4 flex flex-col justify-center">
-                <span className="text-[11px] font-medium text-blue-900 dark:text-blue-400 mb-1">{t('Email')}</span>
-                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">{selectedParticipant.email || '—'}</span>
+              <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
+                <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Email')}</span>
+                <span className="text-xs font-semibold text-senda-main dark:text-slate-200">{selectedParticipant.email || '—'}</span>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 p-4 flex flex-col justify-center">
-                <span className="text-[11px] font-medium text-blue-900 dark:text-blue-400 mb-1">{t('Status')}</span>
+              <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
+                <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Status')}</span>
                 <div>
                   <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold ${
                     selectedParticipant.authentication_status === 'ACTIVE'
@@ -264,29 +280,29 @@ const Participants: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 p-4 flex flex-col justify-center">
-                <span className="text-[11px] font-medium text-blue-900 dark:text-blue-400 mb-1">{t('Token Expiration')}</span>
-                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+              <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
+                <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Token Expiration')}</span>
+                <span className="text-xs font-semibold text-senda-main dark:text-slate-200">
                   {selectedParticipant.access_token_expiration ? new Date(selectedParticipant.access_token_expiration).toLocaleString('es-ES') : t('Not available')}
                 </span>
               </div>
 
-              <div className="md:col-span-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 p-4 flex flex-col justify-center">
-                <span className="text-[11px] font-medium text-blue-900 dark:text-blue-400 mb-1">{t('Access Token')}</span>
-                <pre className="mt-1 whitespace-normal break-all rounded-xl p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-mono text-[11px] text-slate-700 dark:text-slate-300">
+              <div className="md:col-span-2 rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
+                <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Access Token')}</span>
+                <pre className="mt-1 whitespace-normal break-all rounded-xl p-3 bg-white dark:bg-senda-dark border border-senda-border dark:border-senda-darkborder font-mono text-[11px] text-senda-main dark:text-slate-300">
                   {selectedParticipant.access_token || t('Not available')}
                 </pre>
               </div>
 
-              <div className="md:col-span-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 p-4 flex flex-col justify-center">
-                <span className="text-[11px] font-medium text-blue-900 dark:text-blue-400 mb-1">{t('Refresh Token')}</span>
-                <pre className="mt-1 whitespace-normal break-all rounded-xl p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-mono text-[11px] text-slate-700 dark:text-slate-300">
+              <div className="md:col-span-2 rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
+                <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Refresh Token')}</span>
+                <pre className="mt-1 whitespace-normal break-all rounded-xl p-3 bg-white dark:bg-senda-dark border border-senda-border dark:border-senda-darkborder font-mono text-[11px] text-senda-main dark:text-slate-300">
                   {selectedParticipant.refresh_token || t('Not available')}
                 </pre>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2 border-t border-senda-border dark:border-senda-darkborder">
               <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
                 <button
                   onClick={async () => {
@@ -318,7 +334,6 @@ const Participants: React.FC = () => {
                   {t('Delete Participant')}
                 </button>
 
-                {/* BOTÓN DE RECONEXIÓN RÁPIDA DE GOOGLE */}
                 <a
                   href={`${API_BASE}/auth/login/`}
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl border border-sky-200 dark:border-sky-900 bg-sky-50 dark:bg-sky-950/50 px-5 py-3 text-xs font-bold text-sky-700 dark:text-sky-300 hover:bg-sky-100 transition cursor-pointer shadow-sm"
@@ -332,7 +347,7 @@ const Participants: React.FC = () => {
 
               <button
                 onClick={() => setSelectedParticipant(null)}
-                className="w-full sm:w-auto rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer"
+                className="w-full sm:w-auto rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-6 py-3 text-xs font-bold text-senda-main dark:text-slate-300 hover:bg-senda-light dark:hover:bg-slate-700 transition cursor-pointer"
               >
                 {t('Close')}
               </button>
@@ -342,13 +357,13 @@ const Participants: React.FC = () => {
       )}
 
       {oauthModalVisible && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-senda-card border border-senda-border dark:border-senda-darkborder p-6 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">{t('Authorization Completed Title')}</h2>
+              <h2 className="text-lg font-bold text-senda-main dark:text-white" style={{ fontFamily: 'Fraunces, serif' }}>{t('Authorization Completed Title')}</h2>
               <button
                 onClick={() => setOauthModalVisible(false)}
-                className="text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer text-base font-bold"
+                className="text-[#6B6F66] dark:text-[#9AA093] hover:text-senda-main dark:hover:text-white cursor-pointer text-base font-bold"
               >
                 ×
               </button>
@@ -357,7 +372,7 @@ const Participants: React.FC = () => {
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setOauthModalVisible(false)}
-                className="rounded-2xl bg-[#3A8FC2] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#27648A] cursor-pointer"
+                className="rounded-2xl bg-senda-primary hover:bg-[#184232] dark:bg-senda-accent dark:text-senda-dark dark:hover:bg-[#59a67e] px-5 py-3 text-sm font-semibold text-white transition cursor-pointer"
               >
                 {t('Close')}
               </button>
@@ -366,28 +381,39 @@ const Participants: React.FC = () => {
         </div>
       )}
 
-      {/* Tarjeta contenedora de la tabla */}
-      <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl shadow-slate-200/40 dark:shadow-none transition-colors duration-300">
-        <div className="mb-6 relative">
-          <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </span>
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t('Search Participant')}
-            className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/80 py-3.5 pl-11 pr-4 text-xs text-slate-900 dark:text-white outline-none transition focus:border-blue-500 focus:bg-white dark:focus:bg-slate-800"
-          />
+      <div className="rounded-3xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-card p-6 shadow-xl transition-colors duration-300 space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </span>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setCurrentPage(1); }}
+              placeholder={t('Search Participant')}
+              className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/60 dark:bg-senda-dark/80 h-[37px] pl-11 pr-4 text-xs text-senda-main dark:text-white outline-none transition focus:border-senda-secondary"
+            />
+          </div>
+
+          <div className="flex items-center gap-1.5 bg-senda-light dark:bg-senda-input px-3 h-[37px] rounded-2xl text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] border border-senda-border dark:border-senda-darkborder shrink-0 self-start sm:self-auto">
+            <CustomSelect
+              value={pageSize}
+              onChange={(val) => setPageSize(Number(val))}
+              options={pageSizeOptions}
+              width="w-28"
+            />
+            <span>{t('Per Page')}</span>
+          </div>
         </div>
 
         <div className="overflow-hidden rounded-2xl">
           <div className="overflow-x-auto">
             <table className="min-w-full table-fixed border-collapse text-left">
               <thead>
-                <tr className="bg-blue-50/60 dark:bg-slate-800/80 text-blue-900 dark:text-blue-300 uppercase text-[10px] tracking-wider">
+                <tr className="bg-[#DCEBE1]/60 dark:bg-senda-darkborder/80 text-senda-primary dark:text-senda-accent uppercase text-[10px] tracking-wider">
                   <th className="w-[18%] px-6 py-3.5 font-bold rounded-l-2xl">{t('Code')}</th>
                   <th className="w-[25%] px-6 py-3.5 font-bold">{t('Email')}</th>
                   <th className="w-[18%] px-6 py-3.5 font-bold">{t('Access Token')}</th>
@@ -395,8 +421,8 @@ const Participants: React.FC = () => {
                   <th className="w-[21%] px-6 py-3.5 font-bold rounded-r-2xl">{t('Token Expiration')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filtered.map((participant, idx) => {
+              <tbody className="divide-y divide-senda-border dark:divide-senda-darkborder">
+                {paginatedParticipants.map((participant, idx) => {
                   const emailVal = getEmail(participant);
                   const accessToken = getAccessToken(participant);
                   const refreshToken = getRefreshToken(participant);
@@ -407,9 +433,9 @@ const Participants: React.FC = () => {
                     <tr
                       key={participant.participant_code}
                       onClick={() => setSelectedParticipant(participant)}
-                      className="cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors"
+                      className="cursor-pointer hover:bg-senda-light/80 dark:hover:bg-senda-dark/50 transition-colors"
                     >
-                      <td className="px-6 py-4 text-xs font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                      <td className="px-6 py-4 text-xs font-bold text-senda-main dark:text-white flex items-center gap-3">
                         <div className={`h-8 w-8 rounded-xl ${colorStyle.bg} flex items-center justify-center font-bold shadow-sm`}>
                           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -417,8 +443,8 @@ const Participants: React.FC = () => {
                         </div>
                         {participant.participant_code}
                       </td>
-                      <td className="px-6 py-4 text-xs font-medium text-slate-600 dark:text-slate-300">{emailVal}</td>
-                      <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-300">
+                      <td className="px-6 py-4 text-xs font-medium text-[#6B6F66] dark:text-[#9AA093]">{emailVal}</td>
+                      <td className="px-6 py-4 text-xs text-[#6B6F66] dark:text-[#9AA093]">
                         {accessToken ? (
                           <span
                             title={accessToken}
@@ -430,15 +456,15 @@ const Participants: React.FC = () => {
                             {truncateToken(accessToken)}
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-medium bg-blue-50/80 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-100/60 dark:border-blue-900">
-                            <svg className="h-3.5 w-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-medium bg-[#DCEBE1]/50 dark:bg-slate-800 text-senda-primary dark:text-senda-accent border border-[#8DC29A]/30">
+                            <svg className="h-3.5 w-3.5 text-senda-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             {t('No token')}
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-300">
+                      <td className="px-6 py-4 text-xs text-[#6B6F66] dark:text-[#9AA093]">
                         {refreshToken ? (
                           <span
                             title={refreshToken}
@@ -450,15 +476,15 @@ const Participants: React.FC = () => {
                             {truncateToken(refreshToken)}
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-medium bg-blue-50/80 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-100/60 dark:border-blue-900">
-                            <svg className="h-3.5 w-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-medium bg-[#DCEBE1]/50 dark:bg-slate-800 text-senda-primary dark:text-senda-accent border border-[#8DC29A]/30">
+                            <svg className="h-3.5 w-3.5 text-senda-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             {t('No token')}
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-300">
+                      <td className="px-6 py-4 text-xs text-[#6B6F66] dark:text-[#9AA093]">
                         {expirationVal ? (
                           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900">
                             <svg className="h-3.5 w-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -467,8 +493,8 @@ const Participants: React.FC = () => {
                             {new Date(expirationVal).toLocaleString('es-ES')}
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-medium bg-blue-50/80 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-100/60 dark:border-blue-900">
-                            <svg className="h-3.5 w-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-medium bg-[#DCEBE1]/50 dark:bg-slate-800 text-senda-primary dark:text-senda-accent border border-[#8DC29A]/30">
+                            <svg className="h-3.5 w-3.5 text-senda-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             {t('No token info')}
@@ -482,6 +508,12 @@ const Participants: React.FC = () => {
             </table>
           </div>
         </div>
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
 
         {filtered.length === 0 && !error && (
           <p className="py-8 text-center text-xs text-slate-400">{t('No participants found')}</p>

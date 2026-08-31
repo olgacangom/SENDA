@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --bg-senda-light: #FAFAF6;
+    --text-senda-main: #1B2A20;
+    --border-senda: #E4E4DC;
+    --green-primary: #1F5340;
+    --green-secondary: #2E6F52;
+    --green-light: #6FBE96;
+  }
+
+  .dark {
+    --bg-senda-dark: #0B120F;
+    --card-senda-dark: #16221C;
+    --input-senda-dark: #111814;
+    --text-senda-dark: #F3F4F6;
+    --border-senda-dark: #22382C;
+  }
+
+  body {
+    background-color: var(--bg-senda-light);
+    color: var(--text-senda-main);
+  }
+
+  .dark body {
+    background-color: var(--bg-senda-dark);
+    color: var(--text-senda-dark);
+  }
+}
+
+@theme {
+  --color-senda-light: var(--bg-senda-light);
+  --color-senda-main: var(--text-senda-main);
+  --color-senda-border: var(--border-senda);
+  --color-senda-primary: var(--green-primary);
+  --color-senda-secondary: var(--green-secondary);
+  --color-senda-accent: var(--green-light);
+
+  --color-senda-dark: var(--bg-senda-dark);
+  --color-senda-card: var(--card-senda-dark);
+  --color-senda-input: var(--input-senda-dark);
+  --color-senda-darktext: var(--text-senda-dark);
+  --color-senda-darkborder: var(--border-senda-dark);
+}
+
+@utility senda-select {
+  @apply w-full appearance-none rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark px-4 py-3 pr-10 text-sm text-senda-main dark:text-white outline-none focus:border-senda-secondary cursor-pointer;
+}
+
+@utility senda-pagination-btn {
+  @apply rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-3 py-2 text-[11px] font-bold text-senda-main dark:text-slate-300 transition hover:bg-senda-light dark:hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer;
+}

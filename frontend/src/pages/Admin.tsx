@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { CustomSelect } from '../components/CustomSelect';
+import { Pagination } from '../components/Pagination';
+import { SectionHeader } from '../components/SectionHeader';
 
 const API_BASE = 'http://localhost:1574';
 
@@ -13,15 +16,31 @@ const Admin: React.FC = () => {
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [researchers, setResearchers] = useState<Researcher[]>([]);
+  const [query, setQuery] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const [pageSize, setPageSize] = useState<number>(() => {
+    const savedSize = localStorage.getItem('admin_page_size');
+    return savedSize ? Number(savedSize) : 10;
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const loadResearchers = () => {
     fetch(`${API_BASE}/api/admin/researchers/`, { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => setResearchers(data.items || []))
       .catch(() => setError(t('Error loading researchers')));
+  };
+
+  useEffect(() => {
+    loadResearchers();
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('admin_page_size', pageSize.toString());
+    setCurrentPage(1);
+  }, [pageSize]);
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -74,19 +93,36 @@ const Admin: React.FC = () => {
     }
   };
 
-  return (
-    <div className="w-full text-slate-900 dark:text-slate-100 space-y-8">
-      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">{t('Admin Title')}</h1>
-          <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">{t('Admin Subtitle')}</p>
-        </div>
-      </div>
+  const filtered = researchers.filter((r) => {
+    const searchLower = query.toLowerCase();
+    const emailMatch = r.email.toLowerCase().includes(searchLower);
+    const statusText = r.is_active ? t('Active').toLowerCase() : t('Pending').toLowerCase();
+    const statusMatch = statusText.includes(searchLower);
+    return emailMatch || statusMatch;
+  });
 
-      <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-xl shadow-slate-200/40 dark:shadow-none transition-colors duration-300">
+  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  const paginatedResearchers = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const pageSizeOptions = [
+    { label: 5, value: 5 },
+    { label: 10, value: 10 },
+    { label: 15, value: 15 },
+    { label: 20, value: 20 },
+    { label: 25, value: 25 },
+  ];
+
+  return (
+    <div className="w-full text-senda-main dark:text-senda-darktext space-y-8">
+      <SectionHeader
+        title={t('Admin Title')}
+        subtitle={t('Admin Subtitle')}
+      />
+
+      <div className="rounded-3xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-card p-8 shadow-xl transition-colors duration-300">
         <form onSubmit={submit} autoComplete="off" className="grid gap-6 sm:grid-cols-2 items-end">
           <div className="col-span-1">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">{t('Researcher Email Input')}</label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#6B6F66] dark:text-[#9AA093] mb-1.5">{t('Researcher Email Input')}</label>
             <input
               type="email"
               value={email}
@@ -94,13 +130,13 @@ const Admin: React.FC = () => {
               placeholder="investigador@senda.es"
               required
               autoComplete="off"
-              className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/80 px-4 py-3.5 text-xs text-slate-900 dark:text-white outline-none transition focus:border-blue-500 focus:bg-white dark:focus:bg-slate-800"
+              className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/60 dark:bg-senda-dark px-4 py-3.5 text-xs text-senda-main dark:text-white outline-none transition focus:border-senda-secondary"
             />
           </div>
           <div className="col-span-1 flex justify-end">
             <button
               type="submit"
-              className="inline-flex items-center justify-center px-5 py-3.5 bg-[#3A8FC2] hover:bg-[#27648A] text-white font-bold rounded-2xl shadow-lg shadow-blue-500/20 transition gap-2 cursor-pointer"
+              className="inline-flex items-center justify-center px-5 py-3.5 bg-senda-primary hover:bg-[#184232] dark:bg-senda-accent dark:text-senda-dark dark:hover:bg-[#59a67e] text-white font-bold rounded-2xl shadow-lg transition gap-2 cursor-pointer"
             >
               <span className="text-base font-bold leading-none">+</span>
               <span className="text-[12px]">{t('Authorize Btn')}</span>
@@ -112,30 +148,59 @@ const Admin: React.FC = () => {
         {error && <p className="mt-4 text-xs font-semibold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 p-4 rounded-2xl shadow-sm">{error}</p>}
       </div>
 
-      <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl shadow-slate-200/40 dark:shadow-none transition-colors duration-300">
-        <div className="mb-6 flex items-center justify-between">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">{t('Authorized Researchers')}</p>
-          <span className="inline-flex items-center px-3 py-1 rounded-xl text-xs font-semibold bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-900">
-            {researchers.length} {t('Accounts Registered')}
-          </span>
+      <div className="rounded-3xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-card p-6 shadow-xl transition-colors duration-300 space-y-6">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-senda-main dark:text-slate-300">{t('Authorized Researchers')}</p>
+            <span className="inline-flex items-right px-3 py-1 rounded-xl text-xs font-semibold bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900">
+              {filtered.length} {t('Accounts Registered')}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </span>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setCurrentPage(1); }}
+              placeholder={t('Search Researcher')}
+              className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/60 dark:bg-senda-dark h-[37px] pl-11 pr-4 text-xs text-senda-main dark:text-white outline-none transition focus:border-senda-secondary"
+            />
+          </div>
+
+          <div className="flex items-center gap-1.5 bg-senda-light dark:bg-senda-input px-3 h-[37px] rounded-2xl text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] border border-senda-border dark:border-senda-darkborder shrink-0 self-start sm:self-auto">
+            <CustomSelect
+              value={pageSize}
+              onChange={(val) => setPageSize(Number(val))}
+              options={pageSizeOptions}
+              width="w-28"
+            />
+            <span>{t('Per Page')}</span>
+          </div>
         </div>
 
         <div className="overflow-hidden rounded-2xl">
           <div className="overflow-x-auto">
             <table className="min-w-full table-fixed border-collapse text-left">
               <thead>
-                <tr className="bg-blue-50/60 dark:bg-slate-800/80 text-blue-900 dark:text-blue-300 uppercase text-[10px] tracking-wider">
+                <tr className="bg-[#DCEBE1]/60 dark:bg-senda-darkborder/80 text-senda-primary dark:text-senda-accent uppercase text-[10px] tracking-wider">
                   <th className="w-[40%] px-6 py-3.5 font-bold rounded-l-2xl">{t('Email')}</th>
                   <th className="w-[30%] px-6 py-3.5 font-bold">{t('Created')}</th>
                   <th className="w-[15%] px-6 py-3.5 font-bold">{t('Status')}</th>
                   <th className="w-[15%] px-6 py-3.5 font-bold rounded-r-2xl text-right">{t('Action')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {researchers.map((r) => (
-                  <tr key={r.email} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="px-6 py-4 text-xs font-bold text-slate-900 dark:text-white">{r.email}</td>
-                    <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-300">{new Date(r.created_at).toLocaleDateString('es-ES')}</td>
+              <tbody className="divide-y divide-senda-border dark:divide-senda-darkborder">
+                {paginatedResearchers.map((r) => (
+                  <tr key={r.email} className="hover:bg-senda-light/80 dark:hover:bg-senda-dark/50 transition-colors">
+                    <td className="px-6 py-4 text-xs font-bold text-senda-main dark:text-white">{r.email}</td>
+                    <td className="px-6 py-4 text-xs text-[#6B6F66] dark:text-[#9AA093]">{new Date(r.created_at).toLocaleDateString('es-ES')}</td>
                     <td className="px-6 py-4 text-xs">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-semibold border ${
                         r.is_active 
@@ -150,7 +215,7 @@ const Admin: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => deleteResearcher(r.email)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-rose-200 dark:border-rose-900 bg-white dark:bg-slate-800 text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 hover:text-rose-700 dark:hover:text-rose-300 transition shadow-sm cursor-pointer"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-rose-200 dark:border-rose-900 bg-white dark:bg-senda-input text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 hover:text-rose-700 dark:hover:text-rose-300 transition shadow-sm cursor-pointer"
                         title={t('Delete Researcher')}
                       >
                         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,7 +230,13 @@ const Admin: React.FC = () => {
           </div>
         </div>
 
-        {researchers.length === 0 && !error && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
+
+        {filtered.length === 0 && !error && (
           <p className="py-12 text-center text-xs text-slate-400">{t('No Researchers')}</p>
         )}
       </div>

@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { CustomSelect } from '../components/CustomSelect';
+import { Pagination } from '../components/Pagination';
+import { SectionHeader } from '../components/SectionHeader';
 
 const API_BASE = 'http://localhost:1574';
 
@@ -23,6 +26,12 @@ const Fitbits: React.FC = () => {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [selectedFitbit, setSelectedFitbit] = useState<FitbitItem | null>(null);
+
+  const [pageSize, setPageSize] = useState<number>(() => {
+    const savedSize = localStorage.getItem('fitbits_page_size');
+    return savedSize ? Number(savedSize) : 10;
+  });
+  const [currentPage, setCurrentPage] = useState(1);
 
   const loadFitbits = () => {
     fetch(`${API_BASE}/api/fitbits/`, { credentials: 'include' })
@@ -52,6 +61,11 @@ const Fitbits: React.FC = () => {
   useEffect(() => {
     loadFitbits();
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('fitbits_page_size', pageSize.toString());
+    setCurrentPage(1);
+  }, [pageSize]);
 
   const handleCreateFitbit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,90 +113,95 @@ const Fitbits: React.FC = () => {
     return matchesQuery && matchesStatus;
   });
 
-  return (
-    <div className="w-full text-slate-900 dark:text-slate-100 relative">
-      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Fitbit</h1>
-          <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">{filtered.length} {t('Devices Registered')}</p>
-        </div>
-        <button
-          onClick={() => {
-            setSubmitError(null);
-            setSubmitSuccess(null);
-            setIsModalOpen(true);
-          }}
-          className="mt-4 sm:mt-0 inline-flex items-center justify-center px-5 py-3 bg-[#3A8FC2] hover:bg-[#27648A] hover:text-white text-white font-bold rounded-2xl shadow-lg shadow-blue-500/20 transition gap-2 cursor-pointer"
-        >
-          <span className="text-base font-bold leading-none">+</span>
-          <span className="text-[12px]">{t('Register Fitbit')}</span>
-        </button>
-      </div>
+  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  const paginatedFitbits = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-      {/* Tarjetas de resumen superior interactivas */}
-      <div className="grid gap-4 sm:grid-cols-4 mb-8">
+  const pageSizeOptions = [
+    { label: 5, value: 5 },
+    { label: 10, value: 10 },
+    { label: 15, value: 15 },
+    { label: 20, value: 20 },
+    { label: 25, value: 25 },
+  ];
+
+  return (
+    <div className="w-full text-senda-main dark:text-senda-darktext relative space-y-8">
+      <SectionHeader
+        title="Fitbit"
+        subtitle={`${filtered.length} ${t('Devices Registered')}`}
+        actionLabel={t('Register Fitbit')}
+        onAction={() => {
+          setSubmitError(null);
+          setSubmitSuccess(null);
+          setIsModalOpen(true);
+        }}
+      />
+
+      <div className="grid gap-4 sm:grid-cols-4">
         {[
           {
             statusKey: 'IN_USE',
             label: t('In Use'),
             value: summary.in_use,
-            textColor: 'text-emerald-600 dark:text-emerald-400',
-            backgroundColor: 'bg-[#E6FFEE] dark:bg-emerald-950/40',
-            borderColor: 'border-emerald-200 dark:border-emerald-200/50',
-            activeRing: 'border-emerald-500 ring-2 ring-emerald-600/20',
-            hoverShadow: 'hover:shadow-[0_20px_25px_-5px_rgba(5,150,105,0.15)]'
+            textColor: 'text-emerald-700 dark:text-emerald-400',
+            backgroundColor: 'bg-[#EAF1EA] dark:bg-senda-card',
+            borderColor: 'border-[#8DC29A]/40 dark:border-senda-darkborder',
+            activeRing: 'border-senda-primary dark:border-senda-accent ring-2 ring-emerald-600/20',
+            hoverShadow: 'hover:shadow-md'
           },
           {
             statusKey: 'FREE',
             label: t('Free'),
             value: summary.free,
-            textColor: 'text-blue-600 dark:text-blue-400',
-            backgroundColor: 'bg-[#E6F5FF] dark:bg-blue-950/40',
-            borderColor: 'border-blue-200 dark:border-blue-200/50',
+            textColor: 'text-blue-700 dark:text-blue-400',
+            backgroundColor: 'bg-blue-50/50 dark:bg-senda-card',
+            borderColor: 'border-blue-200 dark:border-blue-900',
             activeRing: 'border-blue-500 ring-2 ring-blue-600/20',
-            hoverShadow: 'hover:shadow-[0_20px_25px_-5px_rgba(37,99,235,0.15)]'
+            hoverShadow: 'hover:shadow-md'
           },
           {
             statusKey: 'MAINTENANCE',
             label: t('Maintenance'),
             value: summary.maintenance,
-            textColor: 'text-amber-600 dark:text-amber-400',
-            backgroundColor: 'bg-[#FFF3E6] dark:bg-amber-950/40',
-            borderColor: 'border-amber-200 dark:border-amber-200/50',
+            textColor: 'text-amber-700 dark:text-amber-400',
+            backgroundColor: 'bg-amber-50/50 dark:bg-senda-card',
+            borderColor: 'border-amber-200 dark:border-amber-900',
             activeRing: 'border-amber-500 ring-2 ring-amber-600/20',
-            hoverShadow: 'hover:shadow-[0_20px_25px_-5px_rgba(217,119,6,0.15)]'
+            hoverShadow: 'hover:shadow-md'
           },
           {
             statusKey: 'INACTIVE',
             label: t('Inactive'),
             value: summary.inactive,
-            textColor: 'text-red-500 dark:text-red-400',
-            backgroundColor: 'bg-[#FFE6E6] dark:bg-red-950/40',
-            borderColor: 'border-red-200 dark:border-red-200/50',
+            textColor: 'text-red-600 dark:text-red-400',
+            backgroundColor: 'bg-red-50/50 dark:bg-senda-card',
+            borderColor: 'border-red-200 dark:border-red-900',
             activeRing: 'border-red-500 ring-2 ring-red-600/20',
-            hoverShadow: 'hover:shadow-[0_20px_25px_-5px_rgba(100,116,139,0.15)]'
+            hoverShadow: 'hover:shadow-md'
           },
         ].map((item) => {
           const isSelected = selectedStatusFilter === item.statusKey;
           return (
             <div
               key={item.label}
-              onClick={() => setSelectedStatusFilter(isSelected ? 'ALL' : item.statusKey)}
-              className={`cursor-pointer rounded-2xl border ${item.backgroundColor} p-5 shadow-lg shadow-slate-100 dark:shadow-none transition-all duration-200 hover:-translate-y-1 text-center ${item.hoverShadow} ${isSelected ? item.activeRing : item.borderColor
+              onClick={() => {
+                setSelectedStatusFilter(isSelected ? 'ALL' : item.statusKey);
+                setCurrentPage(1);
+              }}
+              className={`cursor-pointer rounded-2xl border ${item.backgroundColor} p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 text-center ${item.hoverShadow} ${isSelected ? item.activeRing : item.borderColor
                 }`}
             >
               <p className={`text-[11px] font-extrabold uppercase tracking-[0.25em] ${item.textColor}`}>
                 {item.label}
               </p>
-              <p className="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white">{item.value}</p>
+              <p className="mt-2 text-3xl font-extrabold text-senda-main dark:text-white" style={{ fontFamily: 'Fraunces, serif' }}>{item.value}</p>
             </div>
           );
         })}
       </div>
 
-      {/* Tarjeta contenedora de la tabla */}
-      <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl shadow-slate-200/40 dark:shadow-none transition-colors duration-300">
-        <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="rounded-3xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-card p-6 shadow-xl space-y-6 transition-colors duration-300">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative w-full">
             <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -192,32 +211,45 @@ const Fitbits: React.FC = () => {
             <input
               type="search"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => { setQuery(e.target.value); setCurrentPage(1); }}
               placeholder={t('Search Fitbit')}
-              className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/80 py-3.5 pl-11 pr-4 text-xs text-slate-900 dark:text-white outline-none transition focus:border-blue-500 focus:bg-white dark:focus:bg-slate-800"
+              className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/60 dark:bg-senda-dark/80 h-[37px] pl-11 pr-4 text-xs text-senda-main dark:text-white outline-none transition focus:border-senda-secondary"
             />
           </div>
-          {selectedStatusFilter !== 'ALL' && (
-            <button
-              onClick={() => setSelectedStatusFilter('ALL')}
-              className="shrink-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition cursor-pointer"
-            >
-              {t('Clear filter')} ({selectedStatusFilter})
-            </button>
-          )}
+
+          <div className="flex items-center gap-3 shrink-0 self-start sm:self-auto">
+            {selectedStatusFilter !== 'ALL' && (
+              <button
+                onClick={() => { setSelectedStatusFilter('ALL'); setCurrentPage(1); }}
+                className="rounded-xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-input px-4 h-[37px] text-xs font-bold text-[#6B6F66] dark:text-slate-300 hover:bg-slate-200 transition cursor-pointer flex items-center"
+              >
+                {t('Clear filter')} ({selectedStatusFilter})
+              </button>
+            )}
+
+            <div className="flex items-center gap-1.5 bg-senda-light dark:bg-senda-input px-3 h-[37px] rounded-2xl text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] border border-senda-border dark:border-senda-darkborder">
+              <CustomSelect
+                value={pageSize}
+                onChange={(val) => setPageSize(Number(val))}
+                options={pageSizeOptions}
+                width="w-28"
+              />
+              <span>{t('Per Page')}</span>
+            </div>
+          </div>
         </div>
 
         <div className="overflow-hidden rounded-2xl">
           <div className="overflow-x-auto">
             <table className="min-w-full table-fixed border-collapse text-left">
               <thead>
-                <tr className="bg-blue-50/60 dark:bg-slate-800/80 text-blue-900 dark:text-blue-300 uppercase text-[10px] tracking-wider">
+                <tr className="bg-[#DCEBE1]/60 dark:bg-senda-darkborder/80 text-senda-primary dark:text-senda-accent uppercase text-[10px] tracking-wider">
                   <th className="w-[50%] px-6 py-3.5 font-bold rounded-l-2xl">{t('Fitbit')}</th>
                   <th className="w-[50%] px-6 py-3.5 font-bold rounded-r-2xl">{t('Status')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filtered.map((fitbit) => {
+              <tbody className="divide-y divide-senda-border dark:divide-senda-darkborder">
+                {paginatedFitbits.map((fitbit) => {
                   const statusLower = fitbit.status.toLowerCase();
                   const badgeStyle = statusLower.includes('in_use') || statusLower.includes('uso')
                     ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-100 dark:border-emerald-900'
@@ -229,17 +261,17 @@ const Fitbits: React.FC = () => {
                     <tr
                       key={fitbit.fitbit_code}
                       onClick={() => setSelectedFitbit(fitbit)}
-                      className="cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors"
+                      className="cursor-pointer hover:bg-senda-light/80 dark:hover:bg-senda-dark/50 transition-colors"
                     >
-                      <td className="px-6 py-4 text-xs font-bold text-slate-900 dark:text-white flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center font-bold shadow-sm">
+                      <td className="px-6 py-4 text-xs font-bold text-senda-main dark:text-white flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-xl bg-senda-light dark:bg-senda-dark text-[#6B6F66] dark:text-[#9AA093] flex items-center justify-center font-bold shadow-sm border border-senda-border dark:border-senda-darkborder">
                           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                           </svg>
                         </div>
                         {fitbit.fitbit_code}
                       </td>
-                      <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-300 capitalize">
+                      <td className="px-6 py-4 text-xs text-[#6B6F66] dark:text-[#9AA093] capitalize">
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold border ${badgeStyle}`}>
                           <span className="h-1.5 w-1.5 rounded-full bg-current"></span>
                           {fitbit.status.replace('_', ' ').toLowerCase()}
@@ -253,6 +285,12 @@ const Fitbits: React.FC = () => {
           </div>
         </div>
 
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
+
         {filtered.length === 0 && !error && (
           <p className="py-8 text-center text-xs text-slate-400">{t('No Fitbits found')}</p>
         )}
@@ -261,15 +299,14 @@ const Fitbits: React.FC = () => {
         )}
       </div>
 
-      {/* MODAL PARA REGISTRAR NUEVA FITBIT */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-senda-card border border-senda-border dark:border-senda-darkborder p-6 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">{t('Register New Fitbit')}</h2>
+              <h2 className="text-lg font-bold text-senda-main dark:text-white" style={{ fontFamily: 'Fraunces, serif' }}>{t('Register New Fitbit')}</h2>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer text-base font-bold"
+                className="text-[#6B6F66] dark:text-[#9AA093] hover:text-senda-main dark:hover:text-white cursor-pointer text-base font-bold"
               >
                 ×
               </button>
@@ -277,26 +314,26 @@ const Fitbits: React.FC = () => {
 
             <form onSubmit={handleCreateFitbit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">
                   {t('Automatic Code')}
                 </label>
                 <input
                   type="text"
                   value={nextCode}
                   disabled
-                  className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm font-semibold text-slate-500 dark:text-slate-400 cursor-not-allowed"
+                  className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-input px-4 py-3 text-sm font-semibold text-slate-500 dark:text-slate-400 cursor-not-allowed"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">
                   {t('Operational Status')}
                 </label>
                 <div className="relative">
                   <select
                     value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value)}
-                    className="w-full appearance-none rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 pr-10 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 cursor-pointer"
+                    className="w-full appearance-none rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-input px-4 py-3 pr-10 text-sm text-senda-main dark:text-white outline-none focus:border-senda-secondary cursor-pointer"
                   >
                     <option value="FREE">{t('Free')}</option>
                     <option value="IN_USE">{t('In Use')}</option>
@@ -318,14 +355,14 @@ const Fitbits: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-5 py-3 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
+                  className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-5 py-3 text-sm font-semibold text-senda-main dark:text-slate-300 hover:bg-senda-light dark:hover:bg-slate-700 cursor-pointer"
                 >
                   {t('Cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-2xl bg-[#3A8FC2] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#27648A] disabled:opacity-60 cursor-pointer"
+                  className="rounded-2xl bg-senda-primary hover:bg-[#184232] dark:bg-senda-accent dark:text-senda-dark dark:hover:bg-[#59a67e] px-5 py-3 text-sm font-semibold text-white transition disabled:opacity-60 cursor-pointer"
                 >
                   {submitting ? t('Processing') : t('Save Fitbit')}
                 </button>
@@ -335,38 +372,37 @@ const Fitbits: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL DE DETALLE DE FITBIT */}
       {selectedFitbit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-xl rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-7 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-xl rounded-3xl bg-white dark:bg-senda-card border border-senda-border dark:border-senda-darkborder p-7 shadow-2xl">
             <div className="mb-6 flex items-start justify-between">
               <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#DCEBE1] dark:bg-senda-darkborder text-senda-primary dark:text-senda-accent">
                   <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">{t('Fitbit Detail')}</h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{t('Fitbit Full Info')}</p>
+                  <h2 className="text-xl font-extrabold text-senda-main dark:text-white" style={{ fontFamily: 'Fraunces, serif' }}>{t('Fitbit Detail')}</h2>
+                  <p className="text-xs text-[#6B6F66] dark:text-[#9AA093]">{t('Fitbit Full Info')}</p>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedFitbit(null)}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer transition"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-senda-light dark:bg-senda-input text-[#6B6F66] dark:text-slate-300 hover:border-senda-border dark:hover:bg-slate-700 cursor-pointer transition"
               >
                 ✕
               </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 p-4 flex flex-col justify-center">
-                <span className="text-[11px] font-medium text-blue-900 dark:text-blue-400 mb-1">{t('Code')}</span>
-                <span className="text-sm font-bold text-slate-900 dark:text-white">{selectedFitbit.fitbit_code}</span>
+              <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
+                <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Code')}</span>
+                <span className="text-sm font-bold text-senda-main dark:text-white">{selectedFitbit.fitbit_code}</span>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 p-4 flex flex-col justify-center">
-                <span className="text-[11px] font-medium text-blue-900 dark:text-blue-400 mb-1">{t('Status')}</span>
+              <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
+                <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Status')}</span>
                 <div className="flex flex-col gap-2">
                   <div>
                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold capitalize ${selectedFitbit.status.toLowerCase().includes('in_use') || selectedFitbit.status.toLowerCase().includes('uso')
@@ -380,7 +416,6 @@ const Fitbits: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* Selector para cambiar el estado manualmente */}
                   <select
                     value={selectedFitbit.status}
                     onChange={async (e) => {
@@ -394,7 +429,7 @@ const Fitbits: React.FC = () => {
                         });
                         if (resp.ok) {
                           setSelectedFitbit({ ...selectedFitbit, status: newStatus });
-                          loadFitbits(); // Recarga la lista principal y contadores
+                          loadFitbits();
                         } else {
                           alert(t('Error updating status'));
                         }
@@ -402,7 +437,7 @@ const Fitbits: React.FC = () => {
                         alert(t('Server connection error'));
                       }
                     }}
-                    className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white outline-none cursor-pointer mt-1"
+                    className="w-full rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-dark px-3 py-2 text-xs text-senda-main dark:text-white outline-none cursor-pointer mt-1"
                   >
                     <option value="FREE">{t('Free')}</option>
                     <option value="IN_USE">{t('In Use')}</option>
@@ -413,7 +448,7 @@ const Fitbits: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2 border-t border-senda-border dark:border-senda-darkborder">
               <button
                 onClick={async () => {
                   if (!selectedFitbit) return;
@@ -443,7 +478,7 @@ const Fitbits: React.FC = () => {
 
               <button
                 onClick={() => setSelectedFitbit(null)}
-                className="w-full sm:w-auto rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer"
+                className="w-full sm:w-auto rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-6 py-3 text-xs font-bold text-senda-main dark:text-slate-300 hover:bg-senda-light dark:hover:bg-slate-700 transition cursor-pointer"
               >
                 {t('Close')}
               </button>

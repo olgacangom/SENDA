@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { CustomSelect } from '../components/CustomSelect';
+import { Pagination } from '../components/Pagination';
+import { SectionHeader } from '../components/SectionHeader';
 
 const API_BASE = 'http://localhost:1574';
 
@@ -43,6 +46,12 @@ const Assignments: React.FC = () => {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
 
+  const [pageSize, setPageSize] = useState<number>(() => {
+    const savedSize = localStorage.getItem('assignments_page_size');
+    return savedSize ? Number(savedSize) : 10;
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+
   const loadAssignments = () => {
     fetch(`${API_BASE}/api/assignments/`, { credentials: 'include' })
       .then(async (res) => {
@@ -79,6 +88,11 @@ const Assignments: React.FC = () => {
     loadAssignments();
     loadDropdownLists();
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('assignments_page_size', pageSize.toString());
+    setCurrentPage(1);
+  }, [pageSize]);
 
   const getParticipantCode = (item: AssignmentItem): string => {
     if (typeof item.participant === 'string') return item.participant;
@@ -200,50 +214,64 @@ const Assignments: React.FC = () => {
     return pCode.includes(searchLower) || fCode.includes(searchLower) || statusStr.includes(searchLower);
   });
 
-  return (
-    <div className="w-full text-slate-900 dark:text-slate-100 relative">
-      {/* Cabecera de la sección */}
-      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">{t('Assignments Title')}</h1>
-          <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">{filtered.length} {t('Assignments Registered')}</p>
-        </div>
-        <button
-          onClick={() => {
-            setSubmitError(null);
-            setSubmitSuccess(null);
-            loadDropdownLists();
-            setIsModalOpen(true);
-          }}
-          className="mt-4 sm:mt-0 inline-flex items-center justify-center px-5 py-3 bg-[#3A8FC2] hover:bg-[#27648A] hover:text-white text-white font-bold rounded-2xl shadow-lg shadow-blue-500/20 transition gap-2 cursor-pointer"
-        >
-          <span className="text-base font-bold leading-none text-s">+</span>
-          <span className="text-[12px]">{t('New Assignment')}</span>
-        </button>
-      </div>
+  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  const paginatedAssignments = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-      {/* Tarjeta contenedora de la tabla */}
-      <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl shadow-slate-200/40 dark:shadow-none transition-colors duration-300">
-        <div className="mb-6 relative">
-          <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </span>
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t('Search Assignment')}
-            className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/80 py-3.5 pl-11 pr-4 text-xs text-slate-900 dark:text-white outline-none transition focus:border-blue-500 focus:bg-white dark:focus:bg-slate-800"
-          />
+  const pageSizeOptions = [
+    { label: 5, value: 5 },
+    { label: 10, value: 10 },
+    { label: 15, value: 15 },
+    { label: 20, value: 20 },
+    { label: 25, value: 25 },
+  ];
+
+  return (
+    <div className="w-full text-senda-main dark:text-senda-darktext relative space-y-8">
+      <SectionHeader
+        title={t('Assignments Title')}
+        subtitle={`${filtered.length} ${t('Assignments Registered')}`}
+        actionLabel={t('New Assignment')}
+        onAction={() => {
+          setSubmitError(null);
+          setSubmitSuccess(null);
+          loadDropdownLists();
+          setIsModalOpen(true);
+        }}
+      />
+
+      <div className="rounded-3xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-card p-6 shadow-xl space-y-6 transition-colors duration-300">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </span>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setCurrentPage(1); }}
+              placeholder={t('Search Assignment')}
+              className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/60 dark:bg-senda-dark/80 h-[37px] pl-11 pr-4 text-xs text-senda-main dark:text-white outline-none transition focus:border-senda-secondary"
+            />
+          </div>
+
+          <div className="flex items-center gap-1.5 bg-senda-light dark:bg-senda-input px-3 h-[37px] rounded-2xl text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] border border-senda-border dark:border-senda-darkborder shrink-0 self-start sm:self-auto">
+            <CustomSelect
+              value={pageSize}
+              onChange={(val) => setPageSize(Number(val))}
+              options={pageSizeOptions}
+              width="w-28"
+            />
+            <span>{t('Per Page')}</span>
+          </div>
         </div>
 
         <div className="overflow-hidden rounded-2xl">
           <div className="overflow-x-auto">
             <table className="min-w-full table-fixed border-collapse text-left">
               <thead>
-                <tr className="bg-blue-50/60 dark:bg-slate-800/80 text-blue-900 dark:text-blue-300 uppercase text-[10px] tracking-wider">
+                <tr className="bg-[#DCEBE1]/60 dark:bg-senda-darkborder/80 text-senda-primary dark:text-senda-accent uppercase text-[10px] tracking-wider">
                   <th className="w-[18%] px-6 py-4 font-bold rounded-l-2xl">{t('Participants Resource')}</th>
                   <th className="w-[18%] px-6 py-4 font-bold">{t('Fitbit')}</th>
                   <th className="w-[18%] px-6 py-4 font-bold">{t('Start Date')}</th>
@@ -253,8 +281,8 @@ const Assignments: React.FC = () => {
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filtered.map((item, index) => {
+              <tbody className="divide-y divide-senda-border dark:divide-senda-darkborder">
+                {paginatedAssignments.map((item, index) => {
                   const pCode = getParticipantCode(item);
                   const fCode = getFitbitCode(item);
 
@@ -269,9 +297,9 @@ const Assignments: React.FC = () => {
                         setEditRealEndDate(toLocalDateTimeInput(item.real_end_date));
                         setEditError(null);
                       }}
-                      className="cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors"
+                      className="cursor-pointer hover:bg-senda-light/80 dark:hover:bg-senda-dark/50 transition-colors"
                     >
-                      <td className="px-6 py-5 text-xs font-bold text-slate-900 dark:text-white">
+                      <td className="px-6 py-5 text-xs font-bold text-senda-main dark:text-white">
                         {pCode}
                       </td>
 
@@ -279,19 +307,19 @@ const Assignments: React.FC = () => {
                         {fCode}
                       </td>
 
-                      <td className="px-6 py-5 text-xs text-slate-600 dark:text-slate-300">
+                      <td className="px-6 py-5 text-xs text-[#6B6F66] dark:text-[#9AA093]">
                         {item.start_date
                           ? new Date(item.start_date).toLocaleDateString("es-ES")
                           : "-"}
                       </td>
 
-                      <td className="px-6 py-5 text-xs text-slate-600 dark:text-slate-300">
+                      <td className="px-6 py-5 text-xs text-[#6B6F66] dark:text-[#9AA093]">
                         {item.estimated_end_date
                           ? new Date(item.estimated_end_date).toLocaleDateString("es-ES")
                           : "-"}
                       </td>
 
-                      <td className="px-6 py-5 text-xs text-slate-600 dark:text-slate-300">
+                      <td className="px-6 py-5 text-xs text-[#6B6F66] dark:text-[#9AA093]">
                         {item.real_end_date ? (
                           new Date(item.real_end_date).toLocaleDateString("es-ES")
                         ) : (
@@ -305,7 +333,7 @@ const Assignments: React.FC = () => {
                               ? "border-emerald-100 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300"
                               : item.status?.toLowerCase() === 'pending'
                                 ? "border-blue-100 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300"
-                                : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300"
+                                : "border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark text-[#6B6F66] dark:text-[#9AA093]"
                             }`}
                         >
                           <span
@@ -327,6 +355,12 @@ const Assignments: React.FC = () => {
           </div>
         </div>
 
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
+
         {filtered.length === 0 && !error && (
           <p className="py-8 text-center text-xs text-slate-400">{t('No assignments found')}</p>
         )}
@@ -335,15 +369,14 @@ const Assignments: React.FC = () => {
         )}
       </div>
 
-      {/* MODAL PARA NUEVA ASIGNACIÓN */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-senda-card border border-senda-border dark:border-senda-darkborder p-6 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">{t('New Assignment')}</h2>
+              <h2 className="text-lg font-bold text-senda-main dark:text-white" style={{ fontFamily: 'Fraunces, serif' }}>{t('New Assignment')}</h2>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer text-base font-bold"
+                className="text-[#6B6F66] dark:text-[#9AA093] hover:text-senda-main dark:hover:text-white cursor-pointer text-base font-bold"
               >
                 ×
               </button>
@@ -351,17 +384,17 @@ const Assignments: React.FC = () => {
 
             <form onSubmit={handleCreateAssignment} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{t('Select Participant Label')}</label>
+                <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">{t('Select Participant Label')}</label>
                 <div className="relative">
                   <select
                     value={newParticipantCode}
                     onChange={(e) => setNewParticipantCode(e.target.value)}
                     required
-                    className="w-full appearance-none rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 pr-10 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 cursor-pointer"
+                    className="w-full appearance-none rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark px-4 py-3 pr-10 text-sm text-senda-main dark:text-white outline-none focus:border-senda-secondary cursor-pointer"
                   >
                     <option value="">{t('Select a participant')}</option>
                     {participantsList.map((code) => (
-                      <option key={code} value={code} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
+                      <option key={code} value={code} className="bg-white dark:bg-senda-card text-senda-main dark:text-white">
                         {code}
                       </option>
                     ))}
@@ -375,17 +408,17 @@ const Assignments: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{t('Select Fitbit Label')}</label>
+                <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">{t('Select Fitbit Label')}</label>
                 <div className="relative">
                   <select
                     value={newFitbitCode}
                     onChange={(e) => setNewFitbitCode(e.target.value)}
                     required
-                    className="w-full appearance-none rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 pr-10 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500 cursor-pointer"
+                    className="w-full appearance-none rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark px-4 py-3 pr-10 text-sm text-senda-main dark:text-white outline-none focus:border-senda-secondary cursor-pointer"
                   >
                     <option value="">{t('Select a bracelet')}</option>
                     {fitbitsList.map((code) => (
-                      <option key={code} value={code} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
+                      <option key={code} value={code} className="bg-white dark:bg-senda-card text-senda-main dark:text-white">
                         {code}
                       </option>
                     ))}
@@ -399,33 +432,33 @@ const Assignments: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{t('Start Date')}</label>
+                <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">{t('Start Date')}</label>
                 <input
                   type="datetime-local"
                   value={newStartDate}
                   onChange={(e) => setNewStartDate(e.target.value)}
                   required
-                  className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500"
+                  className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark px-4 py-3 text-sm text-senda-main dark:text-white outline-none focus:border-senda-secondary"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{t('Estimated End Date')}</label>
+                <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">{t('Estimated End Date')}</label>
                 <input
                   type="datetime-local"
                   value={newEstimatedEndDate}
                   onChange={(e) => setNewEstimatedEndDate(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500"
+                  className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark px-4 py-3 text-sm text-senda-main dark:text-white outline-none focus:border-senda-secondary"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{t('Real End Date Optional')}</label>
+                <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">{t('Real End Date Optional')}</label>
                 <input
                   type="datetime-local"
                   value={newRealEndDate}
                   onChange={(e) => setNewRealEndDate(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-500"
+                  className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark px-4 py-3 text-sm text-senda-main dark:text-white outline-none focus:border-senda-secondary"
                 />
               </div>
 
@@ -436,14 +469,14 @@ const Assignments: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-5 py-3 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
+                  className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-5 py-3 text-sm font-semibold text-senda-main dark:text-slate-300 hover:bg-senda-light dark:hover:bg-slate-700 cursor-pointer"
                 >
                   {t('Cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-2xl bg-[#3A8FC2] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#27648A] disabled:opacity-60 cursor-pointer"
+                  className="rounded-2xl bg-senda-primary hover:bg-[#184232] dark:bg-senda-accent dark:text-senda-dark dark:hover:bg-[#59a67e] px-5 py-3 text-sm font-semibold text-white transition disabled:opacity-60 cursor-pointer"
                 >
                   {submitting ? t('Processing') : t('Save Assignment')}
                 </button>
@@ -453,29 +486,28 @@ const Assignments: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL DE DETALLE Y EDICIÓN DE ASIGNACIÓN */}
       {selectedAssignment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-2xl rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-7 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-2xl rounded-3xl bg-white dark:bg-senda-card border border-senda-border dark:border-senda-darkborder p-7 shadow-2xl">
             <div className="mb-6 flex items-start justify-between">
               <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#DCEBE1] dark:bg-senda-darkborder text-senda-primary dark:text-senda-accent">
                   <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
+                  <h2 className="text-xl font-extrabold text-senda-main dark:text-white" style={{ fontFamily: 'Fraunces, serif' }}>
                     {isEditing ? t('Edit Assignment') : t('Assignment Detail')}
                   </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-xs text-[#6B6F66] dark:text-[#9AA093]">
                     {isEditing ? t('Edit Assignment Subtitle') : t('Assignment Detail Subtitle')}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => { setSelectedAssignment(null); setIsEditing(false); }}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer transition"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-senda-light dark:bg-senda-input text-[#6B6F66] dark:text-slate-300 hover:bg-senda-border dark:hover:bg-slate-700 cursor-pointer transition"
               >
                 ✕
               </button>
@@ -484,39 +516,39 @@ const Assignments: React.FC = () => {
             {!isEditing ? (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 p-4 flex flex-col justify-center">
-                    <span className="text-[11px] font-medium text-blue-900 dark:text-blue-400 mb-1">{t('Participants Resource')}</span>
-                    <span className="text-sm font-bold text-slate-900 dark:text-white">{getParticipantCode(selectedAssignment)}</span>
+                  <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
+                    <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Participants Resource')}</span>
+                    <span className="text-sm font-bold text-senda-main dark:text-white">{getParticipantCode(selectedAssignment)}</span>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 p-4 flex flex-col justify-center">
-                    <span className="text-[11px] font-medium text-blue-900 dark:text-blue-400 mb-1">{t('Fitbit')}</span>
+                  <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
+                    <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Fitbit')}</span>
                     <span className="text-sm font-bold text-emerald-900 dark:text-emerald-400">{getFitbitCode(selectedAssignment)}</span>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 p-4 flex flex-col justify-center">
-                    <span className="text-[11px] font-medium text-blue-900 dark:text-blue-400 mb-1">{t('Start Date')}</span>
-                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                  <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
+                    <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Start Date')}</span>
+                    <span className="text-xs font-semibold text-senda-main dark:text-slate-200">
                       {selectedAssignment.start_date ? new Date(selectedAssignment.start_date).toLocaleString('es-ES') : '—'}
                     </span>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 p-4 flex flex-col justify-center">
-                    <span className="text-[11px] font-medium text-blue-900 dark:text-blue-400 mb-1">{t('Estimated End Date')}</span>
-                    <span className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
+                    <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Estimated End Date')}</span>
+                    <span className="text-xs font-semibold text-senda-main dark:text-slate-100">
                       {selectedAssignment.estimated_end_date ? new Date(selectedAssignment.estimated_end_date).toLocaleString('es-ES') : '—'}
                     </span>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 p-4 flex flex-col justify-center">
-                    <span className="text-[11px] font-medium text-blue-900 dark:text-blue-400 mb-1">{t('Real End Date')}</span>
-                    <span className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
+                    <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Real End Date')}</span>
+                    <span className="text-xs font-semibold text-senda-main dark:text-slate-100">
                       {selectedAssignment.real_end_date ? new Date(selectedAssignment.real_end_date).toLocaleString('es-ES') : t('In Progress')}
                     </span>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 p-4 flex flex-col justify-center">
-                    <span className="text-[11px] font-medium text-blue-900 dark:text-blue-400 mb-1">{t('Status')}</span>
+                  <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
+                    <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Status')}</span>
                     <div>
                       <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold ${selectedAssignment.status?.toLowerCase() === 'active'
                           ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300'
@@ -536,7 +568,7 @@ const Assignments: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2 border-t border-senda-border dark:border-senda-darkborder">
                   <button
                     onClick={async () => {
                       if (!selectedAssignment || !selectedAssignment.id) return;
@@ -570,13 +602,13 @@ const Assignments: React.FC = () => {
                   <div className="flex w-full sm:w-auto gap-3">
                     <button
                       onClick={() => setSelectedAssignment(null)}
-                      className="flex-1 sm:flex-none rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-5 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer"
+                      className="flex-1 sm:flex-none rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-5 py-3 text-xs font-bold text-senda-main dark:text-slate-300 hover:bg-senda-light dark:hover:bg-slate-700 transition cursor-pointer"
                     >
                       {t('Close')}
                     </button>
                     <button
                       onClick={() => setIsEditing(true)}
-                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-xs font-bold text-white hover:bg-blue-700 transition cursor-pointer shadow-lg shadow-blue-500/20"
+                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-2xl bg-senda-primary hover:bg-[#184232] dark:bg-senda-accent dark:text-senda-dark dark:hover:bg-[#59a67e] px-5 py-3 text-xs font-bold text-white transition cursor-pointer shadow-md"
                     >
                       <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -588,56 +620,56 @@ const Assignments: React.FC = () => {
               </>
             ) : (
               <form onSubmit={handleUpdateAssignment} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
-                  <div><span className="text-[11px] text-slate-400 block">{t('Participants Resource')}</span><strong className="text-slate-900 dark:text-white">{getParticipantCode(selectedAssignment)}</strong></div>
-                  <div><span className="text-[11px] text-slate-400 block">{t('Fitbit')}</span><strong className="text-blue-600 dark:text-blue-400">{getFitbitCode(selectedAssignment)}</strong></div>
+                <div className="grid grid-cols-2 gap-3 text-sm text-senda-main dark:text-slate-300 bg-senda-light dark:bg-senda-dark p-4 rounded-2xl border border-senda-border dark:border-senda-darkborder">
+                  <div><span className="text-[11px] text-[#6B6F66] dark:text-[#9AA093] block">{t('Participants Resource')}</span><strong className="text-senda-main dark:text-white">{getParticipantCode(selectedAssignment)}</strong></div>
+                  <div><span className="text-[11px] text-[#6B6F66] dark:text-[#9AA093] block">{t('Fitbit')}</span><strong className="text-blue-600 dark:text-blue-400">{getFitbitCode(selectedAssignment)}</strong></div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{t('Start Date')}</label>
+                  <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">{t('Start Date')}</label>
                   <input
                     type="datetime-local"
                     value={editStartDate}
                     onChange={(e) => setEditStartDate(e.target.value)}
                     required
-                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-xs text-slate-900 dark:text-white outline-none focus:border-blue-500"
+                    className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark px-4 py-3 text-xs text-senda-main dark:text-white outline-none focus:border-senda-secondary"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{t('Estimated End Date')}</label>
+                  <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">{t('Estimated End Date')}</label>
                   <input
                     type="datetime-local"
                     value={editEstimatedEndDate}
                     onChange={(e) => setEditEstimatedEndDate(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-xs text-slate-900 dark:text-white outline-none focus:border-blue-500"
+                    className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark px-4 py-3 text-xs text-senda-main dark:text-white outline-none focus:border-senda-secondary"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{t('Real End Date Optional')}</label>
+                  <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">{t('Real End Date Optional')}</label>
                   <input
                     type="datetime-local"
                     value={editRealEndDate}
                     onChange={(e) => setEditRealEndDate(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-xs text-slate-900 dark:text-white outline-none focus:border-blue-500"
+                    className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark px-4 py-3 text-xs text-senda-main dark:text-white outline-none focus:border-senda-secondary"
                   />
                 </div>
 
                 {editError && <p className="text-xs text-red-600 dark:text-red-400 font-medium">{editError}</p>}
 
-                <div className="mt-6 flex justify-end gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="mt-6 flex justify-end gap-3 pt-2 border-t border-senda-border dark:border-senda-darkborder">
                   <button
                     type="button"
                     onClick={() => setIsEditing(false)}
-                    className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-5 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer"
+                    className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-5 py-3 text-xs font-bold text-senda-main dark:text-slate-300 hover:bg-senda-light dark:hover:bg-slate-700 transition cursor-pointer"
                   >
                     {t('Cancel')}
                   </button>
                   <button
                     type="submit"
                     disabled={editSubmitting}
-                    className="rounded-2xl bg-blue-600 px-5 py-3 text-xs font-bold text-white transition hover:bg-blue-700 disabled:opacity-60 cursor-pointer shadow-lg shadow-blue-500/20"
+                    className="rounded-2xl bg-senda-primary hover:bg-[#184232] dark:bg-senda-accent dark:text-senda-dark dark:hover:bg-[#59a67e] px-5 py-3 text-xs font-bold text-white transition disabled:opacity-60 cursor-pointer shadow-md"
                   >
                     {editSubmitting ? t('Processing') : t('Save Changes')}
                   </button>

@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { CustomSelect } from '../components/CustomSelect';
+import { Pagination } from '../components/Pagination';
+import { SectionHeader } from '../components/SectionHeader';
 
 type ExportLog = {
   id: string;
@@ -22,24 +25,26 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
   const storageKey = userEmail ? `export_history_${userEmail}` : 'export_history_guest';
   const settingsKey = userEmail ? `export_max_logs_${userEmail}` : 'export_max_logs_guest';
 
-  const [maxLogs, setMaxLogs] = useState<number>(() => {
+  const [pageSize, setPageSize] = useState<number>(() => {
     const savedLimit = localStorage.getItem(settingsKey);
     return savedLimit ? Number(savedLimit) : 5;
   });
+
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [history, setHistory] = useState<ExportLog[]>(() => {
     const savedHistory = localStorage.getItem(storageKey);
     return savedHistory ? JSON.parse(savedHistory) : [];
   });
 
-  // Sincronizar historial con el usuario logueado
   useEffect(() => {
     localStorage.setItem(storageKey, JSON.stringify(history));
   }, [history, storageKey]);
 
   useEffect(() => {
-    localStorage.setItem(settingsKey, maxLogs.toString());
-  }, [maxLogs, settingsKey]);
+    localStorage.setItem(settingsKey, pageSize.toString());
+    setCurrentPage(1);
+  }, [pageSize, settingsKey]);
 
   const download = (type: string, label: string, format: string = 'csv') => {
     window.open(`${API_BASE}/api/export/?type=${type}&format=${format}`, '_blank');
@@ -107,23 +112,30 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
       case 'physiological':
         return <div className="h-7 w-7 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg></div>;
       default:
-        return <div className="h-7 w-7 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center"></div>;
+        return <div className="h-7 w-7 rounded-full bg-senda-light dark:bg-senda-input text-senda-main dark:text-slate-400 flex items-center justify-center"></div>;
     }
   };
 
-  const displayedHistory = history.slice(0, maxLogs);
+  const totalPages = Math.ceil(history.length / pageSize) || 1;
+  const paginatedHistory = history.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const pageSizeOptions = [
+    { label: 5, value: 5 },
+    { label: 10, value: 10 },
+    { label: 15, value: 15 },
+    { label: 20, value: 20 },
+    { label: 25, value: 25 },
+  ];
 
   return (
-    <div className="w-full text-slate-900 dark:text-slate-100 space-y-8">
-      {/* Cabecera */}
-      <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">{t('Exports Title')}</h1>
-        <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">{t('Exports Subtitle')}</p>
-      </div>
+    <div className="w-full text-senda-main dark:text-senda-darktext space-y-8">
+      <SectionHeader
+        title={t('Exports Title')}
+        subtitle={t('Exports Subtitle')}
+      />
 
-      {/* Tarjeta informativa superior */}
-      <div className="rounded-2xl border border-blue-100 dark:border-blue-900 bg-blue-50/30 dark:bg-blue-950/30 p-4 flex items-center gap-3">
-        <div className="h-8 w-8 rounded-xl bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 flex items-center justify-center shrink-0">
+      <div className="rounded-2xl border border-[#2D6B40] dark:border-emerald-900 bg-emerald-50/30 dark:bg-emerald-950/30 p-4 flex items-center gap-3">
+        <div className="h-8 w-8 rounded-xl bg-emerald-100 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0">
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -132,14 +144,13 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
           {t('Export Notice')}{' '}
           <span
             onClick={() => onNavigate && onNavigate('physiological')}
-            className="font-bold underline cursor-pointer text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 transition"
+            className="font-bold underline cursor-pointer text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-blue-300 transition"
           >
             {t('Physiological Data Title')}
           </span>.
         </p>
       </div>
 
-      {/* Cuadrícula de tarjetas de exportación */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
           { label: t('Participants Resource'), type: 'participants', description: t('Participants Desc') },
@@ -147,21 +158,21 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
           { label: t('Syncs Resource'), type: 'syncs', description: t('Syncs Desc') },
           { label: t('Physiological Resource'), type: 'physiological', description: t('Physiological Desc') },
         ].map((item) => (
-          <div key={item.type} className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm flex flex-col justify-between transition-colors duration-300">
+          <div key={item.type} className="rounded-3xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-card p-6 shadow-sm flex flex-col justify-between transition-colors duration-300">
             <div>
               <div className="flex items-center gap-3 mb-3">
-                <div className="h-10 w-10 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center border border-slate-100 dark:border-slate-700">
+                <div className="h-10 w-10 rounded-2xl bg-senda-light dark:bg-senda-input flex items-center justify-center border border-senda-border dark:border-senda-darkborder">
                   {getCardIcon(item.type)}
                 </div>
-                <h2 className="text-xs font-semibold tracking-wide text-slate-900 dark:text-white">{item.label}</h2>
+                <h2 className="text-xs font-semibold tracking-wide text-senda-main dark:text-white">{item.label}</h2>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-6">{item.description}</p>
+              <p className="text-xs text-[#6B6F66] dark:text-[#9AA093] leading-relaxed mb-6">{item.description}</p>
             </div>
             <div className="space-y-2">
               <button
                 type="button"
                 onClick={() => download(item.type, item.label, 'csv')}
-                className="w-full grid grid-cols-[1fr_auto_1fr] items-center rounded-xl bg-[#3A8FC2] hover:bg-[#27648A] px-4 py-3 text-[11px] font-bold text-white transition shadow-md shadow-blue-500/20 cursor-pointer"
+                className="w-full grid grid-cols-[1fr_auto_1fr] items-center rounded-xl bg-senda-primary hover:bg-[#184232] dark:bg-senda-accent dark:text-senda-dark dark:hover:bg-[#59a67e] px-4 py-3 text-[11px] font-bold text-white transition shadow-md shadow-emerald-500/20 cursor-pointer"
               >
                 <span></span>
                 <span className="text-center">{t('Download CSV')}</span>
@@ -175,7 +186,7 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
               <button
                 type="button"
                 onClick={() => download(item.type, item.label, 'xlsx')}
-                className="w-full grid grid-cols-[1fr_auto_1fr] items-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 hover:border-blue-100 dark:hover:border-slate-600 px-4 py-3 text-[11px] font-bold text-slate-700 dark:text-slate-300 transition shadow-sm cursor-pointer"
+                className="w-full grid grid-cols-[1fr_auto_1fr] items-center rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input hover:bg-senda-light dark:hover:bg-slate-700 px-4 py-3 text-[11px] font-bold text-senda-main dark:text-slate-300 transition shadow-sm cursor-pointer"
               >
                 <span></span>
                 <span className="text-center">{t('Download Excel')}</span>
@@ -188,66 +199,59 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
         ))}
       </div>
 
-      {/* Sección de registro */}
-      <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm transition-colors duration-300">
-        <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
+      <div className="rounded-3xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-card p-6 shadow-xl transition-colors duration-300 space-y-6">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+            <div className="h-9 w-9 rounded-xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div>
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">{t('Latest Downloads')}</h2>
-              <p className="text-[11px] text-slate-400">{t('Logs History Desc', { count: maxLogs })}</p>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-senda-main dark:text-white">{t('Latest Downloads')}</h2>
+              <p className="text-[11px] text-[#6B6F66] dark:text-[#9AA093]">{t('Logs History Desc', { count: pageSize })}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full text-xs font-semibold text-slate-600 dark:text-slate-300">
-              <select
-                value={maxLogs}
-                onChange={(e) => setMaxLogs(Number(e.target.value))}
-                className="bg-transparent font-semibold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
-              >
-                <option value={3} className="bg-white dark:bg-slate-900">3</option>
-                <option value={5} className="bg-white dark:bg-slate-900">5</option>
-                <option value={10} className="bg-white dark:bg-slate-900">10</option>
-                <option value={15} className="bg-white dark:bg-slate-900">15</option>
-                <option value={20} className="bg-white dark:bg-slate-900">20</option>
-                <option value={25} className="bg-white dark:bg-slate-900">25</option>
-              </select>
-              <span>{t('Records Count')}</span>
-            </div>
-
             {history.length > 0 && (
               <button
                 onClick={clearHistory}
-                className="rounded-xl border border-rose-200 dark:border-rose-900 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-bold text-rose-500 dark:text-rose-400 transition hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer shadow-sm"
+                className="rounded-xl border border-rose-200 dark:border-rose-900 bg-white dark:bg-senda-input px-3 h-[37px] text-xs font-bold text-rose-500 dark:text-rose-400 transition hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer shadow-sm flex items-center"
               >
                 {t('Clear History')}
               </button>
             )}
+
+            <div className="flex items-center gap-1.5 bg-senda-light dark:bg-senda-input px-3 h-[37px] rounded-2xl text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] border border-senda-border dark:border-senda-darkborder">
+              <CustomSelect
+                value={pageSize}
+                onChange={(val) => setPageSize(Number(val))}
+                options={pageSizeOptions}
+                width="w-28"
+              />
+              <span>{t('Per Page')}</span>
+            </div>
           </div>
         </div>
 
-        {displayedHistory.length > 0 ? (
+        {paginatedHistory.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                <tr className="border-b border-senda-border dark:border-senda-darkborder text-[10px] font-bold tracking-wider text-[#6B6F66] dark:text-[#9AA093] uppercase">
                   <th className="pb-3 pl-2">{t('Resource')}</th>
                   <th className="pb-3">{t('Format')}</th>
                   <th className="pb-3">{t('Date and Time')}</th>
                   <th className="pb-3 pr-2 text-right">{t('Action')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50 dark:divide-slate-800 text-xs">
-                {displayedHistory.map((log) => (
-                  <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors duration-150">
+              <tbody className="divide-y divide-senda-border dark:divide-senda-darkborder text-xs">
+                {paginatedHistory.map((log) => (
+                  <tr key={log.id} className="hover:bg-senda-light/80 dark:hover:bg-senda-dark/50 transition-colors duration-150">
                     <td className="py-3.5 pl-2 flex items-center gap-3">
                       {getTableIcon(log.type)}
-                      <span className="font-semibold text-slate-800 dark:text-slate-200 first-letter:uppercase lowercase">{log.label}</span>
+                      <span className="font-semibold text-senda-main dark:text-slate-200 first-letter:uppercase lowercase">{log.label}</span>
                     </td>
                     <td className="py-3.5">
                       <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-extrabold ring-1 ring-inset ${
@@ -258,7 +262,7 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
                         {log.format}
                       </span>
                     </td>
-                    <td className="py-3.5 text-slate-500 dark:text-slate-400 font-medium">
+                    <td className="py-3.5 text-[#6B6F66] dark:text-[#9AA093] font-medium">
                       <span className="flex items-center gap-1.5">
                         <svg className="h-3.5 w-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -274,7 +278,7 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
                       <button
                         onClick={() => download(log.type, log.label, log.format.toLowerCase() === 'xlsx' ? 'xlsx' : 'csv')}
                         title="Volver a descargar"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400 transition shadow-sm cursor-pointer"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input text-[#6B6F66] dark:text-slate-300 hover:bg-senda-light dark:hover:bg-slate-700 hover:text-senda-primary dark:hover:text-senda-accent transition shadow-sm cursor-pointer"
                       >
                         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -289,6 +293,12 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
         ) : (
           <p className="py-8 text-center text-xs text-slate-400">{t('No Downloads')}</p>
         )}
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
       </div>
     </div>
   );
