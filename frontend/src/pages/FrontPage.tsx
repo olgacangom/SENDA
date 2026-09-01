@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-
-const API_BASE = 'http://localhost:1574';
+import { Brain3D } from '../components/Brain3D';
 
 type FrontPageProps = {
   onGoToLogin: () => void;
@@ -10,16 +9,18 @@ type FrontPageProps = {
 const FrontPage: React.FC<FrontPageProps> = ({ onGoToLogin }) => {
   const { t, i18n } = useTranslation();
 
-  const [participantsCount, setParticipantsCount] = useState<number | null>(null);
-  const [fitbitsCount, setFitbitsCount] = useState<number | null>(null);
-  const [assignmentsCount, setAssignmentsCount] = useState<number | null>(null);
-
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('senda_dark_mode') === 'true';
     }
     return false;
   });
+
+  const [isCtaVisible, setIsCtaVisible] = useState(false);
+  const [visibleSections, setVisibleSections] = useState<{ [key: string]: boolean }>({});
+
+  const ctaRef = useRef<HTMLDivElement>(null);
+  const sectionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   useEffect(() => {
     if (darkMode) {
@@ -32,347 +33,662 @@ const FrontPage: React.FC<FrontPageProps> = ({ onGoToLogin }) => {
   }, [darkMode]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/participants/`)
-      .then((r) => r.json())
-      .then((data) => setParticipantsCount(data.count))
-      .catch(() => setParticipantsCount(null));
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const id = entry.target.getAttribute('data-animate-id');
+          if (id) {
+            setVisibleSections((prev) => ({ ...prev, [id]: true }));
+          }
+          if (entry.target === ctaRef.current) {
+            setIsCtaVisible(true);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -50px 0px' }
+    );
 
-    fetch(`${API_BASE}/api/fitbits/`)
-      .then((r) => r.json())
-      .then((data) => setFitbitsCount(data.count))
-      .catch(() => setFitbitsCount(null));
+    Object.values(sectionRefs.current).forEach((element) => {
+      if (element) observer.observe(element);
+    });
 
-    fetch(`${API_BASE}/api/assignments/`)
-      .then((r) => r.json())
-      .then((data) => {
-        const items = data.items || data || [];
-        const activeAssignments = items.filter((item: any) => item.status === 'ACTIVE');
-        setAssignmentsCount(activeAssignments.length);
-      })
-      .catch(() => setAssignmentsCount(null));
+    if (ctaRef.current) observer.observe(ctaRef.current);
+
+    return () => observer.disconnect();
   }, []);
 
-  const toggleLanguage = () => {
-    i18n.changeLanguage(i18n.language === 'es' ? 'en' : 'es');
+  const setSectionRef = (id: string) => (element: HTMLDivElement | null) => {
+    sectionRefs.current[id] = element;
   };
 
+  const scrollToSection = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const navLinks = [
+    { id: 'about', label: t('About SENDA') },
+    { id: 'platform', label: t('Platform') },
+    { id: 'research', label: t('Research') },
+  ];
+
+  const pillars = [
+    {
+      title: t('Pillar1 Title'),
+      text: t('Pillar1 Text'),
+      icon: 'M20.8 9.2c0 5.4-8.8 10.2-8.8 10.2S3.2 14.6 3.2 9.2A4.7 4.7 0 018 4.5c1.5 0 3 .7 4 1.9a5.2 5.2 0 014-1.9 4.7 4.7 0 014.8 4.7z',
+    },
+    {
+      title: t('Pillar2 Title'),
+      text: t('Pillar2 Text'),
+      icon: 'M9.5 3.5a3 3 0 00-3 3v3a3 3 0 01-3 3h-.5m15-9a3 3 0 013 3v3a3 3 0 003 3h.5M9.5 20.5a3 3 0 01-3-3v-3a3 3 0 00-3-3h-.5m15 9a3 3 0 003-3v-3a3 3 0 013-3h.5',
+    },
+    {
+      title: t('Pillar3 Title'),
+      text: t('Pillar3 Text'),
+      icon: 'M4 19V5m0 14h16M8 16v-4m4 4V8m4 8v-7',
+    },
+  ];
+
+  const features = [
+    { number: '01', title: t('Feature1 Title'), text: t('Feature1 Text') },
+    { number: '02', title: t('Feature2 Title'), text: t('Feature2 Text') },
+    { number: '03', title: t('Feature3 Title'), text: t('Feature3 Text') },
+    { number: '04', title: t('Feature4 Title'), text: t('Feature4 Text') },
+    { number: '05', title: t('Feature5 Title'), text: t('Feature5 Text') },
+    { number: '06', title: t('Feature6 Title'), text: t('Feature6 Text') },
+  ];
+
+  const dataFlowSteps = [
+    { title: t('Step1 Title'), subtitle: t('Step1 Subtitle'), iconPath: 'M7 3h10v18H7zM10 7h4M10 17h4' },
+    { title: t('Step2 Title'), subtitle: t('Step2 Subtitle'), isLogo: true },
+    { title: t('Step3 Title'), subtitle: t('Step3 Subtitle'), iconPath: 'M4 18V6m5 12V9m5 9V4m5 14v-7' },
+  ];
+
+  const checklistItems = [t('Checklist1'), t('Checklist2'), t('Checklist3')];
+
+  const metrics = [t('Metric HRV'), t('Metric Sleep'), t('Metric HeartRate'), t('Metric Activity')];
+
   return (
-    <div
-      className="
-        min-h-screen
-        w-full
-        overflow-x-hidden
-        font-sans
-        transition-colors
-        duration-500
-        bg-senda-light dark:bg-senda-dark
-        text-senda-main dark:text-senda-darktext
-        flex
-        flex-col
-        justify-between
-      "
-    >
-      {/* ======================================================
-          NAVEGACIÓN
-          ====================================================== */}
-      <nav
-        className="
-          w-full flex items-center justify-between
-          px-6 py-6 sm:px-12 sm:py-[26px] lg:px-16
-        "
-      >
-        {/* Logo Block */}
-        <div className="flex items-center gap-3">
-          <img
-            src={darkMode ? '/images/senda-dark-sin.png' : '/images/senda-claro-sin.png'}
-            alt="SENDA Logo"
-            className="h-[80px] w-auto object-contain object-left"
-          />
-        </div>
+    <div className="min-h-screen w-full overflow-x-hidden bg-[#F7FAF7] font-sans text-[#18352A] transition-colors duration-500 dark:bg-[#0A130F] dark:text-[#E8F0EA]">
 
-        {/* CONTROLES SUPERIORES (Barra unificada: ES | EN | Modo Claro/Oscuro) */}
-        <div className="flex items-center gap-3">
-          <div
-            className="
-              flex
-              h-10
-              items-center
-              gap-3
-              rounded-full
-              border
-              border-senda-border
-              bg-white/90
-              px-4
-              shadow-sm
-              backdrop-blur-md
-              dark:border-senda-darkborder
-              dark:bg-senda-card/90
-            "
-          >
-            {/* BOTÓN ESPAÑOL */}
-            <button
-              onClick={() => i18n.changeLanguage('es')}
-              className={`
-                flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer
-                ${i18n.language === 'es'
-                  ? 'bg-[#DCEBE1] dark:bg-senda-darkborder font-bold text-senda-main dark:text-white shadow-sm border border-senda-border dark:border-[#3E8563]'
-                  : 'font-medium text-[#6B6F66] dark:text-[#9AA093] hover:opacity-80 px-1.5'
-                }
-              `}
-            >
-              <img src="https://flagcdn.com/w40/es.png" alt="Español" className="h-4 w-4 rounded-full object-cover shadow-sm" />
-              <span>ES</span>
-            </button>
+      {/* NAVBAR */}
+      <nav className="fixed left-0 right-0 top-0 z-50 border-b border-[#DCE7DF]/80 bg-[#F7FAF7]/80 backdrop-blur-2xl dark:border-[#263A2F] dark:bg-[#0A130F]/80">
+        <div className="mx-auto flex h-[76px] max-w-[1380px] items-center justify-between px-6 sm:px-10 lg:px-14">
+          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="cursor-pointer">
+            <img
+              src={darkMode ? '/images/senda-dark-sin.png' : '/images/senda-claro-sin.png'}
+              alt="SENDA"
+              className="-ml-1 mt-3 h-[54px] w-auto object-contain sm:h-[78px]"
+            />
+          </button>
 
-            <span className="h-4 w-[1px] bg-senda-border dark:bg-senda-darkborder" />
-
-            {/* BOTÓN INGLÉS */}
-            <button
-              onClick={() => i18n.changeLanguage('en')}
-              className={`
-                flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer
-                ${i18n.language === 'en'
-                  ? 'bg-[#DCEBE1] dark:bg-senda-darkborder font-bold text-senda-main dark:text-white shadow-sm border border-senda-border dark:border-[#3E8563]'
-                  : 'font-medium text-[#6B6F66] dark:text-[#9AA093] hover:opacity-80 px-1.5'
-                }
-              `}
-            >
-              <img src="https://flagcdn.com/w40/gb.png" alt="English" className="h-4 w-4 rounded-full object-cover shadow-sm" />
-              <span>EN</span>
-            </button>
-
-            {/* SWITCH DE MODO */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-[#6B6F66] dark:text-[#9AA093]">
-                {darkMode ? t('Dark Mode') || 'Modo Oscuro' : t('Light Mode') || 'Modo Claro'}
-              </span>
-
+          <div className="hidden items-center gap-9 lg:flex">
+            {navLinks.map((link) => (
               <button
-                onClick={() => setDarkMode(!darkMode)}
-                title={darkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-                className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-senda-border dark:bg-senda-accent transition-colors duration-200 ease-in-out focus:outline-none"
+                key={link.id}
+                onClick={() => scrollToSection(link.id)}
+                className="cursor-pointer text-sm font-medium text-[#607269] transition-colors hover:text-[#216345] dark:text-[#A8B9AD] dark:hover:text-[#72C99B]"
               >
-                <span
-                  className={`
-                    pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out
-                    ${darkMode ? 'translate-x-5' : 'translate-x-0'}
-                  `}
-                />
+                {link.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="hidden items-center rounded-full border border-[#D9E5DB] bg-white/70 p-1 dark:border-[#30453A] dark:bg-[#14221A]/80 sm:flex">
+              <button
+                onClick={() => i18n.changeLanguage('es')}
+                className={`flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-all ${
+                  i18n.language === 'es'
+                    ? 'bg-[#DCEBE1] text-[#1D5A3D] dark:bg-[#284738] dark:text-[#A9E1C0]'
+                    : 'text-[#75847A] dark:text-[#91A298]'
+                }`}
+              >
+                <img src="https://flagcdn.com/w40/es.png" alt={t('Lang ES Alt')} className="h-4 w-4 rounded-full object-cover" />
+                ES
+              </button>
+              <button
+                onClick={() => i18n.changeLanguage('en')}
+                className={`flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-all ${
+                  i18n.language === 'en'
+                    ? 'bg-[#DCEBE1] text-[#1D5A3D] dark:bg-[#284738] dark:text-[#A9E1C0]'
+                    : 'text-[#75847A] dark:text-[#91A298]'
+                }`}
+              >
+                <img src="https://flagcdn.com/w40/gb.png" alt={t('Lang EN Alt')} className="h-4 w-4 rounded-full object-cover" />
+                EN
               </button>
             </div>
+
+            <button
+              onClick={() => setDarkMode((value) => !value)}
+              title={darkMode ? t('Toggle Light Mode') : t('Toggle Dark Mode')}
+              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-[#D9E5DB] bg-white/70 text-[#527062] transition-all hover:scale-105 dark:border-[#30453A] dark:bg-[#14221A] dark:text-[#A9D7B9]"
+            >
+              {darkMode ? (
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+                </svg>
+              ) : (
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+                  <circle cx="12" cy="12" r="4" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l-1.41 1.41M18.66 5.34l-1.41 1.41" />
+                </svg>
+              )}
+            </button>
+
+            <button
+              onClick={onGoToLogin}
+              className="hidden h-10 cursor-pointer items-center rounded-full bg-[#1D5A3D] px-5 text-sm font-semibold text-white shadow-[0_8px_25px_rgba(29,90,61,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#174A32] dark:bg-[#72C99B] dark:text-[#102018] dark:hover:bg-[#8BD7AC] sm:flex"
+            >
+              {t('Login')}
+            </button>
           </div>
         </div>
       </nav>
 
-      {/* ======================================================
-          CONTENIDO PRINCIPAL
-          ====================================================== */}
-      <div className="w-full flex-1 px-6 sm:px-12 lg:px-16 py-1">
+      {/* HERO */}
+      <section className="relative overflow-hidden pt-[76px]">
+        <div className="pointer-events-none absolute -left-40 top-20 h-[500px] w-[500px] rounded-full bg-[#DCEBE1]/80 blur-3xl dark:bg-[#163A29]/30" />
+        <div className="pointer-events-none absolute -right-40 top-10 h-[650px] w-[650px] rounded-full bg-[#E7F1E9] blur-3xl dark:bg-[#153426]/30" />
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.035] dark:opacity-[0.045]"
+          style={{
+            backgroundImage: 'linear-gradient(#1D5A3D 1px, transparent 1px), linear-gradient(90deg, #1D5A3D 1px, transparent 1px)',
+            backgroundSize: '55px 55px',
+          }}
+        />
 
-        {/* SECCIÓN HERO */}
-        <header
-          className="
-            w-full grid grid-cols-1 lg:grid-cols-2 gap-8 items-center
-            overflow-hidden rounded-[28px] px-6 py-8 sm:px-12 sm:py-12
-            bg-[linear-gradient(180deg,#EAF1EA_0%,var(--bg-senda-light)_100%)]
-            dark:bg-[linear-gradient(180deg,#1B2A20_0%,var(--bg-senda-dark)_100%)]
-          "
-        >
-          <div className="hero-copy">
-            <span
-              className="
-                inline-block rounded-full px-3.5 py-1.5 text-[12px] font-semibold
-                tracking-[0.02em]
-                border border-[#8DC29A]
-                bg-[#DCEBE1] text-senda-primary
-                dark:bg-[rgba(111,190,150,0.14)] dark:text-senda-accent
-              "
-            >
-              {t('FrontCardTitle')}
-            </span>
+        <div className="relative mx-auto grid min-h-[690px] max-w-[1380px] grid-cols-1 items-center gap-6 px-6 py-16 sm:px-10 lg:grid-cols-12 lg:px-14 lg:py-20">
+          <div className="relative z-10 lg:col-span-7">
+            <div className="mb-7 flex w-fit items-center gap-2 rounded-full border border-[#BBD5C2] bg-[#EDF5EF]/80 px-4 py-2 dark:border-[#365B48] dark:bg-[#172B21]/80 -mt-28">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-[#4FA477]" />
+              <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#397353] dark:text-[#8BD4A9]">
+                {t('FrontCardTitle')}
+              </span>
+            </div>
+
             <h1
-              className="
-                mt-4 font-serif text-3xl sm:text-4xl lg:text-[40px] font-semibold leading-tight
-                text-senda-main dark:text-senda-darktext
-              "
+              className="max-w-[690px] text-[22px] font-semibold leading-[1.08] tracking-[-0.035em] text-[#18352A] dark:text-[#EAF3ED] sm:text-[32px] lg:text-[40px]"
               style={{ fontFamily: 'Fraunces, serif' }}
             >
-              {t('Main Title Line 1')}<br />
-              {t('Main Title Line 2')}<br />
-              <span className="text-senda-secondary dark:text-senda-accent">{t('Main Title Line 3')}</span>
+              {t('Hero Title Line1')}
+              <span className="mt-2 block text-[#397D59] dark:text-[#78C99A]">
+                {t('Hero Title Line2')}
+              </span>
             </h1>
-            <p
-              className="
-                mt-[16px] max-w-[500px] text-[15.5px] leading-[1.65]
-                text-[#6B6F66] dark:text-[#9AA093]
-              "
-            >
+
+            <p className="mt-7 max-w-[600px] text-[16px] leading-[1.8] text-[#617168] dark:text-[#A9B9AE] sm:text-[17px]">
               {t('Subtitle')}
             </p>
-            <div className="hero-actions mt-[26px] flex flex-wrap gap-3.5">
+
+            <div className="mt-9 flex flex-wrap items-center gap-4">
               <button
                 onClick={onGoToLogin}
-                className="
-                  flex h-[42px] items-center gap-1.5 rounded-[21px] px-5 text-[14px]
-                  font-semibold transition-colors text-white cursor-pointer
-                  bg-senda-primary hover:bg-[#184232]
-                  dark:bg-senda-accent dark:text-[#0F1712] dark:hover:bg-[#59a67e]
-                "
+                className="group flex h-[52px] cursor-pointer items-center gap-3 rounded-full bg-[#1D5A3D] px-7 text-[14px] font-semibold text-white shadow-[0_14px_35px_rgba(29,90,61,0.2)] transition-all duration-300 hover:-translate-y-1 hover:bg-[#174A32] dark:bg-[#72C99B] dark:text-[#102018] dark:hover:bg-[#8BD7AC]"
               >
-                {t('Login')} →
+                {t('Login')}
+                <span className="transition-transform group-hover:translate-x-1">→</span>
+              </button>
+
+              <button
+                onClick={() => scrollToSection('about')}
+                className="flex h-[52px] cursor-pointer items-center gap-2 rounded-full border border-[#C9D8CC] bg-white/60 px-7 text-[14px] font-semibold text-[#3E5E4D] transition-all hover:bg-white dark:border-[#344B3E] dark:bg-[#132019]/60 dark:text-[#B6C9BC] dark:hover:bg-[#1B2D23]"
+              >
+                {t('Discover SENDA')}
+                <span>↓</span>
               </button>
             </div>
           </div>
 
-          {/* Columna Derecha Hero (Cerebro alineado a la derecha) */}
-          <div className="hero-art relative flex items-center justify-center lg:justify-end mt-6 lg:mt-0">
-            <img
-              src="images/cerebro-claro.png"
-              alt="Cerebro Neurociencia Claro"
-              className="
-                w-full max-w-[380px] h-auto object-contain
-                block dark:hidden
-                [mask-image:radial-gradient(circle,black_40%,transparent_80%)]
-                [-webkit-mask-image:radial-gradient(circle,black_40%,transparent_80%)]
-              "
-            />
-            <img
-              src="images/cerebro-oscuro.png"
-              alt="Cerebro Neurociencia Oscuro"
-              className="
-                w-full max-w-[380px] h-auto object-contain
-                hidden dark:block
-                [mask-image:radial-gradient(circle,black_40%,transparent_80%)]
-                [-webkit-mask-image:radial-gradient(circle,black_40%,transparent_80%)]
-              "
-            />
+          <div className="relative flex min-h-[420px] items-center justify-center lg:col-span-5">
+            <Brain3D />
           </div>
-        </header>
+        </div>
+      </section>
 
-        {/* SECCIÓN STATS */}
-        <section className="mt-5 grid gap-4 sm:grid-cols-3">
-          {/* Card 1 */}
-          <div className="flex items-center gap-4 rounded-2xl p-5 border transition-colors border-senda-border bg-white dark:border-senda-darkborder dark:bg-senda-card shadow-sm">
-            <div className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl bg-[#EAF1EA] dark:bg-senda-primary">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-senda-secondary dark:text-senda-accent" strokeWidth="1.8">
-                <circle cx="9" cy="8" r="3.2" />
-                <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
-                <circle cx="17" cy="9" r="2.4" />
-                <path d="M22 20c0-2.5-1.8-4.6-4.2-5.3" />
-              </svg>
-            </div>
-            <div>
-              <div className="font-serif text-[24px] font-semibold text-senda-main dark:text-senda-darktext" style={{ fontFamily: 'Fraunces, serif' }}>
-                {participantsCount !== null ? participantsCount : '—'}
-              </div>
-              <div className="mt-[2px] text-[11.5px] uppercase tracking-[0.03em] text-[#6B6F66] dark:text-[#9AA093]">
-                {t('Registered Participants')}
-              </div>
-              <div className="mt-[1px] text-[12px] text-[#6B6F66] dark:text-[#9AA093]">
-                {t('Active in study') || 'Activos en el estudio'}
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2 */}
-          <div className="flex items-center gap-4 rounded-2xl p-5 border transition-colors border-senda-border bg-white dark:border-senda-darkborder dark:bg-senda-card shadow-sm">
-            <div className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl bg-[#EAF1EA] dark:bg-senda-primary">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-senda-secondary dark:text-senda-accent" strokeWidth="1.8">
-                <rect x="7" y="4" width="10" height="16" rx="4" />
-                <path d="M12 8v4l2 2" />
-              </svg>
-            </div>
-            <div>
-              <div className="font-serif text-[24px] font-semibold text-senda-main dark:text-senda-darktext" style={{ fontFamily: 'Fraunces, serif' }}>
-                {fitbitsCount !== null ? fitbitsCount : '—'}
-              </div>
-              <div className="mt-[2px] text-[11.5px] uppercase tracking-[0.03em] text-[#6B6F66] dark:text-[#9AA093]">
-                {t('Registered Fitbits')}
-              </div>
-              <div className="mt-[1px] text-[12px] text-[#6B6F66] dark:text-[#9AA093]">
-                {t('Connected devices') || 'Dispositivos conectados'}
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3 */}
-          <div className="flex items-center gap-4 rounded-2xl p-5 border transition-colors border-senda-border bg-white dark:border-senda-darkborder dark:bg-senda-card shadow-sm">
-            <div className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl bg-[#EAF1EA] dark:bg-senda-primary">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-senda-secondary dark:text-senda-accent" strokeWidth="1.8">
-                <rect x="5" y="4" width="14" height="17" rx="2" />
-                <path d="M9 3h6v3H9z" />
-                <path d="M9 12h6M9 16h4" />
-              </svg>
-            </div>
-            <div>
-              <div className="font-serif text-[24px] font-semibold text-senda-main dark:text-senda-darktext" style={{ fontFamily: 'Fraunces, serif' }}>
-                {assignmentsCount !== null ? assignmentsCount : '—'}
-              </div>
-              <div className="mt-[2px] text-[11.5px] uppercase tracking-[0.03em] text-[#6B6F66] dark:text-[#9AA093]">
-                {t('Assignments')}
-              </div>
-              <div className="mt-[1px] text-[12px] text-[#6B6F66] dark:text-[#9AA093]">
-                {t('Active protocol') || 'Protocolo activo'}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* SECCIÓN INFERIOR */}
-        <section className="mt-6 mb-10 grid gap-4 lg:grid-cols-2">
-
-          {/* COLUMNA 1: Sobre SENDA */}
-          <div className="rounded-2xl p-6 sm:p-7 border border-senda-border bg-white dark:border-senda-darkborder dark:bg-senda-card shadow-sm flex flex-col justify-between">
-            <div>
-              <h3 className="text-lg font-semibold font-serif text-senda-main dark:text-senda-darktext" style={{ fontFamily: 'Fraunces, serif' }}>
-                {t('About SENDA') || 'Sobre SENDA'}
-              </h3>
-              <p className="mt-2 text-[13.5px] leading-relaxed text-[#6B6F66] dark:text-[#9AA093]">
-                {t('About SENDA text') || 'SENDA es un proyecto de investigación impulsado por el Departamento de Psicología Experimental y Psicología Social de la Universidad de Sevilla, financiado por la Fundación CENTRA.'}
+      {/* ABOUT */}
+      <section
+        id="about"
+        data-animate-id="about"
+        ref={setSectionRef('about')}
+        className={`scroll-mt-24 border-t border-[#E0E9E2] bg-white transition-all duration-1000 dark:border-[#22352A] dark:bg-[#101B15] ${
+          visibleSections.about ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
+        }`}
+      >
+        <div className="mx-auto max-w-[1180px] px-6 py-24 sm:px-10 lg:px-14 lg:py-28">
+          <div className="space-y-10">
+            <div className="max-w-[970px]">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#4A8A65] dark:text-[#7DC89A]">
+                {t('About SENDA')}
+              </span>
+              <h2
+                className="mt-4 text-[38px] font-semibold leading-[1.08] tracking-[-0.025em] text-[#18352A] dark:text-[#E7F0EA] sm:text-[45px]"
+                style={{ fontFamily: 'Fraunces, serif' }}
+              >
+                {t('About Heading')}
+              </h2>
+              <p className="mt-6 text-[16px] leading-[1.8] text-[#607066] dark:text-[#A9B9AE]">
+                {t('About SENDA text')}
+              </p>
+              <p className="mt-4 text-[15px] leading-[1.8] text-[#748078] dark:text-[#91A298]">
+                {t('About SENDA text 2')}
               </p>
             </div>
+
+            <div className="relative w-full overflow-hidden rounded-[32px] border border-[#DCE7DF] bg-[#0B2116] shadow-[0_20px_45px_rgba(29,90,61,0.08)] dark:border-[#263D31]">
+              <img
+                src="/images/research-lab.jpg"
+                alt={t('Research Image Alt')}
+                className="mx-auto h-auto max-h-[500px] w-full object-contain transition-transform duration-700 hover:scale-[1.01]"
+              />
+              <div className="absolute bottom-4 right-7 rounded-2xl border border-white/15 bg-[#0B2116]/80 px-5 py-3 backdrop-blur-md">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#A9D9BA]">{t('Research')}</p>
+                <p className="mt-1 text-sm font-medium text-white">{t('Pre Wearable Phase')}</p>
+              </div>
+            </div>
           </div>
 
-          {/* COLUMNA 2: Logo Institucional */}
-          <div className="rounded-2xl p-4 sm:p-6 border border-senda-border bg-white dark:border-senda-darkborder dark:bg-senda-card shadow-sm flex items-center justify-start pl-6 sm:pl-8 overflow-hidden min-h-[180px]">
-            <a
-              href="https://psicologia.us.es/investigacion"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full h-full flex items-center justify-start group"
+          <div className="mt-24 grid border-t border-[#E0E9E2] md:grid-cols-3 dark:border-[#293C30]">
+            {pillars.map((pillar, idx) => (
+              <div
+                key={pillar.title}
+                className={`py-10 transition-transform duration-500 hover:-translate-y-2 ${
+                  idx === 0
+                    ? 'border-b border-[#E0E9E2] md:border-b-0 md:pr-10 md:border-r dark:border-[#293C30]'
+                    : idx === 1
+                    ? 'border-b border-[#E0E9E2] md:border-b-0 md:px-10 md:border-r dark:border-[#293C30]'
+                    : 'md:pl-10'
+                }`}
+              >
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#E5F0E8] text-[#397653] dark:bg-[#1B3828] dark:text-[#8BD3A7]">
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.7">
+                    <path strokeLinecap="round" strokeLinejoin="round" d={pillar.icon} />
+                  </svg>
+                </div>
+                <h3 className="mt-6 text-[23px] font-semibold text-[#234334] dark:text-[#DCE9E0]" style={{ fontFamily: 'Fraunces, serif' }}>
+                  {pillar.title}
+                </h3>
+                <p className="mt-3 text-[14px] leading-7 text-[#708077] dark:text-[#94A59B]">{pillar.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* WEARABLE / DATA */}
+      <section className="relative overflow-hidden bg-[#F2F7F3] py-24 dark:bg-[#0C1511] lg:py-28">
+        <div className="mx-auto max-w-[1180px] px-6 sm:px-10 lg:px-14">
+          <div className="grid items-center gap-14 lg:grid-cols-12">
+            <div className="lg:col-span-5">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#4A8A65] dark:text-[#7DC89A]">
+                {t('Data Overline')}
+              </span>
+              <h2
+                className="mt-4 text-[39px] font-semibold leading-[1.07] tracking-[-0.03em] text-[#18352A] dark:text-[#E7F0EA] sm:text-[50px]"
+                style={{ fontFamily: 'Fraunces, serif' }}
+              >
+                {t('Data Heading')}
+              </h2>
+              <p className="mt-6 text-[16px] leading-7 text-[#6A786F] dark:text-[#99A99F]">
+                {t('Data Text')}
+              </p>
+              <div className="mt-9 grid grid-cols-2 gap-3">
+                {metrics.map((item) => (
+                  <div
+                    key={item}
+                    className="flex items-center gap-2 rounded-xl border border-[#D9E5DC] bg-white/70 px-3 py-3 text-xs font-medium text-[#557063] dark:border-[#2B4033] dark:bg-[#142019] dark:text-[#A3B4AA]"
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#63A77E]" />
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="relative lg:col-span-7">
+              <div className="relative overflow-hidden rounded-[28px] border border-[#D5E3D9] p-2 shadow-[0_30px_70px_rgba(29,90,61,0.10)] dark:border-[#294033] dark:bg-[#142019]">
+                <div className="relative overflow-hidden rounded-[20px]">
+                  <img
+                    src="/images/wearable.jpg"
+                    alt={t('Wearable Image Alt')}
+                    className="h-[290px] w-full object-cover transition-transform duration-700 hover:scale-[1.025]"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-tr from-[#092015]/60 via-transparent to-transparent" />
+                  <div className="absolute bottom-5 left-5 right-5 flex items-end justify-between">
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#A8D9B9]">{t('Wearable Official')}</p>
+                      <p className="mt-1 text-lg font-semibold text-white">Fitbit Charge 6</p>
+                    </div>
+                    <div className="rounded-full border border-white/20 bg-black/25 px-3 py-1.5 text-[10px] font-semibold text-white backdrop-blur-md">
+                      Google Health API
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* PLATFORM */}
+      <section
+        id="platform"
+        data-animate-id="platform"
+        ref={setSectionRef('platform')}
+        className={`scroll-mt-24 bg-white py-24 transition-all duration-1000 dark:bg-[#101B15] lg:py-28 ${
+          visibleSections.platform ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
+        }`}
+      >
+        <div className="mx-auto max-w-[1280px] px-6 sm:px-10 lg:px-14">
+          <div className="max-w-[980px]">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#4A8A65] dark:text-[#7DC89A]">
+              {t('Platform')}
+            </span>
+            <h2
+              className="mt-4 text-[40px] font-semibold leading-[1.06] tracking-[-0.03em] text-[#18352A] dark:text-[#E7F0EA] sm:text-[45px]"
+              style={{ fontFamily: 'Fraunces, serif' }}
             >
+              {t('Platform Heading Pre')}<span className="text-[#4B8A65] dark:text-[#79C89A]">{t('Platform Heading Highlight')}</span>
+            </h2>
+            <p className="mt-6 text-[16px] leading-7 text-[#6A786F] dark:text-[#99A99F]">
+              {t('Platform Text')}
+            </p>
+          </div>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {features.map((feature, index) => (
+              <div
+                key={feature.number}
+                className="group rounded-[22px] border border-[#DCE7DF] bg-[#F8FBF9] p-6 transition-all duration-500 hover:-translate-y-1 hover:border-[#7BAE8E] hover:shadow-[0_18px_40px_rgba(29,90,61,0.08)] dark:border-[#293D31] dark:bg-[#142019]"
+                style={{ transitionDelay: `${index * 70}ms` }}
+              >
+                <span className="text-[10px] font-semibold tracking-[0.15em] text-[#78A289] dark:text-[#69997C]">
+                  {feature.number}
+                </span>
+                <h3 className="mt-6 text-[21px] font-semibold text-[#244635] dark:text-[#DDEAE1]" style={{ fontFamily: 'Fraunces, serif' }}>
+                  {feature.title}
+                </h3>
+                <p className="mt-2 text-[13px] leading-6 text-[#718078] dark:text-[#96A69C]">{feature.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* RESEARCH FLOW */}
+      <section id="research" className="scroll-mt-24 bg-[#F2F7F3] py-24 dark:bg-[#0C1511] lg:py-28">
+        <div className="mx-auto max-w-[1180px] px-6 sm:px-10 lg:px-14">
+          <div className="grid items-center gap-16 lg:grid-cols-2">
+            <div>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#4A8A65] dark:text-[#7DC89A]">
+                {t('Research Overline')}
+              </span>
+              <h2
+                className="mt-4 text-[40px] font-semibold leading-[1.08] tracking-[-0.03em] text-[#18352A] dark:text-[#E7F0EA] sm:text-[40px]"
+                style={{ fontFamily: 'Fraunces, serif' }}
+              >
+                {t('Research Heading Line1')}
+                <span className="block text-[#4B8A65] dark:text-[#79C89A]"> {t('Research Heading Line2')}</span>
+              </h2>
+              <p className="mt-6 max-w-[520px] text-[16px] leading-7 text-[#6D7B72] dark:text-[#9BAAA0]">
+                {t('Research Text')}
+              </p>
+            </div>
+
+            <div className="rounded-[30px] border border-[#DCE7DF] bg-white p-8 shadow-[0_25px_60px_rgba(29,90,61,0.07)] dark:border-[#2A3E31] dark:bg-[#142019] sm:p-10">
+              {dataFlowSteps.map((step, index) => (
+                <React.Fragment key={step.title}>
+                  <div className="group flex items-center gap-5">
+                    <div
+                      className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-105 ${
+                        step.isLogo
+                          ? 'bg-[#1D5A3D] text-white shadow-lg dark:bg-[#72C99B] dark:text-[#102018]'
+                          : 'bg-[#E2EFE6] text-[#3D7D59] dark:bg-[#1D3829] dark:text-[#8CD2A6]'
+                      }`}
+                    >
+                      {step.isLogo ? (
+                        <span className="text-lg font-bold" style={{ fontFamily: 'Fraunces, serif' }}>
+                          S
+                        </span>
+                      ) : (
+                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.7">
+                          <path strokeLinecap="round" strokeLinejoin="round" d={step.iconPath} />
+                        </svg>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-[#264837] dark:text-[#DDEBE1]">{step.title}</p>
+                      <p className="mt-1 text-xs text-[#77857D] dark:text-[#93A49A]">{step.subtitle}</p>
+                    </div>
+                  </div>
+                  {index < dataFlowSteps.length - 1 && (
+                    <div className="ml-7 h-12 border-l border-dashed border-[#BBD2C1] dark:border-[#365342]" />
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SCIENTIFIC CINEMATIC BANNER */}
+      <section className="relative h-[350px] overflow-hidden sm:h-[430px]">
+        <img src="/images/brain-data.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-[#08170F]/75" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#07150D] via-transparent to-[#07150D]/80" />
+        <div className="relative z-10 flex h-full items-center justify-center px-6 text-center">
+          <div className="max-w-[850px]">
+            <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#7CC79A]">{t('Banner Overline')}</span>
+            <h2
+              className="mt-4 text-[30px] font-semibold leading-tight text-white sm:text-[44px] lg:text-[52px]"
+              style={{ fontFamily: 'Fraunces, serif' }}
+            >
+              {t('Banner Heading')}
+            </h2>
+          </div>
+        </div>
+      </section>
+
+      {/* MONITORING */}
+      <section className="bg-white py-24 dark:bg-[#101B15] lg:py-28">
+        <div className="mx-auto max-w-[1180px] px-6 sm:px-10 lg:px-14">
+          <div className="grid items-center gap-16 lg:grid-cols-2">
+            <div className="order-2 rounded-[30px] border border-[#DCE7DF] bg-[#F8FBF9] p-6 shadow-[0_25px_60px_rgba(29,90,61,0.07)] dark:border-[#2A3E31] dark:bg-[#142019] lg:order-1">
+              <div className="flex items-center justify-between border-b border-[#E5ECE7] pb-5 dark:border-[#2B3E32]">
+                <div>
+                  <p className="text-sm font-semibold text-[#264837] dark:text-[#DDEBE1]">{t('Monitor Title')}</p>
+                  <p className="mt-1 text-xs text-[#849188] dark:text-[#91A299]">{t('Monitor Subtitle')}</p>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-[#4D8765] dark:text-[#8BCDA5]">
+                  <span className="h-2 w-2 rounded-full bg-[#5DB27E]" />
+                  {t('Monitor Active')}
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-2xl border border-[#E5E9DD] bg-white p-5 dark:border-[#394337] dark:bg-[#19221A]">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F1EEDB] font-bold text-[#8C8050] dark:bg-[#3B3825]">
+                    !
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-[#354438] dark:text-[#D8E4DB]">{t('Monitor Alert Title')}</p>
+                      <span className="rounded-full bg-[#F1EEDB] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#847A4E] dark:bg-[#3B3825]">
+                        {t('Monitor Alert Badge')}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xs leading-6 text-[#78847C] dark:text-[#99A69D]">
+                      {t('Monitor Alert Text')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 rounded-2xl border border-[#DDEAE1] bg-[#F6FAF7] p-5 dark:border-[#294335] dark:bg-[#17261D]">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#DDEEE3] font-bold text-[#43825E] dark:bg-[#234632] dark:text-[#91D1AA]">
+                    ✓
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[#354438] dark:text-[#D8E4DB]">{t('Monitor Sync Title')}</p>
+                    <p className="mt-1 text-xs text-[#78847C] dark:text-[#99A69D]">{t('Monitor Sync Text')}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="order-1 lg:order-2">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#4A8A65] dark:text-[#7DC89A]">
+                {t('Monitor Overline')}
+              </span>
+              <h2
+                className="mt-4 text-[40px] font-semibold leading-[1.08] tracking-[-0.03em] text-[#18352A] dark:text-[#E7F0EA] sm:text-[50px]"
+                style={{ fontFamily: 'Fraunces, serif' }}
+              >
+                {t('Monitor Heading')}
+              </h2>
+              <p className="mt-6 text-[16px] leading-7 text-[#6D7B72] dark:text-[#9BAAA0]">
+                {t('Monitor Text')}
+              </p>
+              <div className="mt-8 space-y-4">
+                {checklistItems.map((item) => (
+                  <div key={item} className="flex items-center gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#DDEEE3] text-xs text-[#43825E] dark:bg-[#234632] dark:text-[#91D1AA]">
+                      ✓
+                    </span>
+                    <span className="text-sm text-[#637169] dark:text-[#A0AFA5]">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* INSTITUTIONS */}
+      <section className="border-t border-[#E1EAE3] bg-[#F7FAF7] py-24 dark:border-[#26392D] dark:bg-[#0C1511]">
+        <div className="mx-auto max-w-[1000px] px-6 text-center">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#738078] dark:text-[#91A097]">
+            {t('Institutions Overline')}
+          </p>
+          <h2
+            className="mt-4 text-[34px] font-semibold text-[#203D2E] dark:text-[#E1ECE5] sm:text-[42px]"
+            style={{ fontFamily: 'Fraunces, serif' }}
+          >
+            {t('Institutions Heading')}
+          </h2>
+          <p className="mx-auto mt-5 max-w-[650px] text-[15px] leading-7 text-[#728078] dark:text-[#9AA9A0]">
+            {t('Institutions Text')}
+          </p>
+
+          <div className="mt-12 flex flex-col items-center justify-center gap-10 sm:flex-row sm:gap-20">
+            <a href="https://psicologia.us.es/investigacion" target="_blank" rel="noopener noreferrer" className="group">
               <img
-                src="images/facultad-logo.png"
-                alt="Facultad de Psicología Universidad de Sevilla"
-                className="max-h-24 w-auto object-contain transition-transform duration-300 group-hover:scale-105 opacity-90 hover:opacity-100"
+                src={darkMode ? '/images/facultad-logo-blanco.png' : '/images/facultad-logo.png'}
+                alt={t('Faculty Logo Alt')}
+                className="max-h-[82px] w-auto object-contain opacity-75 transition-all duration-300 group-hover:scale-105 group-hover:opacity-100"
               />
             </a>
+            <div className="hidden h-14 w-px bg-[#DCE5DE] dark:bg-[#2C4033] sm:block" />
+            <div className="flex min-w-[150px] items-center justify-center text-[#50685A] dark:text-[#A7B7AC]">
+              <span className="text-[21px] font-semibold tracking-tight">CENTRA</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FINAL CTA */}
+      <section ref={ctaRef} className="bg-white px-6 py-10 dark:bg-[#101B15] sm:px-10 lg:px-14">
+        <div className="relative mx-auto max-w-[1180px] overflow-hidden rounded-[32px] border border-white/5 bg-[#0B1F16] px-8 py-16 sm:px-16 sm:py-20">
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute -left-20 -top-32 h-[420px] w-[420px] rounded-full bg-[#3E7C5E]/30 blur-[120px]" />
+            <div className="absolute -bottom-40 -right-10 h-[380px] w-[380px] rounded-full bg-[#1F4E36]/40 blur-[110px]" />
+            <div
+              className="absolute inset-0 opacity-[0.04]"
+              style={{
+                backgroundImage: 'radial-gradient(circle_at_1px_1px,#fff_1px,transparent_0)',
+                backgroundSize: '22px 22px',
+              }}
+            />
           </div>
 
-        </section>
+          <div className="relative z-10 grid items-center gap-12 lg:grid-cols-12">
+            <div className="lg:col-span-7">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#7AB49A]" />
+                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A9D9BA]">SENDA</span>
+              </div>
+              <h2
+                className="mt-6 text-[34px] font-semibold leading-[1.1] tracking-[-0.03em] text-white sm:text-[40px]"
+                style={{ fontFamily: 'Fraunces, serif' }}
+              >
+                {t('CTA Heading')}
+              </h2>
+              <p className="mt-5 max-w-[500px] text-[15px] leading-7 text-[#B9CFC1]">
+                {t('CTA Text')}
+              </p>
+              <div className="mt-9 flex flex-wrap items-center gap-6">
+                <button
+                  onClick={onGoToLogin}
+                  className="group flex h-[52px] cursor-pointer items-center gap-3 rounded-full bg-white px-7 text-[14px] font-semibold text-[#173726] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_30px_-8px_rgba(255,255,255,0.35)]"
+                >
+                  {t('Login')}
+                  <span className="transition-transform group-hover:translate-x-1">→</span>
+                </button>
+                <div className="flex items-center gap-6 text-[13px] text-[#9CBBA9]">
+                  <div>
+                    <span className="block text-base font-semibold text-white">24/7</span>
+                    {t('CTA Sync 24_7')}
+                  </div>
+                  <div className="h-8 w-px bg-white/10" />
+                  <div>
+                    <span className="block text-base font-semibold text-white">OAuth</span>
+                    {t('CTA Security')}
+                  </div>
+                </div>
+              </div>
+            </div>
 
-      </div>
-
-      {/* ======================================================
-          PIE DE PÁGINA
-          ====================================================== */}
-      <footer
-        className="
-          w-full flex flex-col sm:flex-row items-center justify-between
-          border-t px-6 sm:px-12 lg:px-16 py-6 text-[12.5px]
-          border-senda-border text-[#6B6F66]
-          dark:border-senda-darkborder dark:text-[#9AA093]
-          gap-3 text-center sm:text-left
-        "
-      >
-        <div className="flex items-center gap-2">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 3l7 3v6c0 4.5-3 7.7-7 9-4-1.3-7-4.5-7-9V6l7-3Z" />
-          </svg>
-          {t('Secure Access')}
+            <div className="flex items-center justify-center lg:col-span-5">
+              <div
+                className={`relative transition-all duration-1000 ${
+                  isCtaVisible ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-12 scale-95 opacity-0'
+                }`}
+              >
+                <div className="relative rounded-[28px] border border-white/10 bg-white/[0.045] p-5 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.6)] backdrop-blur-sm">
+                  <img
+                    src="/images/fitbit-blanca.jpg"
+                    alt={t('Fitbit Image Alt')}
+                    className="mx-auto block max-h-[220px] w-auto rounded-xl object-contain transition-transform duration-500 hover:scale-105"
+                  />
+                  <div className="mt-5 rounded-xl bg-black/20 px-6 py-3 text-center">
+                    <span className="text-[12px] text-[#B9CFC1]">Fitbit Charge </span>
+                    <span className="text-[13px] font-semibold text-white">6</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <span>{t('FooterText')}</span>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="border-t border-[#DCE6DF] bg-white dark:border-[#273A2E] dark:bg-[#101B15]">
+        <div className="mx-auto flex max-w-[1180px] flex-col items-center justify-between gap-3 px-6 py-10 text-[11px] text-[#8A958E] dark:text-[#77877D] sm:flex-row sm:px-10 lg:px-14">
+          <span>
+            © {new Date().getFullYear()} {t('FooterText')}
+          </span>
+          <div className="flex items-center gap-2">
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3l7 3v6c0 4.5-3 7.7-7 9-4-1.3-7-4.5-7-9V6l7-3Z" />
+            </svg>
+            {t('Secure Access')}
+          </div>
+        </div>
       </footer>
+
     </div>
   );
 };

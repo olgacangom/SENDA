@@ -224,7 +224,10 @@ class Assignment(models.Model):
 
     @property
     def status(self):
-        # localtime para comparar con la hora del servidor local
+        # Si tiene fecha de fin real, ya está completada independientemente de la fecha estimada
+        if self.real_end_date:
+            return AssignmentStatus.COMPLETED
+
         tz = timezone.get_current_timezone()
         now = timezone.localtime(timezone.now(), timezone=tz)
 

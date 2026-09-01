@@ -127,68 +127,47 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToFront }) => {
           CONTROLES SUPERIORES (Idioma y Modo)
           ====================================================== */}
       <div className="absolute top-6 right-6 z-20 flex items-center gap-3">
-        <div
-          className="
-            flex h-10 items-center gap-3 rounded-full
-            border border-senda-border dark:border-senda-darkborder
-            bg-white/90 dark:bg-senda-card/90
-            px-4 shadow-sm backdrop-blur-md
-          "
-        >
-          {/* BOTÓN ESPAÑOL */}
+        <div className="hidden items-center rounded-full border border-[#D9E5DB] bg-white/70 p-1 dark:border-[#30453A] dark:bg-[#14221A]/80 sm:flex">
           <button
             onClick={() => i18n.changeLanguage('es')}
-            className={`
-              flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer
-              ${i18n.language === 'es'
-                ? 'bg-[#DCEBE1] dark:bg-senda-darkborder font-bold text-senda-main dark:text-white shadow-sm border border-[#8DC29A] dark:border-[#3E8563]'
-                : 'font-medium text-[#6B6F66] dark:text-[#9AA093] hover:opacity-80 px-1.5'
-              }
-            `}
+            className={`flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-all ${
+              i18n.language === 'es'
+                ? 'bg-[#DCEBE1] text-[#1D5A3D] dark:bg-[#284738] dark:text-[#A9E1C0]'
+                : 'text-[#75847A] dark:text-[#91A298]'
+            }`}
           >
-            <img src="https://flagcdn.com/w40/es.png" alt="Español" className="h-4 w-4 rounded-full object-cover shadow-sm" />
-            <span>ES</span>
+            <img src="https://flagcdn.com/w40/es.png" alt="Español" className="h-4 w-4 rounded-full object-cover" />
+            ES
           </button>
-
-          <span className="h-4 w-[1px] bg-senda-border dark:bg-senda-darkborder" />
-
-          {/* BOTÓN INGLÉS */}
           <button
             onClick={() => i18n.changeLanguage('en')}
-            className={`
-              flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer
-              ${i18n.language === 'en'
-                ? 'bg-[#DCEBE1] dark:bg-senda-darkborder font-bold text-senda-main dark:text-white shadow-sm border border-[#8DC29A] dark:border-[#3E8563]'
-                : 'font-medium text-[#6B6F66] dark:text-[#9AA093] hover:opacity-80 px-1.5'
-              }
-            `}
+            className={`flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-all ${
+              i18n.language === 'en'
+                ? 'bg-[#DCEBE1] text-[#1D5A3D] dark:bg-[#284738] dark:text-[#A9E1C0]'
+                : 'text-[#75847A] dark:text-[#91A298]'
+            }`}
           >
-            <img src="https://flagcdn.com/w40/gb.png" alt="English" className="h-4 w-4 rounded-full object-cover shadow-sm" />
-            <span>EN</span>
+            <img src="https://flagcdn.com/w40/gb.png" alt="English" className="h-4 w-4 rounded-full object-cover" />
+            EN
           </button>
-
-          <span className="h-4 w-[1px] bg-senda-border dark:bg-senda-darkborder" />
-
-          {/* SWITCH DE MODO */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-[#6B6F66] dark:text-[#9AA093]">
-              {darkMode ? t('Dark Mode') || 'Modo Oscuro' : t('Light Mode') || 'Modo Claro'}
-            </span>
-
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              title={darkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-              className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-senda-border dark:bg-senda-accent transition-colors duration-200 ease-in-out focus:outline-none"
-            >
-              <span
-                className={`
-                  pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out
-                  ${darkMode ? 'translate-x-5' : 'translate-x-0'}
-                `}
-              />
-            </button>
-          </div>
         </div>
+
+        <button
+          onClick={() => setDarkMode((value) => !value)}
+          title={darkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+          className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-[#D9E5DB] bg-white/70 text-[#527062] transition-all hover:scale-105 dark:border-[#30453A] dark:bg-[#14221A] dark:text-[#A9D7B9]"
+        >
+          {darkMode ? (
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+            </svg>
+          ) : (
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+              <circle cx="12" cy="12" r="4" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l-1.41 1.41M18.66 5.34l-1.41 1.41" />
+            </svg>
+          )}
+        </button>
       </div>
 
       {/* ======================================================

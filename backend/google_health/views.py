@@ -23,6 +23,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.urls import reverse
 from django.conf import settings
 from collections import defaultdict
+from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
@@ -947,23 +948,48 @@ def api_export(request):
     # =========================================================
     # PARTICIPANTES
     # =========================================================
+    # =========================================================
+    # PARTICIPANTES
+    # =========================================================
 
     if export_type == 'participants':
 
         rows.append([
             'participant_code',
             'email',
-            'authentication_status'
+            'authentication_status',
+            'study_status'
         ])
 
         for account in GoogleAccount.objects.select_related('participant'):
+            participant = account.participant
+            
+            # Calcular el estado del estudio en base a su asignación más reciente
+            assignment = (
+                Assignment.objects
+                .filter(participant=participant)
+                .order_by('-start_date')
+                .first()
+            )
+
+            if not assignment:
+                study_status = 'PENDING'
+            elif assignment.real_end_date:
+                study_status = 'COMPLETED'
+            elif assignment.start_date > timezone.now():
+                study_status = 'PENDING'
+            else:
+                study_status = 'ACTIVE'
+
             rows.append([
-                account.participant.participant_code,
+                participant.participant_code,
                 account.email,
-                account.authentication_status
+                account.authentication_status,
+                study_status
             ])
 
         file_root = 'participants'
+
 
     # =========================================================
     # FITBITS
@@ -999,6 +1025,105 @@ def api_export(request):
             ])
 
         file_root = 'fitbits'
+
+    # =========================================================
+    # ASIGNACIONES
+    # =========================================================
+
+    elif export_type == 'assignments':
+
+        rows.append([
+            'participant_code',
+            'fitbit_code',
+            'start_date',
+            'estimated_end_date',
+            'real_end_date',
+            'status'
+        ])
+
+        for assignment in Assignment.objects.select_related('participant', 'fitbit').all():
+            p_code = assignment.participant.participant_code if assignment.participant else ''
+            f_code = assignment.fitbit.fitbit_code if assignment.fitbit else ''
+            rows.append([
+                p_code,
+                f_code,
+                assignment.start_date.isoformat() if assignment.start_date else '',
+                assignment.estimated_end_date.isoformat() if assignment.estimated_end_date else '',
+                assignment.real_end_date.isoformat() if assignment.real_end_date else '',
+                assignment.status
+            ])
+
+        file_root = 'assignments'
+
+    # =========================================================
+    # ALERTAS
+    # =========================================================
+
+    elif export_type == 'alerts':
+
+        rows.append([
+            'alert_id',
+            'type',
+            'priority',
+            'resolved',
+            'participant_code',
+            'fitbit_code',
+            'email',
+            'first_detected_at',
+            'resolved_at',
+            'created_at'
+        ])
+
+        for alert in Alert.objects.all():
+            participant_code = ''
+            fitbit_code = ''
+            email = ''
+
+            if alert.assignment:
+                if alert.assignment.participant:
+                    participant_code = alert.assignment.participant.participant_code or ''
+                if alert.assignment.fitbit:
+                    fitbit_code = alert.assignment.fitbit.fitbit_code or ''
+            
+            if alert.google_account:
+                email = alert.google_account.email or ''
+
+            rows.append([
+                str(alert.id),
+                alert.alert_type,  
+                alert.priority,
+                str(alert.resolved),
+                participant_code,
+                fitbit_code,
+                email,
+                alert.first_detected_at.isoformat() if alert.first_detected_at else '',
+                alert.resolved_at.isoformat() if alert.resolved_at else '',
+                alert.created_at.isoformat() if alert.created_at else ''
+            ])
+
+        file_root = 'alerts'
+
+    # =========================================================
+    # INVESTIGADORES (RESEARCHERS)
+    # =========================================================
+
+    elif export_type == 'researchers':
+
+        rows.append([
+            'email',
+            'created_at',
+            'is_active'
+        ])
+
+        User = get_user_model()
+        for researcher in User.objects.all():
+            rows.append([
+                researcher.email,
+                researcher.date_joined.isoformat() if hasattr(researcher, 'date_joined') and researcher.date_joined else '',
+                str(researcher.is_active)
+            ])
+
+        file_root = 'researchers'
 
     # =========================================================
     # SINCRONIZACIONES

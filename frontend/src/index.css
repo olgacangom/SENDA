@@ -53,3 +53,9 @@
 @utility senda-pagination-btn {
   @apply rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-3 py-2 text-[11px] font-bold text-senda-main dark:text-slate-300 transition hover:bg-senda-light dark:hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer;
 }
+
+@keyframes brain-spin-3d {
+  0%   { transform: rotateY(0deg) rotateX(4deg); }
+  50%  { transform: rotateY(180deg) rotateX(4deg); }
+  100% { transform: rotateY(360deg) rotateX(4deg); }
+}
