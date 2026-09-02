@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { CustomSelect } from '../components/CustomSelect';
 import { Pagination } from '../components/Pagination';
 import { SectionHeader } from '../components/SectionHeader';
+import ReactDOM from 'react-dom';
 
 const API_BASE = 'http://localhost:1574';
 
@@ -297,7 +298,7 @@ const Assignments: React.FC = () => {
                         setEditRealEndDate(toLocalDateTimeInput(item.real_end_date));
                         setEditError(null);
                       }}
-                      className="cursor-pointer hover:bg-senda-light/80 dark:hover:bg-senda-dark/50 transition-colors"
+                      className="cursor-pointer transition-all duration-200 hover:bg-senda-light/80 dark:hover:bg-senda-dark/50 hover:shadow-[inset_3px_0_0_0_theme(colors.senda-primary)] dark:hover:shadow-[inset_3px_0_0_0_theme(colors.senda-accent)]"
                     >
                       <td className="px-6 py-5 text-xs font-bold text-senda-main dark:text-white">
                         {pCode}
@@ -330,18 +331,18 @@ const Assignments: React.FC = () => {
                       <td className="px-6 py-5">
                         <span
                           className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[11px] font-semibold ${item.status?.toLowerCase() === 'active'
-                              ? "border-emerald-100 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300"
-                              : item.status?.toLowerCase() === 'pending'
-                                ? "border-blue-100 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300"
-                                : "border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark text-[#6B6F66] dark:text-[#9AA093]"
+                            ? "border-emerald-100 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300"
+                            : item.status?.toLowerCase() === 'pending'
+                              ? "border-blue-100 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300"
+                              : "border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark text-[#6B6F66] dark:text-[#9AA093]"
                             }`}
                         >
                           <span
                             className={`h-1.5 w-1.5 rounded-full ${item.status?.toLowerCase() === 'active'
-                                ? "bg-emerald-500"
-                                : item.status?.toLowerCase() === 'pending'
-                                  ? "bg-blue-500"
-                                  : "bg-slate-400"
+                              ? "bg-emerald-500"
+                              : item.status?.toLowerCase() === 'pending'
+                                ? "bg-blue-500"
+                                : "bg-slate-400"
                               }`}
                           />
                           {item.status}
@@ -369,315 +370,364 @@ const Assignments: React.FC = () => {
         )}
       </div>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-senda-card border border-senda-border dark:border-senda-darkborder p-6 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-senda-main dark:text-white" style={{ fontFamily: 'Fraunces, serif' }}>{t('New Assignment')}</h2>
+      {isModalOpen && ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[50] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+          <div className="relative w-full max-w-[640px] rounded-[28px] bg-senda-light dark:bg-senda-card p-7 shadow-[0_30px_60px_rgba(29,90,61,0.18)] dark:shadow-[0_30px_60px_rgba(0,0,0,0.4)]">
+
+            {/* Decoración: blobs difuminados */}
+            <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[#DCEBE1] opacity-70 blur-3xl dark:bg-[#163A29]/40" />
+            <div className="pointer-events-none absolute -bottom-16 -left-12 h-40 w-40 rounded-full bg-[#E7F1E9] opacity-80 blur-3xl dark:bg-[#153426]/30" />
+            <div
+              className="pointer-events-none absolute inset-0 opacity-[0.04] dark:opacity-[0.05]"
+              style={{
+                backgroundImage: 'linear-gradient(#1D5A3D 1px, transparent 1px), linear-gradient(90deg, #1D5A3D 1px, transparent 1px)',
+                backgroundSize: '26px 26px',
+              }}
+            />
+
+            <div className="relative">
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-[#6B6F66] dark:text-[#9AA093] hover:text-senda-main dark:hover:text-white cursor-pointer text-base font-bold"
+                aria-label={t('Close')}
+                className="absolute right-0 top-0 flex h-6.5 w-6.5 cursor-pointer items-center justify-center rounded-full border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input text-[#708077] dark:text-[#9AA093] hover:text-senda-main dark:hover:text-white transition"
               >
-                ×
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
+
+              {/* Icono con punto de estado */}
+              <div className="mb-4 flex justify-center">
+                <div className="relative flex h-[58px] w-[58px] items-center justify-center rounded-2xl bg-[#DCEBE1] dark:bg-senda-darkborder shadow-[0_10px_24px_rgba(29,90,61,0.14)]">
+                  <svg className="h-7 w-7 text-senda-primary dark:text-senda-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                  </svg>
+                  <span className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full border-[3px] border-senda-light dark:border-senda-card bg-[#4FA477]" />
+                </div>
+              </div>
+
+              <h2
+                className="mt-1.5 mb-1 text-center text-[20px] font-semibold text-senda-main dark:text-white"
+                style={{ fontFamily: 'Fraunces, serif' }}
+              >
+                {t('New Assignment')}
+              </h2>
+              <p className="mb-5 text-center text-xs leading-relaxed text-[#708077] dark:text-[#9AA093]">
+                {t('New Assignment Subtitle')}
+              </p>
+
+              <form onSubmit={handleCreateAssignment} className="space-y-3.5" autoComplete="off">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">
+                      {t('Select Participant Label')}
+                    </label>
+                    <div className="rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-dark px-3 py-1.5 mt-1">
+                      <CustomSelect
+                        value={newParticipantCode}
+                        onChange={(val) => setNewParticipantCode(String(val))}
+                        options={[
+                          { label: t('Select a participant', { defaultValue: 'Seleccionar participante' }), value: '' },
+                          ...participantsList.map((code) => ({ label: code, value: code }))
+                        ]}
+                        width="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">
+                      {t('Select Fitbit Label')}
+                    </label>
+                    <div className="rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-dark px-3 py-1.5 mt-1">
+                      <CustomSelect
+                        value={newFitbitCode}
+                        onChange={(val) => setNewFitbitCode(String(val))}
+                        options={[
+                          { label: t('Select a bracelet', { defaultValue: 'Seleccionar pulsera' }), value: '' },
+                          ...fitbitsList.map((code) => ({ label: code, value: code }))
+                        ]}
+                        width="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">
+                      {t('Start Date')}
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={newStartDate}
+                      onChange={(e) => setNewStartDate(e.target.value)}
+                      required
+                      className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-3.5 py-3 text-xs text-senda-main dark:text-white outline-none focus:border-senda-secondary cursor-pointer accent-[#1F5340] dark:accent-[#6FBE96]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">
+                      {t('Estimated End Date')}
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={newEstimatedEndDate}
+                      onChange={(e) => setNewEstimatedEndDate(e.target.value)}
+                      className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-3.5 py-3 text-xs text-senda-main dark:text-white outline-none focus:border-senda-secondary cursor-pointer accent-[#1F5340] dark:accent-[#6FBE96]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">
+                    {t('Real End Date Optional')}
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={newRealEndDate}
+                    onChange={(e) => setNewRealEndDate(e.target.value)}
+                    className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-3.5 py-3 text-xs text-senda-main dark:text-white outline-none focus:border-senda-secondary"
+                  />
+                </div>
+
+                {submitError && <p className="text-xs text-red-600 dark:text-red-400 font-medium">{submitError}</p>}
+                {submitSuccess && <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{submitSuccess}</p>}
+
+                <div className="pt-1.5 space-y-2.5">
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="group flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-senda-primary dark:bg-senda-accent px-4 py-3.5 text-sm font-semibold text-white dark:text-senda-dark shadow-[0_14px_28px_rgba(29,90,61,0.22)] transition-all hover:-translate-y-0.5 hover:bg-[#174A32] dark:hover:bg-[#8BD7AC] disabled:opacity-60 disabled:hover:translate-y-0"
+                  >
+                    {submitting ? t('Processing') : t('Save Assignment')}
+                    {!submitting && (
+                      <svg className="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="w-full cursor-pointer rounded-2xl border border-senda-border dark:border-senda-darkborder bg-transparent px-4 py-3 text-sm font-semibold text-[#708077] dark:text-[#9AA093] hover:bg-white dark:hover:bg-senda-input transition"
+                  >
+                    {t('Cancel')}
+                  </button>
+                </div>
+              </form>
             </div>
-
-            <form onSubmit={handleCreateAssignment} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">{t('Select Participant Label')}</label>
-                <div className="relative">
-                  <select
-                    value={newParticipantCode}
-                    onChange={(e) => setNewParticipantCode(e.target.value)}
-                    required
-                    className="w-full appearance-none rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark px-4 py-3 pr-10 text-sm text-senda-main dark:text-white outline-none focus:border-senda-secondary cursor-pointer"
-                  >
-                    <option value="">{t('Select a participant')}</option>
-                    {participantsList.map((code) => (
-                      <option key={code} value={code} className="bg-white dark:bg-senda-card text-senda-main dark:text-white">
-                        {code}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">{t('Select Fitbit Label')}</label>
-                <div className="relative">
-                  <select
-                    value={newFitbitCode}
-                    onChange={(e) => setNewFitbitCode(e.target.value)}
-                    required
-                    className="w-full appearance-none rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark px-4 py-3 pr-10 text-sm text-senda-main dark:text-white outline-none focus:border-senda-secondary cursor-pointer"
-                  >
-                    <option value="">{t('Select a bracelet')}</option>
-                    {fitbitsList.map((code) => (
-                      <option key={code} value={code} className="bg-white dark:bg-senda-card text-senda-main dark:text-white">
-                        {code}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">{t('Start Date')}</label>
-                <input
-                  type="datetime-local"
-                  value={newStartDate}
-                  onChange={(e) => setNewStartDate(e.target.value)}
-                  required
-                  className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark px-4 py-3 text-sm text-senda-main dark:text-white outline-none focus:border-senda-secondary"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">{t('Estimated End Date')}</label>
-                <input
-                  type="datetime-local"
-                  value={newEstimatedEndDate}
-                  onChange={(e) => setNewEstimatedEndDate(e.target.value)}
-                  className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark px-4 py-3 text-sm text-senda-main dark:text-white outline-none focus:border-senda-secondary"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">{t('Real End Date Optional')}</label>
-                <input
-                  type="datetime-local"
-                  value={newRealEndDate}
-                  onChange={(e) => setNewRealEndDate(e.target.value)}
-                  className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark px-4 py-3 text-sm text-senda-main dark:text-white outline-none focus:border-senda-secondary"
-                />
-              </div>
-
-              {submitError && <p className="text-sm text-red-600 dark:text-red-400">{submitError}</p>}
-              {submitSuccess && <p className="text-sm text-emerald-600 dark:text-emerald-400">{submitSuccess}</p>}
-
-              <div className="mt-6 flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-5 py-3 text-sm font-semibold text-senda-main dark:text-slate-300 hover:bg-senda-light dark:hover:bg-slate-700 cursor-pointer"
-                >
-                  {t('Cancel')}
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="rounded-2xl bg-senda-primary hover:bg-[#184232] dark:bg-senda-accent dark:text-senda-dark dark:hover:bg-[#59a67e] px-5 py-3 text-sm font-semibold text-white transition disabled:opacity-60 cursor-pointer"
-                >
-                  {submitting ? t('Processing') : t('Save Assignment')}
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {selectedAssignment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-2xl rounded-3xl bg-white dark:bg-senda-card border border-senda-border dark:border-senda-darkborder p-7 shadow-2xl">
-            <div className="mb-6 flex items-start justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#DCEBE1] dark:bg-senda-darkborder text-senda-primary dark:text-senda-accent">
-                  <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                  </svg>
+      {selectedAssignment && ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[50] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+          <div className="relative w-full max-w-xl rounded-[28px] bg-senda-light dark:bg-senda-card p-7 shadow-[0_30px_60px_rgba(29,90,61,0.18)] dark:shadow-[0_30px_60px_rgba(0,0,0,0.4)]">
+
+            {/* Decoración: blobs difuminados */}
+            <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[#DCEBE1] opacity-70 blur-3xl dark:bg-[#163A29]/40" />
+            <div className="pointer-events-none absolute -bottom-16 -left-12 h-40 w-40 rounded-full bg-[#E7F1E9] opacity-80 blur-3xl dark:bg-[#153426]/30" />
+            <div
+              className="pointer-events-none absolute inset-0 opacity-[0.04] dark:opacity-[0.05]"
+              style={{
+                backgroundImage: 'linear-gradient(#1D5A3D 1px, transparent 1px), linear-gradient(90deg, #1D5A3D 1px, transparent 1px)',
+                backgroundSize: '26px 26px',
+              }}
+            />
+
+            <div className="relative">
+              <div className="mb-6 flex items-start justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#DCEBE1] dark:bg-senda-darkborder text-senda-primary dark:text-senda-accent">
+                    <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-extrabold text-senda-main dark:text-white" style={{ fontFamily: 'Fraunces, serif' }}>
+                      {isEditing ? t('Edit Assignment') : t('Assignment Detail')}
+                    </h2>
+                    <p className="text-xs text-[#6B6F66] dark:text-[#9AA093]">
+                      {isEditing ? t('Edit Assignment Subtitle') : t('Assignment Detail Subtitle')}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-xl font-extrabold text-senda-main dark:text-white" style={{ fontFamily: 'Fraunces, serif' }}>
-                    {isEditing ? t('Edit Assignment') : t('Assignment Detail')}
-                  </h2>
-                  <p className="text-xs text-[#6B6F66] dark:text-[#9AA093]">
-                    {isEditing ? t('Edit Assignment Subtitle') : t('Assignment Detail Subtitle')}
-                  </p>
-                </div>
+                <button
+                  onClick={() => { setSelectedAssignment(null); setIsEditing(false); }}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-senda-light dark:bg-senda-input text-[#6B6F66] dark:text-slate-300 hover:bg-senda-border dark:hover:bg-slate-700 cursor-pointer transition"
+                >
+                  ✕
+                </button>
               </div>
-              <button
-                onClick={() => { setSelectedAssignment(null); setIsEditing(false); }}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-senda-light dark:bg-senda-input text-[#6B6F66] dark:text-slate-300 hover:bg-senda-border dark:hover:bg-slate-700 cursor-pointer transition"
-              >
-                ✕
-              </button>
-            </div>
 
-            {!isEditing ? (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-                  <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
-                    <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Participants Resource')}</span>
-                    <span className="text-sm font-bold text-senda-main dark:text-white">{getParticipantCode(selectedAssignment)}</span>
-                  </div>
+              {!isEditing ? (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+                    <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
+                      <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Participants Resource')}</span>
+                      <span className="text-sm font-bold text-senda-main dark:text-white">{getParticipantCode(selectedAssignment)}</span>
+                    </div>
 
-                  <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
-                    <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Fitbit')}</span>
-                    <span className="text-sm font-bold text-emerald-900 dark:text-emerald-400">{getFitbitCode(selectedAssignment)}</span>
-                  </div>
+                    <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
+                      <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Fitbit')}</span>
+                      <span className="text-sm font-bold text-emerald-900 dark:text-emerald-400">{getFitbitCode(selectedAssignment)}</span>
+                    </div>
 
-                  <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
-                    <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Start Date')}</span>
-                    <span className="text-xs font-semibold text-senda-main dark:text-slate-200">
-                      {selectedAssignment.start_date ? new Date(selectedAssignment.start_date).toLocaleString('es-ES') : '—'}
-                    </span>
-                  </div>
+                    <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
+                      <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Start Date')}</span>
+                      <span className="text-xs font-semibold text-senda-main dark:text-slate-200">
+                        {selectedAssignment.start_date ? new Date(selectedAssignment.start_date).toLocaleString('es-ES') : '—'}
+                      </span>
+                    </div>
 
-                  <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
-                    <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Estimated End Date')}</span>
-                    <span className="text-xs font-semibold text-senda-main dark:text-slate-100">
-                      {selectedAssignment.estimated_end_date ? new Date(selectedAssignment.estimated_end_date).toLocaleString('es-ES') : '—'}
-                    </span>
-                  </div>
+                    <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
+                      <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Estimated End Date')}</span>
+                      <span className="text-xs font-semibold text-senda-main dark:text-slate-100">
+                        {selectedAssignment.estimated_end_date ? new Date(selectedAssignment.estimated_end_date).toLocaleString('es-ES') : '—'}
+                      </span>
+                    </div>
 
-                  <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
-                    <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Real End Date')}</span>
-                    <span className="text-xs font-semibold text-senda-main dark:text-slate-100">
-                      {selectedAssignment.real_end_date ? new Date(selectedAssignment.real_end_date).toLocaleString('es-ES') : t('In Progress')}
-                    </span>
-                  </div>
+                    <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
+                      <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Real End Date')}</span>
+                      <span className="text-xs font-semibold text-senda-main dark:text-slate-100">
+                        {selectedAssignment.real_end_date ? new Date(selectedAssignment.real_end_date).toLocaleString('es-ES') : t('In Progress')}
+                      </span>
+                    </div>
 
-                  <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
-                    <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Status')}</span>
-                    <div>
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold ${selectedAssignment.status?.toLowerCase() === 'active'
+                    <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
+                      <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Status')}</span>
+                      <div>
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold ${selectedAssignment.status?.toLowerCase() === 'active'
                           ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300'
                           : selectedAssignment.status?.toLowerCase() === 'pending'
                             ? 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300'
                             : 'bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-300'
-                        }`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${selectedAssignment.status?.toLowerCase() === 'active'
+                          }`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${selectedAssignment.status?.toLowerCase() === 'active'
                             ? 'bg-emerald-600'
                             : selectedAssignment.status?.toLowerCase() === 'pending'
                               ? 'bg-blue-600'
                               : 'bg-slate-600'
-                          }`} />
-                        {selectedAssignment.status}
-                      </span>
+                            }`} />
+                          {selectedAssignment.status}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2 border-t border-senda-border dark:border-senda-darkborder">
-                  <button
-                    onClick={async () => {
-                      if (!selectedAssignment || !selectedAssignment.id) return;
-                      if (!confirm(`${t('Delete Assignment Confirmation')} ${getParticipantCode(selectedAssignment)}?`)) return;
-                      try {
-                        const resp = await fetch(`${API_BASE}/api/assignments/delete/`, {
-                          method: 'POST',
-                          credentials: 'include',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ id: selectedAssignment.id }),
-                        });
-                        const j = await resp.json();
-                        if (resp.ok) {
-                          setSelectedAssignment(null);
-                          loadAssignments();
-                        } else {
-                          alert(j.error || t('Delete assignment error'));
+                  <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2 border-t border-senda-border dark:border-senda-darkborder">
+                    <button
+                      onClick={async () => {
+                        if (!selectedAssignment || !selectedAssignment.id) return;
+                        if (!confirm(`${t('Delete Assignment Confirmation')} ${getParticipantCode(selectedAssignment)}?`)) return;
+                        try {
+                          const resp = await fetch(`${API_BASE}/api/assignments/delete/`, {
+                            method: 'POST',
+                            credentials: 'include',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: selectedAssignment.id }),
+                          });
+                          const j = await resp.json();
+                          if (resp.ok) {
+                            setSelectedAssignment(null);
+                            loadAssignments();
+                          } else {
+                            alert(j.error || t('Delete assignment error'));
+                          }
+                        } catch (e) {
+                          alert(t('Server connection error'));
                         }
-                      } catch (e) {
-                        alert(t('Server connection error'));
-                      }
-                    }}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/50 px-5 py-3 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-100 transition cursor-pointer"
-                  >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    {t('Delete Assignment')}
-                  </button>
-
-                  <div className="flex w-full sm:w-auto gap-3">
-                    <button
-                      onClick={() => setSelectedAssignment(null)}
-                      className="flex-1 sm:flex-none rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-5 py-3 text-xs font-bold text-senda-main dark:text-slate-300 hover:bg-senda-light dark:hover:bg-slate-700 transition cursor-pointer"
-                    >
-                      {t('Close')}
-                    </button>
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-2xl bg-senda-primary hover:bg-[#184232] dark:bg-senda-accent dark:text-senda-dark dark:hover:bg-[#59a67e] px-5 py-3 text-xs font-bold text-white transition cursor-pointer shadow-md"
+                      }}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/50 px-5 py-3 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-100 transition cursor-pointer"
                     >
                       <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
-                      {t('Modify')}
+                      {t('Delete Assignment')}
+                    </button>
+
+                    <div className="flex w-full sm:w-auto gap-3">
+                      <button
+                        onClick={() => setSelectedAssignment(null)}
+                        className="flex-1 sm:flex-none rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-5 py-3 text-xs font-bold text-senda-main dark:text-slate-300 hover:bg-senda-light dark:hover:bg-slate-700 transition cursor-pointer"
+                      >
+                        {t('Close')}
+                      </button>
+                      <button
+                        onClick={() => setIsEditing(true)}
+                        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-2xl bg-senda-primary hover:bg-[#184232] dark:bg-senda-accent dark:text-senda-dark dark:hover:bg-[#59a67e] px-5 py-3 text-xs font-bold text-white transition cursor-pointer shadow-md"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        {t('Modify')}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <form onSubmit={handleUpdateAssignment} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3 text-sm text-senda-main dark:text-slate-300 bg-senda-light dark:bg-senda-dark p-4 rounded-2xl border border-senda-border dark:border-senda-darkborder">
+                    <div><span className="text-[11px] text-[#6B6F66] dark:text-[#9AA093] block">{t('Participants Resource')}</span><strong className="text-senda-main dark:text-white">{getParticipantCode(selectedAssignment)}</strong></div>
+                    <div><span className="text-[11px] text-[#6B6F66] dark:text-[#9AA093] block">{t('Fitbit')}</span><strong className="text-blue-600 dark:text-blue-400">{getFitbitCode(selectedAssignment)}</strong></div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">{t('Start Date')}</label>
+                    <input
+                      type="datetime-local"
+                      value={editStartDate}
+                      onChange={(e) => setEditStartDate(e.target.value)}
+                      required
+                      className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark px-4 py-3 text-xs text-senda-main dark:text-white outline-none focus:border-senda-secondary"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">{t('Estimated End Date')}</label>
+                    <input
+                      type="datetime-local"
+                      value={editEstimatedEndDate}
+                      onChange={(e) => setEditEstimatedEndDate(e.target.value)}
+                      className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark px-4 py-3 text-xs text-senda-main dark:text-white outline-none focus:border-senda-secondary"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">{t('Real End Date Optional')}</label>
+                    <input
+                      type="datetime-local"
+                      value={editRealEndDate}
+                      onChange={(e) => setEditRealEndDate(e.target.value)}
+                      className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark px-4 py-3 text-xs text-senda-main dark:text-white outline-none focus:border-senda-secondary"
+                    />
+                  </div>
+
+                  {editError && <p className="text-xs text-red-600 dark:text-red-400 font-medium">{editError}</p>}
+
+                  <div className="mt-6 flex justify-end gap-3 pt-2 border-t border-senda-border dark:border-senda-darkborder">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditing(false)}
+                      className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-5 py-3 text-xs font-bold text-senda-main dark:text-slate-300 hover:bg-senda-light dark:hover:bg-slate-700 transition cursor-pointer"
+                    >
+                      {t('Cancel')}
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={editSubmitting}
+                      className="rounded-2xl bg-senda-primary hover:bg-[#184232] dark:bg-senda-accent dark:text-senda-dark dark:hover:bg-[#59a67e] px-5 py-3 text-xs font-bold text-white transition disabled:opacity-60 cursor-pointer shadow-md"
+                    >
+                      {editSubmitting ? t('Processing') : t('Save Changes')}
                     </button>
                   </div>
-                </div>
-              </>
-            ) : (
-              <form onSubmit={handleUpdateAssignment} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3 text-sm text-senda-main dark:text-slate-300 bg-senda-light dark:bg-senda-dark p-4 rounded-2xl border border-senda-border dark:border-senda-darkborder">
-                  <div><span className="text-[11px] text-[#6B6F66] dark:text-[#9AA093] block">{t('Participants Resource')}</span><strong className="text-senda-main dark:text-white">{getParticipantCode(selectedAssignment)}</strong></div>
-                  <div><span className="text-[11px] text-[#6B6F66] dark:text-[#9AA093] block">{t('Fitbit')}</span><strong className="text-blue-600 dark:text-blue-400">{getFitbitCode(selectedAssignment)}</strong></div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">{t('Start Date')}</label>
-                  <input
-                    type="datetime-local"
-                    value={editStartDate}
-                    onChange={(e) => setEditStartDate(e.target.value)}
-                    required
-                    className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark px-4 py-3 text-xs text-senda-main dark:text-white outline-none focus:border-senda-secondary"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">{t('Estimated End Date')}</label>
-                  <input
-                    type="datetime-local"
-                    value={editEstimatedEndDate}
-                    onChange={(e) => setEditEstimatedEndDate(e.target.value)}
-                    className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark px-4 py-3 text-xs text-senda-main dark:text-white outline-none focus:border-senda-secondary"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">{t('Real End Date Optional')}</label>
-                  <input
-                    type="datetime-local"
-                    value={editRealEndDate}
-                    onChange={(e) => setEditRealEndDate(e.target.value)}
-                    className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-dark px-4 py-3 text-xs text-senda-main dark:text-white outline-none focus:border-senda-secondary"
-                  />
-                </div>
-
-                {editError && <p className="text-xs text-red-600 dark:text-red-400 font-medium">{editError}</p>}
-
-                <div className="mt-6 flex justify-end gap-3 pt-2 border-t border-senda-border dark:border-senda-darkborder">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditing(false)}
-                    className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-5 py-3 text-xs font-bold text-senda-main dark:text-slate-300 hover:bg-senda-light dark:hover:bg-slate-700 transition cursor-pointer"
-                  >
-                    {t('Cancel')}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={editSubmitting}
-                    className="rounded-2xl bg-senda-primary hover:bg-[#184232] dark:bg-senda-accent dark:text-senda-dark dark:hover:bg-[#59a67e] px-5 py-3 text-xs font-bold text-white transition disabled:opacity-60 cursor-pointer shadow-md"
-                  >
-                    {editSubmitting ? t('Processing') : t('Save Changes')}
-                  </button>
-                </div>
-              </form>
-            )}
+                </form>
+              )}
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

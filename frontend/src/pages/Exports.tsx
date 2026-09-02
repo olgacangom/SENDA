@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { CustomSelect } from '../components/CustomSelect';
 import { Pagination } from '../components/Pagination';
@@ -31,11 +32,16 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
   });
 
   const [currentPage, setCurrentPage] = useState(1);
-
   const [history, setHistory] = useState<ExportLog[]>(() => {
     const savedHistory = localStorage.getItem(storageKey);
     return savedHistory ? JSON.parse(savedHistory) : [];
   });
+
+  const [selectedCard, setSelectedCard] = useState<{ type: string; label: string; format: string } | null>(null);
+  const [filterValues, setFilterValues] = useState<{ [key: string]: string }>({});
+
+  const [participantsList, setParticipantsList] = useState<{ participant_code: string }[]>([]);
+  const [fitbitsList, setFitbitsList] = useState<{ fitbit_code: string }[]>([]);
 
   useEffect(() => {
     localStorage.setItem(storageKey, JSON.stringify(history));
@@ -46,8 +52,48 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
     setCurrentPage(1);
   }, [pageSize, settingsKey]);
 
-  const download = (type: string, label: string, format: string = 'csv') => {
-    window.open(`${API_BASE}/api/export/?type=${type}&format=${format}`, '_blank');
+  useEffect(() => {
+    const fetchDropdownData = async () => {
+      try {
+        const [pRes, fRes] = await Promise.all([
+          fetch(`${API_BASE}/api/participants/`, { credentials: 'include' }),
+          fetch(`${API_BASE}/api/fitbits/`, { credentials: 'include' })
+        ]);
+
+        if (pRes.ok) {
+          const pData = await pRes.json();
+          const pList = Array.isArray(pData)
+            ? pData
+            : pData.items || pData.participants || pData.results || [];
+          setParticipantsList(pList);
+        }
+
+        if (fRes.ok) {
+          const fData = await fRes.json();
+          const fList = Array.isArray(fData)
+            ? fData
+            : fData.items || fData.fitbits || fData.results || [];
+          setFitbitsList(fList);
+        }
+      } catch (err) {
+        console.error('Error cargando catálogos para filtros de exportación', err);
+      }
+    };
+    fetchDropdownData();
+  }, []);
+
+  const handleOpenModalOrDownload = (type: string, label: string, format: string) => {
+    if (type === 'researchers') {
+      executeDownload(type, label, format, {});
+    } else {
+      setSelectedCard({ type, label, format });
+      setFilterValues({});
+    }
+  };
+
+  const executeDownload = (type: string, label: string, format: string, filters: { [key: string]: string }) => {
+    const params = new URLSearchParams({ type, format, ...filters });
+    window.open(`${API_BASE}/api/export/?${params.toString()}`, '_blank');
 
     const now = new Date();
     const dateStr = now.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -63,6 +109,7 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
     };
 
     setHistory((prev) => [newLog, ...prev].slice(0, 25));
+    setSelectedCard(null);
   };
 
   const clearHistory = () => {
@@ -115,20 +162,13 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
 
   const getTableIcon = (type: string) => {
     switch (type) {
-      case 'participants':
-        return <div className="h-7 w-7 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div>;
-      case 'fitbits':
-        return <div className="h-7 w-7 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>;
-      case 'assignments':
-        return <div className="h-7 w-7 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg></div>;
-      case 'syncs':
-        return <div className="h-7 w-7 rounded-full bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-400 flex items-center justify-center"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg></div>;
-      case 'alerts':
-        return <div className="h-7 w-7 rounded-full bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-400 flex items-center justify-center"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg></div>;
-      case 'researchers':
-        return <div className="h-7 w-7 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg></div>;
-      default:
-        return <div className="h-7 w-7 rounded-full bg-senda-light dark:bg-senda-input text-senda-main dark:text-slate-400 flex items-center justify-center"></div>;
+      case 'participants': return <div className="h-7 w-7 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div>;
+      case 'fitbits': return <div className="h-7 w-7 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>;
+      case 'assignments': return <div className="h-7 w-7 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg></div>;
+      case 'syncs': return <div className="h-7 w-7 rounded-full bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-400 flex items-center justify-center"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg></div>;
+      case 'alerts': return <div className="h-7 w-7 rounded-full bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-400 flex items-center justify-center"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg></div>;
+      case 'researchers': return <div className="h-7 w-7 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center"><svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg></div>;
+      default: return <div className="h-7 w-7 rounded-full bg-senda-light dark:bg-senda-input text-senda-main dark:text-slate-400 flex items-center justify-center"></div>;
     }
   };
 
@@ -145,10 +185,7 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
 
   return (
     <div className="w-full text-senda-main dark:text-senda-darktext space-y-8">
-      <SectionHeader
-        title={t('Exports Title')}
-        subtitle={t('Exports Subtitle')}
-      />
+      <SectionHeader title={t('Exports Title')} subtitle={t('Exports Subtitle')} />
 
       <div className="rounded-2xl border border-[#2D6B40] dark:border-emerald-900 bg-emerald-50/30 dark:bg-emerald-950/30 p-4 flex items-center gap-3">
         <div className="h-8 w-8 rounded-xl bg-emerald-100 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0">
@@ -189,7 +226,7 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
             <div className="space-y-2">
               <button
                 type="button"
-                onClick={() => download(item.type, item.label, 'csv')}
+                onClick={() => handleOpenModalOrDownload(item.type, item.label, 'csv')}
                 className="w-full grid grid-cols-[1fr_auto_1fr] items-center rounded-xl bg-senda-primary hover:bg-[#184232] dark:bg-senda-accent dark:text-senda-dark dark:hover:bg-[#59a67e] px-4 py-3 text-[11px] font-bold text-white transition shadow-md shadow-emerald-500/20 cursor-pointer"
               >
                 <span></span>
@@ -203,7 +240,7 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
 
               <button
                 type="button"
-                onClick={() => download(item.type, item.label, 'xlsx')}
+                onClick={() => handleOpenModalOrDownload(item.type, item.label, 'xlsx')}
                 className="w-full grid grid-cols-[1fr_auto_1fr] items-center rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input hover:bg-senda-light dark:hover:bg-slate-700 px-4 py-3 text-[11px] font-bold text-senda-main dark:text-slate-300 transition shadow-sm cursor-pointer"
               >
                 <span></span>
@@ -217,6 +254,331 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
         ))}
       </div>
 
+      {selectedCard && ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[50] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+          <div className="relative w-full max-w-xl rounded-[28px] bg-senda-light dark:bg-senda-card p-7 shadow-[0_30px_60px_rgba(29,90,61,0.18)] dark:shadow-[0_30px_60px_rgba(0,0,0,0.4)]">
+
+            {/* Decoración: blobs difuminados */}
+            <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[#DCEBE1] opacity-70 blur-3xl dark:bg-[#163A29]/40" />
+            <div className="pointer-events-none absolute -bottom-16 -left-12 h-40 w-40 rounded-full bg-[#E7F1E9] opacity-80 blur-3xl dark:bg-[#153426]/30" />
+            <div
+              className="pointer-events-none absolute inset-0 opacity-[0.04] dark:opacity-[0.05]"
+              style={{
+                backgroundImage: 'linear-gradient(#1D5A3D 1px, transparent 1px), linear-gradient(90deg, #1D5A3D 1px, transparent 1px)',
+                backgroundSize: '26px 26px',
+              }}
+            />
+
+            <div className="relative">
+              <div className="mb-6 flex items-start justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#DCEBE1] dark:bg-senda-darkborder text-senda-primary dark:text-senda-accent">
+                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-senda-main dark:text-white flex items-center gap-2" style={{ fontFamily: 'Fraunces, serif' }}>
+                      <span>{t('Modal Title')}</span>
+                      <span className="text-senda-secondary dark:text-senda-accent font-semibold">{selectedCard.label}</span>
+                    </h2>
+                    <p className="text-xs text-[#6B6F66] dark:text-[#9AA093] mt-0.5">
+                      {t('Modal Subtitle')}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setSelectedCard(null)}
+                  aria-label={t('Close')}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-senda-input text-[#708077] dark:text-[#9AA093] border border-senda-border dark:border-senda-darkborder hover:text-senda-main dark:hover:text-white cursor-pointer transition"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Contenedor sin restricciones de overflow para que los CustomSelect despliequen cómodamente */}
+              <div className="space-y-4 pr-1">
+                {/* PARTICIPANTS: participant_code (select), study_status */}
+                {selectedCard.type === 'participants' && (
+                  <>
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">{t('Select Participant Label')}</label>
+                      <div className="rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-dark px-3 py-1.5 mt-1">
+                        <CustomSelect
+                          value={filterValues.participant_code || 'ALL'}
+                          onChange={(val) => setFilterValues({ ...filterValues, participant_code: String(val) })}
+                          options={[
+                            { label: t('All participants'), value: 'ALL' },
+                            ...participantsList.map((p) => ({ label: p.participant_code, value: p.participant_code }))
+                          ]}
+                          width="w-full"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">{t('Study Status')}</label>
+                      <div className="rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-dark px-3 py-1.5 mt-1">
+                        <CustomSelect
+                          value={filterValues.study_status || 'ALL'}
+                          onChange={(val) => setFilterValues({ ...filterValues, study_status: String(val) })}
+                          options={[
+                            { label: t('All status'), value: 'ALL' },
+                            { label: t('Pending'), value: 'PENDING' },
+                            { label: t('Active'), value: 'ACTIVE' },
+                            { label: t('Completed'), value: 'COMPLETED' }
+                          ]}
+                          width="w-full"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* FITBITS: fitbit_code (select), status */}
+                {selectedCard.type === 'fitbits' && (
+                  <>
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">{t('Select Fitbit Label')}</label>
+                      <div className="rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-dark px-3 py-1.5 mt-1">
+                        <CustomSelect
+                          value={filterValues.fitbit_code || 'ALL'}
+                          onChange={(val) => setFilterValues({ ...filterValues, fitbit_code: String(val) })}
+                          options={[
+                            { label: t('All Fitbits'), value: 'ALL' },
+                            ...fitbitsList.map((f) => ({ label: f.fitbit_code, value: f.fitbit_code }))
+                          ]}
+                          width="w-full"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">{t('Operational Status')}</label>
+                      <div className="rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-dark px-3 py-1.5 mt-1">
+                        <CustomSelect
+                          value={filterValues.status || 'ALL'}
+                          onChange={(val) => setFilterValues({ ...filterValues, status: String(val) })}
+                          options={[
+                            { label: t('All status'), value: 'ALL' },
+                            { label: t('Free'), value: 'FREE' },
+                            { label: t('In Use'), value: 'IN_USE' },
+                            { label: t('Maintenance'), value: 'MAINTENANCE' },
+                            { label: t('Inactive'), value: 'INACTIVE' }
+                          ]}
+                          width="w-full"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* ASSIGNMENTS: participant_code (select), fitbit_code (select), start_date, end_date, status */}
+                {selectedCard.type === 'assignments' && (
+                  <>
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">{t('Select Participant Label')}</label>
+                      <div className="rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-dark px-3 py-1.5 mt-1">
+                        <CustomSelect
+                          value={filterValues.participant_code || 'ALL'}
+                          onChange={(val) => setFilterValues({ ...filterValues, participant_code: String(val) })}
+                          options={[
+                            { label: t('All participants'), value: 'ALL' },
+                            ...participantsList.map((p) => ({ label: p.participant_code, value: p.participant_code }))
+                          ]}
+                          width="w-full"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">{t('Select Fitbit Label')}</label>
+                      <div className="rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-dark px-3 py-1.5 mt-1">
+                        <CustomSelect
+                          value={filterValues.fitbit_code || 'ALL'}
+                          onChange={(val) => setFilterValues({ ...filterValues, fitbit_code: String(val) })}
+                          options={[
+                            { label: t('All Fitbits'), value: 'ALL' },
+                            ...fitbitsList.map((f) => ({ label: f.fitbit_code, value: f.fitbit_code }))
+                          ]}
+                          width="w-full"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3.5">
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">{t('Start Date')}</label>
+                        <input
+                          type="date"
+                          value={filterValues.start_date || ''}
+                          onChange={(e) => setFilterValues({ ...filterValues, start_date: e.target.value })}
+                          className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-3.5 py-3 text-xs text-senda-main dark:text-white outline-none focus:border-senda-secondary"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">{t('Real End Date')}</label>
+                        <input
+                          type="date"
+                          value={filterValues.end_date || ''}
+                          onChange={(e) => setFilterValues({ ...filterValues, end_date: e.target.value })}
+                          className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-3.5 py-3 text-xs text-senda-main dark:text-white outline-none focus:border-senda-secondary"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">{t('Status assignment')}</label>
+                      <div className="rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-dark px-3 py-1.5 mt-1">
+                        <CustomSelect
+                          value={filterValues.status || 'ALL'}
+                          onChange={(val) => setFilterValues({ ...filterValues, status: String(val) })}
+                          options={[
+                            { label: t('All status'), value: 'ALL' },
+                            { label: t('Pending'), value: 'PENDING' },
+                            { label: t('Activa'), value: 'ACTIVE' },
+                            { label: t('Completada'), value: 'COMPLETED' }
+                          ]}
+                          width="w-full"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* SYNCS: start_date */}
+                {selectedCard.type === 'syncs' && (
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">{t('Synchronization date')}</label>
+                    <input
+                      type="date"
+                      value={filterValues.start_date || ''}
+                      onChange={(e) => setFilterValues({ ...filterValues, start_date: e.target.value })}
+                      className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-3.5 py-3 text-xs text-senda-main dark:text-white outline-none focus:border-senda-secondary"
+                    />
+                  </div>
+                )}
+
+                {/* ALERTS: type, priority, participant_code (select), fitbit_code (select), first_detected_at, resolved_at */}
+                {selectedCard.type === 'alerts' && (
+                  <>
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">{t('Alarm type')}</label>
+                      <div className="rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-dark px-3 py-1.5 mt-1">
+                        <CustomSelect
+                          value={filterValues.type || 'ALL'}
+                          onChange={(val) => setFilterValues({ ...filterValues, type: String(val) })}
+                          options={[
+                            { label: t('All alarm types'), value: 'ALL' },
+                            { label: 'SYNC_ERROR', value: 'SYNC_ERROR' },
+                            { label: 'NO_DATA_24H', value: 'NO_DATA_24H' },
+                            { label: 'DEVICE_OFF', value: 'DEVICE_OFF' },
+                            { label: 'LOW_BATTERY', value: 'LOW_BATTERY' },
+                            { label: 'TOKEN_EXPIRED', value: 'TOKEN_EXPIRED' },
+                            { label: 'DEVICE_UNLINKED', value: 'DEVICE_UNLINKED' },
+                            { label: 'NO_RECORDS', value: 'NO_RECORDS' },
+                            { label: 'HRV_UNAVAILABLE', value: 'HRV_UNAVAILABLE' },
+                            { label: 'INSUFFICIENT_SLEEP', value: 'INSUFFICIENT_SLEEP' },
+                            { label: 'INSUFFICIENT_USAGE', value: 'INSUFFICIENT_USAGE' }
+                          ]}
+                          width="w-full"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">{t('Priority')}</label>
+                      <div className="rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-dark px-3 py-1.5 mt-1">
+                        <CustomSelect
+                          value={filterValues.priority || 'ALL'}
+                          onChange={(val) => setFilterValues({ ...filterValues, priority: String(val) })}
+                          options={[
+                            { label: t('All priorities'), value: 'ALL' },
+                            { label: t('High'), value: 'HIGH' },
+                            { label: t('Medium'), value: 'MEDIUM' }
+                          ]}
+                          width="w-full"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3.5">
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">{t('Select Participant Label')}</label>
+                        <div className="rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-dark px-3 py-1.5 mt-1">
+                          <CustomSelect
+                            value={filterValues.participant_code || 'ALL'}
+                            onChange={(val) => setFilterValues({ ...filterValues, participant_code: String(val) })}
+                            options={[
+                              { label: t('All participants'), value: 'ALL' },
+                              ...participantsList.map((p) => ({ label: p.participant_code, value: p.participant_code }))
+                            ]}
+                            width="w-full"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">{t('Select Fitbit Label')}</label>
+                        <div className="rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-dark px-3 py-1.5 mt-1">
+                          <CustomSelect
+                            value={filterValues.fitbit_code || 'ALL'}
+                            onChange={(val) => setFilterValues({ ...filterValues, fitbit_code: String(val) })}
+                            options={[
+                              { label: t('All Fitbits'), value: 'ALL' },
+                              ...fitbitsList.map((f) => ({ label: f.fitbit_code, value: f.fitbit_code }))
+                            ]}
+                            width="w-full"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3.5">
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">{t('Detected')}</label>
+                        <input
+                          type="date"
+                          value={filterValues.first_detected_at || ''}
+                          onChange={(e) => setFilterValues({ ...filterValues, first_detected_at: e.target.value })}
+                          className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-3.5 py-3 text-xs text-senda-main dark:text-white outline-none focus:border-senda-secondary"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">{t('Resolved')}</label>
+                        <input
+                          type="date"
+                          value={filterValues.resolved_at || ''}
+                          onChange={(e) => setFilterValues({ ...filterValues, resolved_at: e.target.value })}
+                          className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-3.5 py-3 text-xs text-senda-main dark:text-white outline-none focus:border-senda-secondary"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-5 mt-5 border-t border-senda-border dark:border-senda-darkborder">
+                <button
+                  type="button"
+                  onClick={() => setSelectedCard(null)}
+                  className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-5 py-3 text-xs font-bold text-senda-main dark:text-slate-300 hover:bg-senda-light dark:hover:bg-slate-700 transition cursor-pointer"
+                >
+                  {t('Cancel')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const cleanedFilters: { [key: string]: string } = {};
+                    Object.entries(filterValues).forEach(([k, v]) => {
+                      if (v && v !== 'ALL') cleanedFilters[k] = v;
+                    });
+                    executeDownload(selectedCard.type, selectedCard.label, selectedCard.format, cleanedFilters);
+                  }}
+                  className="rounded-2xl bg-senda-primary hover:bg-[#184232] dark:bg-senda-accent dark:text-senda-dark dark:hover:bg-[#59a67e] px-5 py-3 text-xs font-bold text-white transition cursor-pointer shadow-md"
+                >
+                  {t('Download Filtered File')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* HISTORIAL DE DESCARGAS */}
       <div className="rounded-3xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-card p-6 shadow-xl transition-colors duration-300 space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">
@@ -266,17 +628,16 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
               </thead>
               <tbody className="divide-y divide-senda-border dark:divide-senda-darkborder text-xs">
                 {paginatedHistory.map((log) => (
-                  <tr key={log.id} className="hover:bg-senda-light/80 dark:hover:bg-senda-dark/50 transition-colors duration-150">
+                  <tr key={log.id} className="cursor-pointer transition-all duration-200 hover:bg-senda-light/80 dark:hover:bg-senda-dark/50 hover:shadow-[inset_3px_0_0_0_theme(colors.senda-primary)] dark:hover:shadow-[inset_3px_0_0_0_theme(colors.senda-accent)]">
                     <td className="py-3.5 pl-2 flex items-center gap-3">
                       {getTableIcon(log.type)}
                       <span className="font-semibold text-senda-main dark:text-slate-200 first-letter:uppercase lowercase">{log.label}</span>
                     </td>
                     <td className="py-3.5">
-                      <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-extrabold ring-1 ring-inset ${
-                        log.format === 'XLSX'
-                          ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 ring-emerald-200 dark:ring-emerald-900'
-                          : 'bg-sky-50 dark:bg-sky-950 text-sky-700 dark:text-sky-300 ring-sky-200 dark:ring-sky-900'
-                      }`}>
+                      <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-extrabold ring-1 ring-inset ${log.format === 'XLSX'
+                        ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 ring-emerald-200 dark:ring-emerald-900'
+                        : 'bg-sky-50 dark:bg-sky-950 text-sky-700 dark:text-sky-300 ring-sky-200 dark:ring-sky-900'
+                        }`}>
                         {log.format}
                       </span>
                     </td>
@@ -294,7 +655,7 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
                     </td>
                     <td className="py-3.5 pr-2 text-right">
                       <button
-                        onClick={() => download(log.type, log.label, log.format.toLowerCase() === 'xlsx' ? 'xlsx' : 'csv')}
+                        onClick={() => executeDownload(log.type, log.label, log.format.toLowerCase() === 'xlsx' ? 'xlsx' : 'csv', {})}
                         title="Volver a descargar"
                         className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input text-[#6B6F66] dark:text-slate-300 hover:bg-senda-light dark:hover:bg-slate-700 hover:text-senda-primary dark:hover:text-senda-accent transition shadow-sm cursor-pointer"
                       >
@@ -312,11 +673,7 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
           <p className="py-8 text-center text-xs text-slate-400">{t('No Downloads')}</p>
         )}
 
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-        />
+        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
       </div>
     </div>
   );

@@ -59,7 +59,7 @@ const CustomMultiSearchableSelect: React.FC<{
   };
 
   const getDisplayText = () => {
-    if (selectedValues.length === 0) return `${t('All')} ${label.toLowerCase()}s`;
+    if (selectedValues.length === 0) return `${t('All')} ${label.toLowerCase()}`;
     if (selectedValues.length === 1) return selectedValues[0];
     return `${selectedValues.length} ${label.toLowerCase()}s ${t('Selected plural')}`;
   };
@@ -456,7 +456,7 @@ const PhysiologicalData: React.FC = () => {
                 {paginatedData.map((item, index) => {
                   const status = participantsStatusMap[item.participant_code] || 'ACTIVE';
                   return (
-                    <tr key={`${item.participant_code}-${index}`} className="hover:bg-senda-light/80 dark:hover:bg-senda-dark/50 transition-colors">
+                    <tr key={`${item.participant_code}-${index}`} className="cursor-pointer transition-all duration-200 hover:bg-senda-light/80 dark:hover:bg-senda-dark/50 hover:shadow-[inset_3px_0_0_0_theme(colors.senda-primary)] dark:hover:shadow-[inset_3px_0_0_0_theme(colors.senda-accent)]">
                       <td className="px-6 py-4 text-xs font-bold text-senda-main dark:text-white">{item.participant_code}</td>
                       <td className="px-6 py-4 text-xs">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-xl text-[10px] font-bold ${status === 'COMPLETED'

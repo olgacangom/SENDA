@@ -198,7 +198,7 @@ const Admin: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-senda-border dark:divide-senda-darkborder">
                 {paginatedResearchers.map((r) => (
-                  <tr key={r.email} className="hover:bg-senda-light/80 dark:hover:bg-senda-dark/50 transition-colors">
+                  <tr key={r.email} className="cursor-pointer transition-all duration-200 hover:bg-senda-light/80 dark:hover:bg-senda-dark/50 hover:shadow-[inset_3px_0_0_0_theme(colors.senda-primary)] dark:hover:shadow-[inset_3px_0_0_0_theme(colors.senda-accent)]">
                     <td className="px-6 py-4 text-xs font-bold text-senda-main dark:text-white">{r.email}</td>
                     <td className="px-6 py-4 text-xs text-[#6B6F66] dark:text-[#9AA093]">{new Date(r.created_at).toLocaleDateString('es-ES')}</td>
                     <td className="px-6 py-4 text-xs">

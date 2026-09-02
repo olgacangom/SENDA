@@ -286,7 +286,7 @@ const Syncs: React.FC = () => {
                   const accountEmail = getAccountEmail(sync);
 
                   return (
-                    <tr key={sync.id || index} className="hover:bg-senda-light/80 dark:hover:bg-senda-dark/50 transition-colors">
+                    <tr key={sync.id || index} className="cursor-pointer transition-all duration-200 hover:bg-senda-light/80 dark:hover:bg-senda-dark/50 hover:shadow-[inset_3px_0_0_0_theme(colors.senda-primary)] dark:hover:shadow-[inset_3px_0_0_0_theme(colors.senda-accent)]">
                       <td className="px-6 py-4 text-xs font-mono text-[#6B6F66] dark:text-[#9AA093] font-semibold">{shortId}</td>
                       <td className="px-6 py-4 text-xs font-semibold text-senda-main dark:text-slate-200 truncate" title={accountEmail}>{accountEmail}</td>
                       <td className="px-6 py-4 text-xs text-[#6B6F66] dark:text-[#9AA093]">{new Date(sync.sync_date).toLocaleString('es-ES')}</td>

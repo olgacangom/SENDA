@@ -54,6 +54,10 @@
   @apply rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-3 py-2 text-[11px] font-bold text-senda-main dark:text-slate-300 transition hover:bg-senda-light dark:hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer;
 }
 
+@utility senda-stat-card {
+  @apply flex items-center gap-3 rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/60 dark:bg-senda-input/60 px-4 py-2.5 backdrop-blur-sm transition-all hover:border-senda-secondary/50 dark:hover:border-senda-accent/40;
+}
+
 @keyframes brain-spin-3d {
   0%   { transform: rotateY(0deg) rotateX(4deg); }
   50%  { transform: rotateY(180deg) rotateX(4deg); }

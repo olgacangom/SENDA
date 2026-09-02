@@ -10,7 +10,7 @@ import PhysiologicalData from './pages/PhysiologicalData';
 import Alerts from './pages/Alerts';
 import Exports from './pages/Exports';
 import Admin from './pages/Admin';
-import i18n from './i18n';
+
 
 const App: React.FC = () => {
   const { t, i18n: currentI18n } = useTranslation();
@@ -159,7 +159,7 @@ const App: React.FC = () => {
         { key: 'physiological', label: t('Physiological Data'), icon: icons.physiological },
         { key: 'alerts', label: t('Alerts'), icon: icons.alerts },
         { key: 'exports', label: t('Exports'), icon: icons.exports },
-        { key: 'syncs', label: t('Synchronizations'), icon: icons.syncs },
+        { key: 'syncs', label: t('Syncs'), icon: icons.syncs },
       ];
     } else {
       return [
@@ -169,7 +169,7 @@ const App: React.FC = () => {
         { key: 'physiological', label: t('Physiological Data'), icon: icons.physiological },
         { key: 'alerts', label: t('Alerts'), icon: icons.alerts },
         { key: 'exports', label: t('Exports'), icon: icons.exports },
-        { key: 'syncs', label: t('Synchronizations'), icon: icons.syncs },
+        { key: 'syncs', label: t('Syncs'), icon: icons.syncs },
         { key: 'admin', label: t('Roles & Permissions'), icon: icons.admin },
       ];
     }
@@ -279,7 +279,7 @@ const App: React.FC = () => {
                   {/* SELECTOR DE IDIOMA */}
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => i18n.changeLanguage('es')}
+                      onClick={() => currentI18n.changeLanguage('es')}
                       className={`flex h-7 items-center justify-center gap-1.5 rounded-full px-2.5 text-xs transition-all cursor-pointer ${
                         currentI18n.language === 'es'
                           ? 'bg-white dark:bg-senda-darkborder text-senda-main dark:text-white shadow-sm font-bold border border-[#8DC29A] dark:border-[#3E8563]'
@@ -290,7 +290,7 @@ const App: React.FC = () => {
                       <span>ES</span>
                     </button>
                     <button
-                      onClick={() => i18n.changeLanguage('en')}
+                      onClick={() => currentI18n.changeLanguage('en')}
                       className={`flex h-7 items-center justify-center gap-1.5 rounded-full px-2.5 text-xs transition-all cursor-pointer ${
                         currentI18n.language === 'en'
                           ? 'bg-white dark:bg-senda-darkborder text-senda-main dark:text-white shadow-sm font-bold border border-[#8DC29A] dark:border-[#3E8563]'
@@ -349,7 +349,17 @@ const App: React.FC = () => {
             {/* BARRA SUPERIOR STICKY */}
             <header className="h-[65px] border-b border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-card px-8 flex items-center justify-end shrink-0 sticky top-0 z-10">
               <div className="flex items-center gap-6">
-                <span className="text-xs text-[#6B6F66] dark:text-[#9AA093] font-medium capitalize">{currentDate}</span>
+                {/* STAT CARD: Fecha */}
+                <div className="senda-stat-card">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-xl bg-[#DCEBE1] dark:bg-senda-darkborder text-senda-primary dark:text-senda-accent">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div className="leading-tight">
+                    <p className="text-xs text-[#6B6F66] dark:text-[#9AA093] font-medium capitalize">{currentDate}</p>
+                  </div>
+                </div>
                 <div className="flex items-center gap-3 pl-6 border-l border-senda-border dark:border-senda-darkborder">
                   <div className="h-9 w-9 rounded-full bg-senda-primary dark:bg-senda-accent dark:text-[#0F1712] text-white flex items-center justify-center text-xs font-bold shadow-sm">
                     {getInitials(currentUser)}

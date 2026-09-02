@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { CustomSelect } from '../components/CustomSelect';
 import { Pagination } from '../components/Pagination';
 import { SectionHeader } from '../components/SectionHeader';
+import ReactDOM from 'react-dom';
 
 const API_BASE = 'http://localhost:1574';
 
@@ -122,6 +123,13 @@ const Fitbits: React.FC = () => {
     { label: 15, value: 15 },
     { label: 20, value: 20 },
     { label: 25, value: 25 },
+  ];
+
+  const statusOptions = [
+    { label: t('Free'), value: 'FREE' },
+    { label: t('In Use'), value: 'IN_USE' },
+    { label: t('Maintenance'), value: 'MAINTENANCE' },
+    { label: t('Inactive'), value: 'INACTIVE' },
   ];
 
   return (
@@ -261,7 +269,7 @@ const Fitbits: React.FC = () => {
                     <tr
                       key={fitbit.fitbit_code}
                       onClick={() => setSelectedFitbit(fitbit)}
-                      className="cursor-pointer hover:bg-senda-light/80 dark:hover:bg-senda-dark/50 transition-colors"
+                      className="cursor-pointer transition-all duration-200 hover:bg-senda-light/80 dark:hover:bg-senda-dark/50 hover:shadow-[inset_3px_0_0_0_theme(colors.senda-primary)] dark:hover:shadow-[inset_3px_0_0_0_theme(colors.senda-accent)]"
                     >
                       <td className="px-6 py-4 text-xs font-bold text-senda-main dark:text-white flex items-center gap-3">
                         <div className="h-8 w-8 rounded-xl bg-senda-light dark:bg-senda-dark text-[#6B6F66] dark:text-[#9AA093] flex items-center justify-center font-bold shadow-sm border border-senda-border dark:border-senda-darkborder">
@@ -299,192 +307,241 @@ const Fitbits: React.FC = () => {
         )}
       </div>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-senda-card border border-senda-border dark:border-senda-darkborder p-6 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-senda-main dark:text-white" style={{ fontFamily: 'Fraunces, serif' }}>{t('Register New Fitbit')}</h2>
+      {isModalOpen && ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[50] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+          <div className="relative w-full max-w-[400px] overflow-hidden rounded-[28px] bg-senda-light dark:bg-senda-card p-7 shadow-[0_30px_60px_rgba(29,90,61,0.18)] dark:shadow-[0_30px_60px_rgba(0,0,0,0.4)]">
+
+            {/* Decoración: blobs difuminados */}
+            <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[#DCEBE1] opacity-70 blur-3xl dark:bg-[#163A29]/40" />
+            <div className="pointer-events-none absolute -bottom-16 -left-12 h-40 w-40 rounded-full bg-[#E7F1E9] opacity-80 blur-3xl dark:bg-[#153426]/30" />
+            <div
+              className="pointer-events-none absolute inset-0 opacity-[0.04] dark:opacity-[0.05]"
+              style={{
+                backgroundImage: 'linear-gradient(#1D5A3D 1px, transparent 1px), linear-gradient(90deg, #1D5A3D 1px, transparent 1px)',
+                backgroundSize: '26px 26px',
+              }}
+            />
+
+            <div className="relative">
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-[#6B6F66] dark:text-[#9AA093] hover:text-senda-main dark:hover:text-white cursor-pointer text-base font-bold"
+                aria-label={t('Close')}
+                className="absolute right-0 top-0 flex h-6.5 w-6.5 cursor-pointer items-center justify-center rounded-full border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input text-[#708077] dark:text-[#9AA093] hover:text-senda-main dark:hover:text-white transition"
               >
-                ×
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
-            </div>
 
-            <form onSubmit={handleCreateFitbit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">
-                  {t('Automatic Code')}
-                </label>
-                <input
-                  type="text"
-                  value={nextCode}
-                  disabled
-                  className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-input px-4 py-3 text-sm font-semibold text-slate-500 dark:text-slate-400 cursor-not-allowed"
-                />
+              {/* Icono con punto de estado */}
+              <div className="mb-4 flex justify-center">
+                <div className="relative flex h-[58px] w-[58px] items-center justify-center rounded-2xl bg-[#DCEBE1] dark:bg-senda-darkborder shadow-[0_10px_24px_rgba(29,90,61,0.14)]">
+                  <svg className="h-7 w-7 text-senda-primary dark:text-senda-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  <span className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full border-[3px] border-senda-light dark:border-senda-card bg-[#4FA477]" />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] mb-1">
-                  {t('Operational Status')}
-                </label>
-                <div className="relative">
-                  <select
-                    value={selectedStatus}
-                    onChange={(e) => setSelectedStatus(e.target.value)}
-                    className="w-full appearance-none rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-input px-4 py-3 pr-10 text-sm text-senda-main dark:text-white outline-none focus:border-senda-secondary cursor-pointer"
-                  >
-                    <option value="FREE">{t('Free')}</option>
-                    <option value="IN_USE">{t('In Use')}</option>
-                    <option value="MAINTENANCE">{t('Maintenance')}</option>
-                    <option value="INACTIVE">{t('Inactive')}</option>
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              <h2
+                className="mt-1.5 mb-1 text-center text-[20px] font-semibold text-senda-main dark:text-white"
+                style={{ fontFamily: 'Fraunces, serif' }}
+              >
+                {t('Register New Fitbit')}
+              </h2>
+              <p className="mb-5 text-center text-xs leading-relaxed text-[#708077] dark:text-[#9AA093]">
+                {t('Register New Fitbit Subtitle')}
+              </p>
+
+              <form onSubmit={handleCreateFitbit} className="space-y-3.5" autoComplete="off">
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">
+                    {t('Automatic Code')}
+                  </label>
+                  <div className="flex items-center gap-2.5 rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light dark:bg-senda-input px-3.5 py-2.5 opacity-80">
+                    <svg className="h-4 w-4 shrink-0 text-[#A2AEA7]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
                     </svg>
+                    <input
+                      type="text"
+                      value={nextCode}
+                      disabled
+                      className="w-full bg-transparent text-sm font-semibold text-slate-500 dark:text-slate-400 outline-none cursor-not-allowed"
+                    />
                   </div>
                 </div>
-              </div>
 
-              {submitError && <p className="text-sm text-red-600 dark:text-red-400">{submitError}</p>}
-              {submitSuccess && <p className="text-sm text-emerald-600 dark:text-emerald-400">{submitSuccess}</p>}
 
-              <div className="mt-6 flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-5 py-3 text-sm font-semibold text-senda-main dark:text-slate-300 hover:bg-senda-light dark:hover:bg-slate-700 cursor-pointer"
-                >
-                  {t('Cancel')}
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="rounded-2xl bg-senda-primary hover:bg-[#184232] dark:bg-senda-accent dark:text-senda-dark dark:hover:bg-[#59a67e] px-5 py-3 text-sm font-semibold text-white transition disabled:opacity-60 cursor-pointer"
-                >
-                  {submitting ? t('Processing') : t('Save Fitbit')}
-                </button>
-              </div>
-            </form>
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">
+                    {t('Operational Status')}
+                  </label>
+                  <div className="rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-dark px-3 py-1.5 mt-1">
+                    <CustomSelect
+                      value={selectedStatus}
+                      onChange={(val) => setSelectedStatus(String(val))}
+                      options={statusOptions}
+                      width="w-full"
+                    />
+                  </div>
+                </div>
+
+                {submitError && <p className="text-xs text-red-600 dark:text-red-400">{submitError}</p>}
+                {submitSuccess && <p className="text-xs text-emerald-600 dark:text-emerald-400">{submitSuccess}</p>}
+
+                <div className="pt-1.5 space-y-2.5">
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="group flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-senda-primary dark:bg-senda-accent px-4 py-3.5 text-sm font-semibold text-white dark:text-senda-dark shadow-[0_14px_28px_rgba(29,90,61,0.22)] transition-all hover:-translate-y-0.5 hover:bg-[#174A32] dark:hover:bg-[#8BD7AC] disabled:opacity-60 disabled:hover:translate-y-0"
+                  >
+                    {submitting ? t('Processing') : t('Save Fitbit')}
+                    {!submitting && (
+                      <svg className="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="w-full cursor-pointer rounded-2xl border border-senda-border dark:border-senda-darkborder bg-transparent px-4 py-3 text-sm font-semibold text-[#708077] dark:text-[#9AA093] hover:bg-white dark:hover:bg-senda-input transition"
+                  >
+                    {t('Cancel')}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {selectedFitbit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-xl rounded-3xl bg-white dark:bg-senda-card border border-senda-border dark:border-senda-darkborder p-7 shadow-2xl">
-            <div className="mb-6 flex items-start justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#DCEBE1] dark:bg-senda-darkborder text-senda-primary dark:text-senda-accent">
-                  <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-xl font-extrabold text-senda-main dark:text-white" style={{ fontFamily: 'Fraunces, serif' }}>{t('Fitbit Detail')}</h2>
-                  <p className="text-xs text-[#6B6F66] dark:text-[#9AA093]">{t('Fitbit Full Info')}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedFitbit(null)}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-senda-light dark:bg-senda-input text-[#6B6F66] dark:text-slate-300 hover:border-senda-border dark:hover:bg-slate-700 cursor-pointer transition"
-              >
-                ✕
-              </button>
-            </div>
+      {selectedFitbit && ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[50] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+          <div className="relative w-full max-w-xl rounded-[28px] bg-senda-light dark:bg-senda-card p-7 shadow-[0_30px_60px_rgba(29,90,61,0.18)] dark:shadow-[0_30px_60px_rgba(0,0,0,0.4)]">
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-              <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
-                <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Code')}</span>
-                <span className="text-sm font-bold text-senda-main dark:text-white">{selectedFitbit.fitbit_code}</span>
-              </div>
+            {/* Decoración: blobs difuminados */}
+            <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[#DCEBE1] opacity-70 blur-3xl dark:bg-[#163A29]/40" />
+            <div className="pointer-events-none absolute -bottom-16 -left-12 h-40 w-40 rounded-full bg-[#E7F1E9] opacity-80 blur-3xl dark:bg-[#153426]/30" />
+            <div
+              className="pointer-events-none absolute inset-0 opacity-[0.04] dark:opacity-[0.05]"
+              style={{
+                backgroundImage: 'linear-gradient(#1D5A3D 1px, transparent 1px), linear-gradient(90deg, #1D5A3D 1px, transparent 1px)',
+                backgroundSize: '26px 26px',
+              }}
+            />
 
-              <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
-                <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Status')}</span>
-                <div className="flex flex-col gap-2">
+            <div className="relative">
+              <div className="mb-6 flex items-start justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#DCEBE1] dark:bg-senda-darkborder text-senda-primary dark:text-senda-accent">
+                    <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                  </div>
                   <div>
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold capitalize ${selectedFitbit.status.toLowerCase().includes('in_use') || selectedFitbit.status.toLowerCase().includes('uso')
+                    <h2 className="text-xl font-extrabold text-senda-main dark:text-white" style={{ fontFamily: 'Fraunces, serif' }}>{t('Fitbit Detail')}</h2>
+                    <p className="text-xs text-[#6B6F66] dark:text-[#9AA093]">{t('Fitbit Full Info')}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedFitbit(null)}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-senda-input text-[#6B6F66] dark:text-slate-300 border border-senda-border dark:border-senda-darkborder hover:text-senda-main dark:hover:text-white cursor-pointer transition"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+                <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
+                  <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Code')}</span>
+                  <span className="text-sm font-bold text-senda-main dark:text-white">{selectedFitbit.fitbit_code}</span>
+                </div>
+
+                <div className="rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/70 dark:bg-senda-input/50 p-4 flex flex-col justify-center">
+                  <span className="text-[11px] font-medium text-senda-secondary dark:text-senda-accent mb-1">{t('Status')}</span>
+                  <div className="flex flex-col gap-2">
+                    <div>
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold capitalize ${selectedFitbit.status.toLowerCase().includes('in_use') || selectedFitbit.status.toLowerCase().includes('uso')
                         ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300'
                         : selectedFitbit.status.toLowerCase().includes('free') || selectedFitbit.status.toLowerCase().includes('libre')
                           ? 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300'
                           : 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300'
-                      }`}>
-                      <span className="h-1.5 w-1.5 rounded-full bg-current"></span>
-                      {selectedFitbit.status.replace('_', ' ').toLowerCase()}
-                    </span>
-                  </div>
+                        }`}>
+                        <span className="h-1.5 w-1.5 rounded-full bg-current"></span>
+                        {selectedFitbit.status.replace('_', ' ').toLowerCase()}
+                      </span>
+                    </div>
 
-                  <select
-                    value={selectedFitbit.status}
-                    onChange={async (e) => {
-                      const newStatus = e.target.value;
-                      try {
-                        const resp = await fetch(`${API_BASE}/api/fitbits/update/status/`, {
-                          method: 'POST',
-                          credentials: 'include',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ fitbit_code: selectedFitbit.fitbit_code, status: newStatus }),
-                        });
-                        if (resp.ok) {
-                          setSelectedFitbit({ ...selectedFitbit, status: newStatus });
-                          loadFitbits();
-                        } else {
-                          alert(t('Error updating status'));
-                        }
-                      } catch {
-                        alert(t('Server connection error'));
-                      }
-                    }}
-                    className="w-full rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-dark px-3 py-2 text-xs text-senda-main dark:text-white outline-none cursor-pointer mt-1"
-                  >
-                    <option value="FREE">{t('Free')}</option>
-                    <option value="IN_USE">{t('In Use')}</option>
-                    <option value="MAINTENANCE">{t('Maintenance')}</option>
-                    <option value="INACTIVE">{t('Inactive')}</option>
-                  </select>
+                    <div className="rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-dark px-3 py-1.5 mt-1">
+                      <CustomSelect
+                        value={selectedFitbit.status}
+                        onChange={async (newStatus) => {
+                          try {
+                            const resp = await fetch(`${API_BASE}/api/fitbits/update/status/`, {
+                              method: 'POST',
+                              credentials: 'include',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ fitbit_code: selectedFitbit.fitbit_code, status: newStatus }),
+                            });
+                            if (resp.ok) {
+                              setSelectedFitbit({ ...selectedFitbit, status: newStatus });
+                              loadFitbits();
+                            } else {
+                              alert(t('Error updating status'));
+                            }
+                          } catch {
+                            alert(t('Server connection error'));
+                          }
+                        }}
+                        options={statusOptions}
+                        width="w-full"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2 border-t border-senda-border dark:border-senda-darkborder">
-              <button
-                onClick={async () => {
-                  if (!selectedFitbit) return;
-                  if (!confirm(`${t('Delete Fitbit Confirmation')} ${selectedFitbit.fitbit_code}?`)) return;
-                  try {
-                    const resp = await fetch(`${API_BASE}/api/fitbits/delete/`, {
-                      method: 'DELETE',
-                      credentials: 'include',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ fitbit_code: selectedFitbit.fitbit_code }),
-                    });
-                    const j = await resp.json();
-                    if (resp.ok) {
-                      setSelectedFitbit(null);
-                      loadFitbits();
-                    } else {
-                      alert(j.error || t('Delete Fitbit error'));
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2 border-t border-senda-border dark:border-senda-darkborder">
+                <button
+                  onClick={async () => {
+                    if (!selectedFitbit) return;
+                    if (!confirm(`${t('Delete Fitbit Confirmation')} ${selectedFitbit.fitbit_code}?`)) return;
+                    try {
+                      const resp = await fetch(`${API_BASE}/api/fitbits/delete/`, {
+                        method: 'DELETE',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ fitbit_code: selectedFitbit.fitbit_code }),
+                      });
+                      const j = await resp.json();
+                      if (resp.ok) {
+                        setSelectedFitbit(null);
+                        loadFitbits();
+                      } else {
+                        alert(j.error || t('Delete Fitbit error'));
+                      }
+                    } catch (e) {
+                      alert(t('Server connection error'));
                     }
-                  } catch (e) {
-                    alert(t('Server connection error'));
-                  }
-                }}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/50 px-5 py-3 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-100 transition cursor-pointer"
-              >
-                {t('Delete Fitbit')}
-              </button>
+                  }}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/50 px-5 py-3 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-100 transition cursor-pointer"
+                >
+                  {t('Delete Fitbit')}
+                </button>
 
-              <button
-                onClick={() => setSelectedFitbit(null)}
-                className="w-full sm:w-auto rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-6 py-3 text-xs font-bold text-senda-main dark:text-slate-300 hover:bg-senda-light dark:hover:bg-slate-700 transition cursor-pointer"
-              >
-                {t('Close')}
-              </button>
+                <button
+                  onClick={() => setSelectedFitbit(null)}
+                  className="w-full sm:w-auto rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-6 py-3 text-xs font-bold text-senda-main dark:text-slate-300 hover:bg-senda-light dark:hover:bg-slate-700 transition cursor-pointer"
+                >
+                  {t('Close')}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
