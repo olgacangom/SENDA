@@ -39,9 +39,12 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
 
   const [selectedCard, setSelectedCard] = useState<{ type: string; label: string; format: string } | null>(null);
   const [filterValues, setFilterValues] = useState<{ [key: string]: string }>({});
+  const [modalError, setModalError] = useState<string | null>(null);
 
   const [participantsList, setParticipantsList] = useState<{ participant_code: string }[]>([]);
   const [fitbitsList, setFitbitsList] = useState<{ fitbit_code: string }[]>([]);
+
+  const todayStr = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     localStorage.setItem(storageKey, JSON.stringify(history));
@@ -62,17 +65,13 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
 
         if (pRes.ok) {
           const pData = await pRes.json();
-          const pList = Array.isArray(pData)
-            ? pData
-            : pData.items || pData.participants || pData.results || [];
+          const pList = Array.isArray(pData) ? pData : pData.items || pData.participants || pData.results || [];
           setParticipantsList(pList);
         }
 
         if (fRes.ok) {
           const fData = await fRes.json();
-          const fList = Array.isArray(fData)
-            ? fData
-            : fData.items || fData.fitbits || fData.results || [];
+          const fList = Array.isArray(fData) ? fData : fData.items || fData.fitbits || fData.results || [];
           setFitbitsList(fList);
         }
       } catch (err) {
@@ -84,33 +83,170 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
 
   const handleOpenModalOrDownload = (type: string, label: string, format: string) => {
     if (type === 'researchers') {
-      executeDownload(type, label, format, {});
+      const params = new URLSearchParams({ type, format });
+      window.open(`${API_BASE}/api/export/?${params.toString()}`, '_blank');
+
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+      setHistory((prev) => [{
+        id: Math.random().toString(36).substring(2, 9),
+        type, label, format: format.toUpperCase(), dateStr, timeStr,
+      }, ...prev].slice(0, 25));
     } else {
       setSelectedCard({ type, label, format });
       setFilterValues({});
+      setModalError(null);
     }
   };
 
-  const executeDownload = (type: string, label: string, format: string, filters: { [key: string]: string }) => {
-    const params = new URLSearchParams({ type, format, ...filters });
-    window.open(`${API_BASE}/api/export/?${params.toString()}`, '_blank');
+const executeDownload = async (type: string, label: string, format: string, filters: { [key: string]: string }) => {
+    setModalError(null);
 
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const todayStr = today.toISOString().split('T')[0];
 
-    const newLog: ExportLog = {
-      id: Math.random().toString(36).substring(2, 9),
-      type,
-      label,
-      format: format.toUpperCase(),
-      dateStr,
-      timeStr,
-    };
+    // Eliminar valores vacíos o 'ALL'
+    const cleanedFilters: { [key: string]: string } = {};
+    Object.entries(filters).forEach(([key, value]) => {
+        if (value && value !== 'ALL' && value.trim() !== '') {
+            cleanedFilters[key] = value.trim();
+        }
+    });
 
-    setHistory((prev) => [newLog, ...prev].slice(0, 25));
-    setSelectedCard(null);
-  };
+    const hasFilters = Object.keys(cleanedFilters).length > 0;
+
+    // Validación de fechas y años futuros
+    for (const [key, val] of Object.entries(cleanedFilters)) {
+        if (!val) continue;
+        
+        const valStr = String(val).trim();
+        const isDateField = key.includes('date') || key.includes('at') || key.includes('from') || key.includes('to');
+
+        if (isDateField) {
+            // Si contiene un año de 4 dígitos y es superior al actual
+            const yearMatch = valStr.match(/^(\d{4})/);
+            if (yearMatch) {
+                const year = parseInt(yearMatch[1], 10);
+                if (year > currentYear) {
+                    setModalError(t('El año seleccionado no puede ser posterior al actual.'));
+                    return;
+                }
+            }
+
+            // Si es una fecha completa y es mayor a la de hoy
+            if (/^\d{4}-\d{2}-\d{2}$/.test(valStr)) {
+                if (valStr > todayStr) {
+                    setModalError(t("The date must not be later than today's date"));
+                    return;
+                }
+            }
+        }
+    }
+
+    // Si no hay filtros, descargar todo sin verificación previa
+    if (!hasFilters) {
+        const downloadParams = new URLSearchParams({ type, format });
+        window.open(`${API_BASE}/api/export/?${downloadParams.toString()}`, '_blank');
+        
+        const now = new Date();
+        setHistory((prev) => [{
+            id: Math.random().toString(36).substring(2, 9),
+            type,
+            label,
+            format: format.toUpperCase(),
+            dateStr: now.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+            timeStr: now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        }, ...prev].slice(0, 25));
+        setSelectedCard(null);
+        return;
+    }
+
+    // Verificar si hay datos con los filtros aplicados
+    const checkParams = new URLSearchParams({ type, format, check: 'true', ...cleanedFilters });
+
+    try {
+        const checkResponse = await fetch(`${API_BASE}/api/export/?${checkParams.toString()}`, {
+            credentials: 'include'
+        });
+
+        const contentType = checkResponse.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            setModalError(t('Error interno en el servidor.'));
+            return;
+        }
+
+        const data = await checkResponse.json();
+
+        if (!checkResponse.ok || !data.ok) {
+            setModalError(data.error || t('There is no information for the selected filters'));
+            return;
+        }
+
+        if (!data.has_data || data.count === 0) {
+            setModalError(t('There is no information for the selected filters'));
+            return;
+        }
+
+        const downloadParams = new URLSearchParams({ type, format, ...cleanedFilters });
+        const downloadResponse = await fetch(`${API_BASE}/api/export/?${downloadParams.toString()}`, {
+            credentials: 'include'
+        });
+
+        if (!downloadResponse.ok) {
+            const errContentType = downloadResponse.headers.get("content-type");
+            if (errContentType && errContentType.includes("application/json")) {
+                const errorData = await downloadResponse.json();
+                setModalError(errorData.error || t('Error al descargar el archivo'));
+            } else {
+                setModalError(t('Error al descargar el archivo.'));
+            }
+            return;
+        }
+
+        const blob = await downloadResponse.blob();
+        if (blob.size === 0) {
+            setModalError(t('El archivo descargado está vacío'));
+            return;
+        }
+
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+
+        const contentDisposition = downloadResponse.headers.get('Content-Disposition');
+        let filename = `${type}.${format}`;
+        if (contentDisposition) {
+            const match = contentDisposition.match(/filename="([^"]+)"/) || contentDisposition.match(/filename=([^;]+)/);
+            if (match && match[1]) {
+                filename = match[1].trim().replace(/['"]/g, '');
+            }
+        }
+
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => window.URL.revokeObjectURL(url), 100);
+
+        const now = new Date();
+        setHistory((prev) => [{
+            id: Math.random().toString(36).substring(2, 9),
+            type,
+            label,
+            format: format.toUpperCase(),
+            dateStr: now.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+            timeStr: now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        }, ...prev].slice(0, 25));
+        setSelectedCard(null);
+
+    } catch (error) {
+        console.error('Error en la descarga:', error);
+        setModalError(t('Error al conectar con el servidor.'));
+    }
+};
 
   const clearHistory = () => {
     setHistory([]);
@@ -119,44 +255,13 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
 
   const getCardIcon = (type: string) => {
     switch (type) {
-      case 'participants':
-        return (
-          <svg className="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
-        );
-      case 'fitbits':
-        return (
-          <svg className="h-6 w-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        );
-      case 'assignments':
-        return (
-          <svg className="h-6 w-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-          </svg>
-        );
-      case 'syncs':
-        return (
-          <svg className="h-6 w-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        );
-      case 'alerts':
-        return (
-          <svg className="h-6 w-6 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-          </svg>
-        );
-      case 'researchers':
-        return (
-          <svg className="h-6 w-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
-        );
-      default:
-        return null;
+      case 'participants': return <svg className="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>;
+      case 'fitbits': return <svg className="h-6 w-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+      case 'assignments': return <svg className="h-6 w-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>;
+      case 'syncs': return <svg className="h-6 w-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>;
+      case 'alerts': return <svg className="h-6 w-6 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>;
+      case 'researchers': return <svg className="h-6 w-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>;
+      default: return null;
     }
   };
 
@@ -187,7 +292,7 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
     <div className="w-full text-senda-main dark:text-senda-darktext space-y-8">
       <SectionHeader title={t('Exports Title')} subtitle={t('Exports Subtitle')} />
 
-      <div className="rounded-2xl border border-[#2D6B40] dark:border-emerald-900 bg-emerald-50/30 dark:bg-emerald-950/30 p-4 flex items-center gap-3">
+      <div className="rounded-2xl border border-[#95c9ab] dark:border-emerald-900 bg-emerald-50/30 dark:bg-emerald-950/30 p-4 flex items-center gap-3">
         <div className="h-8 w-8 rounded-xl bg-emerald-100 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0">
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -258,16 +363,8 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
         <div className="fixed inset-0 z-[50] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
           <div className="relative w-full max-w-xl rounded-[28px] bg-senda-light dark:bg-senda-card p-7 shadow-[0_30px_60px_rgba(29,90,61,0.18)] dark:shadow-[0_30px_60px_rgba(0,0,0,0.4)]">
 
-            {/* Decoración: blobs difuminados */}
             <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[#DCEBE1] opacity-70 blur-3xl dark:bg-[#163A29]/40" />
             <div className="pointer-events-none absolute -bottom-16 -left-12 h-40 w-40 rounded-full bg-[#E7F1E9] opacity-80 blur-3xl dark:bg-[#153426]/30" />
-            <div
-              className="pointer-events-none absolute inset-0 opacity-[0.04] dark:opacity-[0.05]"
-              style={{
-                backgroundImage: 'linear-gradient(#1D5A3D 1px, transparent 1px), linear-gradient(90deg, #1D5A3D 1px, transparent 1px)',
-                backgroundSize: '26px 26px',
-              }}
-            />
 
             <div className="relative">
               <div className="mb-6 flex items-start justify-between">
@@ -297,9 +394,16 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
                 </button>
               </div>
 
-              {/* Contenedor sin restricciones de overflow para que los CustomSelect despliequen cómodamente */}
+              {modalError && (
+                <div className="mb-4 rounded-xl border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/40 p-3 text-xs font-medium text-rose-600 dark:text-rose-400 flex items-center gap-2">
+                  <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <span>{modalError}</span>
+                </div>
+              )}
+
               <div className="space-y-4 pr-1">
-                {/* PARTICIPANTS: participant_code (select), study_status */}
                 {selectedCard.type === 'participants' && (
                   <>
                     <div className="space-y-1.5">
@@ -335,7 +439,6 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
                   </>
                 )}
 
-                {/* FITBITS: fitbit_code (select), status */}
                 {selectedCard.type === 'fitbits' && (
                   <>
                     <div className="space-y-1.5">
@@ -372,7 +475,6 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
                   </>
                 )}
 
-                {/* ASSIGNMENTS: participant_code (select), fitbit_code (select), start_date, end_date, status */}
                 {selectedCard.type === 'assignments' && (
                   <>
                     <div className="space-y-1.5">
@@ -408,6 +510,7 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
                         <label className="block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">{t('Start Date')}</label>
                         <input
                           type="date"
+                          max={todayStr}
                           value={filterValues.start_date || ''}
                           onChange={(e) => setFilterValues({ ...filterValues, start_date: e.target.value })}
                           className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-3.5 py-3 text-xs text-senda-main dark:text-white outline-none focus:border-senda-secondary"
@@ -417,6 +520,7 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
                         <label className="block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">{t('Real End Date')}</label>
                         <input
                           type="date"
+                          max={todayStr}
                           value={filterValues.end_date || ''}
                           onChange={(e) => setFilterValues({ ...filterValues, end_date: e.target.value })}
                           className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-3.5 py-3 text-xs text-senda-main dark:text-white outline-none focus:border-senda-secondary"
@@ -442,28 +546,27 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
                   </>
                 )}
 
-                {/* SYNCS: start_date */}
                 {selectedCard.type === 'syncs' && (
                   <div className="space-y-1.5">
                     <label className="block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">{t('Synchronization date')}</label>
                     <input
                       type="date"
-                      value={filterValues.start_date || ''}
-                      onChange={(e) => setFilterValues({ ...filterValues, start_date: e.target.value })}
+                      max={todayStr}
+                      value={filterValues.sync_date || ''}
+                      onChange={(e) => setFilterValues({ ...filterValues, sync_date: e.target.value })}
                       className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-3.5 py-3 text-xs text-senda-main dark:text-white outline-none focus:border-senda-secondary"
                     />
                   </div>
                 )}
 
-                {/* ALERTS: type, priority, participant_code (select), fitbit_code (select), first_detected_at, resolved_at */}
                 {selectedCard.type === 'alerts' && (
                   <>
                     <div className="space-y-1.5">
                       <label className="block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">{t('Alarm type')}</label>
                       <div className="rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-dark px-3 py-1.5 mt-1">
                         <CustomSelect
-                          value={filterValues.type || 'ALL'}
-                          onChange={(val) => setFilterValues({ ...filterValues, type: String(val) })}
+                          value={filterValues.alert_type || 'ALL'}
+                          onChange={(val) => setFilterValues({ ...filterValues, alert_type: String(val) })}
                           options={[
                             { label: t('All alarm types'), value: 'ALL' },
                             { label: 'SYNC_ERROR', value: 'SYNC_ERROR' },
@@ -531,6 +634,7 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
                         <label className="block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">{t('Detected')}</label>
                         <input
                           type="date"
+                          max={todayStr}
                           value={filterValues.first_detected_at || ''}
                           onChange={(e) => setFilterValues({ ...filterValues, first_detected_at: e.target.value })}
                           className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-3.5 py-3 text-xs text-senda-main dark:text-white outline-none focus:border-senda-secondary"
@@ -540,6 +644,7 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
                         <label className="block text-[10px] font-bold uppercase tracking-[0.1em] text-senda-secondary dark:text-senda-accent">{t('Resolved')}</label>
                         <input
                           type="date"
+                          max={todayStr}
                           value={filterValues.resolved_at || ''}
                           onChange={(e) => setFilterValues({ ...filterValues, resolved_at: e.target.value })}
                           className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-3.5 py-3 text-xs text-senda-main dark:text-white outline-none focus:border-senda-secondary"

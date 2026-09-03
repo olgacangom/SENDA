@@ -61,7 +61,7 @@ const CustomMultiSearchableSelect: React.FC<{
   const getDisplayText = () => {
     if (selectedValues.length === 0) return `${t('All')} ${label.toLowerCase()}`;
     if (selectedValues.length === 1) return selectedValues[0];
-    return `${selectedValues.length} ${label.toLowerCase()}s ${t('Selected plural')}`;
+    return `${selectedValues.length} ${label.toLowerCase()} ${t('Selected plural')}`;
   };
 
   return (
@@ -275,7 +275,7 @@ const PhysiologicalData: React.FC = () => {
     if (to) params.append('to', to);
     if (statusFilter && statusFilter !== 'ALL') params.append('status', statusFilter);
 
-    window.open(`${API_BASE}/api/export/?${params.toString()}`, '_blank');
+    window.open(`${API_BASE}/api/export/physiological/data/?${params.toString()}`, '_blank');
   };
 
   const toggleSortOrderDate = () => {

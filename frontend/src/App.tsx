@@ -203,7 +203,7 @@ const App: React.FC = () => {
           <aside
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className={`shrink-0 border-b border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-card py-6 lg:border-r lg:border-b-0 flex flex-col justify-between transition-all duration-300 ease-in-out z-20 shadow-lg lg:shadow-none lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto ${
+            className={`shrink-0 border-b border-[#B5B5B1] dark:border-senda-darkborder bg-[#EBEBE4] dark:bg-senda-card py-6 lg:border-r lg:border-b-0 flex flex-col justify-between transition-all duration-300 ease-in-out z-20 shadow-lg lg:shadow-none lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto ${
               isHovered ? 'lg:w-72 px-6' : 'lg:w-20 px-4'
             } w-full`}
           >
@@ -218,7 +218,7 @@ const App: React.FC = () => {
               </div>
 
               <div className={`overflow-hidden transition-all duration-300 mb-3 ${isHovered ? 'opacity-100' : 'lg:opacity-0 lg:h-0'}`}>
-                <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#6B6F66] dark:text-[#9AA093]">
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#315441] dark:text-[#C6CCC4]">
                   {role === 'admin' ? 'ADMINISTRACIÓN' : 'INVESTIGACIÓN'}
                 </p>
               </div>
@@ -347,7 +347,7 @@ const App: React.FC = () => {
           <div className="flex flex-1 flex-col min-w-0 min-h-screen">
 
             {/* BARRA SUPERIOR STICKY */}
-            <header className="h-[65px] border-b border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-card px-8 flex items-center justify-end shrink-0 sticky top-0 z-10">
+            <header className="h-[65px] border-b border-[#B5B5B1] dark:border-senda-darkborder bg-[#EBEBE4] dark:bg-senda-card px-8 flex items-center justify-end shrink-0 sticky top-0 z-10">
               <div className="flex items-center gap-6">
                 {/* STAT CARD: Fecha */}
                 <div className="senda-stat-card">

@@ -114,7 +114,7 @@ const FrontPage: React.FC<FrontPageProps> = ({ onGoToLogin }) => {
 
       {/* NAVBAR */}
       <nav className="fixed left-0 right-0 top-0 z-50 border-b border-[#DCE7DF]/80 bg-[#F7FAF7]/80 backdrop-blur-2xl dark:border-[#263A2F] dark:bg-[#0A130F]/80">
-        <div className="mx-auto flex h-[76px] max-w-[1380px] items-center justify-between px-6 sm:px-10 lg:px-14">
+        <div className="mx-auto flex h-[72px] max-w-[1380px] items-center justify-between px-6 sm:px-10 lg:px-14">
           <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="cursor-pointer">
             <img
               src={darkMode ? '/images/senda-dark-sin.png' : '/images/senda-claro-sin.png'}
@@ -140,8 +140,8 @@ const FrontPage: React.FC<FrontPageProps> = ({ onGoToLogin }) => {
               <button
                 onClick={() => i18n.changeLanguage('es')}
                 className={`flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-all ${i18n.language === 'es'
-                    ? 'bg-[#DCEBE1] text-[#1D5A3D] dark:bg-[#284738] dark:text-[#A9E1C0]'
-                    : 'text-[#75847A] dark:text-[#91A298]'
+                  ? 'bg-[#DCEBE1] text-[#1D5A3D] dark:bg-[#284738] dark:text-[#A9E1C0]'
+                  : 'text-[#75847A] dark:text-[#91A298]'
                   }`}
               >
                 <img src="https://flagcdn.com/w40/es.png" alt={t('Lang ES Alt')} className="h-4 w-4 rounded-full object-cover" />
@@ -150,8 +150,8 @@ const FrontPage: React.FC<FrontPageProps> = ({ onGoToLogin }) => {
               <button
                 onClick={() => i18n.changeLanguage('en')}
                 className={`flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-all ${i18n.language === 'en'
-                    ? 'bg-[#DCEBE1] text-[#1D5A3D] dark:bg-[#284738] dark:text-[#A9E1C0]'
-                    : 'text-[#75847A] dark:text-[#91A298]'
+                  ? 'bg-[#DCEBE1] text-[#1D5A3D] dark:bg-[#284738] dark:text-[#A9E1C0]'
+                  : 'text-[#75847A] dark:text-[#91A298]'
                   }`}
               >
                 <img src="https://flagcdn.com/w40/gb.png" alt={t('Lang EN Alt')} className="h-4 w-4 rounded-full object-cover" />
@@ -188,19 +188,19 @@ const FrontPage: React.FC<FrontPageProps> = ({ onGoToLogin }) => {
 
       {/* HERO */}
       <section className="relative overflow-hidden pt-[76px]">
-        <div className="pointer-events-none absolute -left-40 top-20 h-[500px] w-[500px] rounded-full bg-[#DCEBE1]/80 blur-3xl dark:bg-[#163A29]/30" />
-        <div className="pointer-events-none absolute -right-40 top-10 h-[650px] w-[650px] rounded-full bg-[#E7F1E9] blur-3xl dark:bg-[#153426]/30" />
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.035] dark:opacity-[0.045]"
-          style={{
-            backgroundImage: 'linear-gradient(#1D5A3D 1px, transparent 1px), linear-gradient(90deg, #1D5A3D 1px, transparent 1px)',
-            backgroundSize: '55px 55px',
-          }}
-        />
+        {/* IMAGEN DE FONDO Y DEGRADADO SUPERPUESTO */}
+        <div className="absolute inset-0 z-0">
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-90 dark:opacity-30 transition-opacity duration-200"
+            style={{ backgroundImage: "url('/images/fondo-front.png')" }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-tr from-[#1D5A3D]/15 via-[#72C99B]/8 to-transparent dark:from-[#07100B]/10 dark:via-[#163A29]/10 dark:to-transparent" />
+        </div>
 
         <div className="relative mx-auto grid min-h-[690px] max-w-[1380px] grid-cols-1 items-center gap-6 px-6 py-16 sm:px-10 lg:grid-cols-12 lg:px-14 lg:py-20">
+
           <div className="relative z-10 lg:col-span-7">
-            <div className="mb-7 flex w-fit items-center gap-2 rounded-full border border-[#BBD5C2] bg-[#EDF5EF]/80 px-4 py-2 dark:border-[#365B48] dark:bg-[#172B21]/80 -mt-28">
+            <div className="mb-7 flex w-fit items-center gap-2 rounded-full border border-[#BBD5C2] bg-[#E4F0E7]/80 px-4 py-2 dark:border-[#365B48] dark:bg-[#172B21]/80 -mt-28">
               <span className="h-2 w-2 animate-pulse rounded-full bg-[#4FA477]" />
               <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#397353] dark:text-[#8BD4A9]">
                 {t('FrontCardTitle')}
@@ -238,10 +238,6 @@ const FrontPage: React.FC<FrontPageProps> = ({ onGoToLogin }) => {
                 <span>↓</span>
               </button>
             </div>
-          </div>
-
-          <div className="relative flex min-h-[420px] items-center justify-center lg:col-span-5">
-            <Brain3D />
           </div>
         </div>
       </section>
@@ -292,10 +288,10 @@ const FrontPage: React.FC<FrontPageProps> = ({ onGoToLogin }) => {
               <div
                 key={pillar.title}
                 className={`py-10 transition-transform duration-500 hover:-translate-y-2 ${idx === 0
-                    ? 'border-b border-[#E0E9E2] md:border-b-0 md:pr-10 md:border-r dark:border-[#293C30]'
-                    : idx === 1
-                      ? 'border-b border-[#E0E9E2] md:border-b-0 md:px-10 md:border-r dark:border-[#293C30]'
-                      : 'md:pl-10'
+                  ? 'border-b border-[#E0E9E2] md:border-b-0 md:pr-10 md:border-r dark:border-[#293C30]'
+                  : idx === 1
+                    ? 'border-b border-[#E0E9E2] md:border-b-0 md:px-10 md:border-r dark:border-[#293C30]'
+                    : 'md:pl-10'
                   }`}
               >
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#E5F0E8] text-[#397653] dark:bg-[#1B3828] dark:text-[#8BD3A7]">
@@ -396,16 +392,16 @@ const FrontPage: React.FC<FrontPageProps> = ({ onGoToLogin }) => {
             {features.map((feature, index) => (
               <div
                 key={feature.number}
-                className="group rounded-[22px] border border-[#DCE7DF] bg-[#F8FBF9] p-6 transition-all duration-500 hover:-translate-y-1 hover:border-[#7BAE8E] hover:shadow-[0_18px_40px_rgba(29,90,61,0.08)] dark:border-[#293D31] dark:bg-[#142019]"
+                className="group rounded-[22px] border border-[#8C8050] bg-[#22362B] p-6 transition-all duration-100 hover:-translate-y-1 hover:border-[#c7b570] shadow-[0_25px_60px_rgba(29,90,61,0.07)] dark:border-[#2A3E31] dark:bg-[#142019]"
                 style={{ transitionDelay: `${index * 70}ms` }}
               >
-                <span className="text-[10px] font-semibold tracking-[0.15em] text-[#78A289] dark:text-[#69997C]">
+                <span className="text-[10px] font-semibold tracking-[0.15em] text-[#69997C] dark:text-[#95BDA3]">
                   {feature.number}
                 </span>
-                <h3 className="mt-6 text-[21px] font-semibold text-[#244635] dark:text-[#DDEAE1]" style={{ fontFamily: 'Fraunces, serif' }}>
+                <h3 className="mt-6 text-[21px] font-semibold text-[#DDEAE1] dark:text-[#5A9973]" style={{ fontFamily: 'Fraunces, serif' }}>
                   {feature.title}
                 </h3>
-                <p className="mt-2 text-[13px] leading-6 text-[#718078] dark:text-[#96A69C]">{feature.text}</p>
+                <p className="mt-2 text-[13px] leading-6 text-[#96A69C] dark:text-[#A3B4AA]">{feature.text}</p>
               </div>
             ))}
           </div>
@@ -438,8 +434,8 @@ const FrontPage: React.FC<FrontPageProps> = ({ onGoToLogin }) => {
                   <div className="group flex items-center gap-5">
                     <div
                       className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-105 ${step.isLogo
-                          ? 'bg-[#1D5A3D] text-white shadow-lg dark:bg-[#72C99B] dark:text-[#102018]'
-                          : 'bg-[#E2EFE6] text-[#3D7D59] dark:bg-[#1D3829] dark:text-[#8CD2A6]'
+                        ? 'bg-[#1D5A3D] text-white shadow-lg dark:bg-[#72C99B] dark:text-[#102018]'
+                        : 'bg-[#E2EFE6] text-[#3D7D59] dark:bg-[#1D3829] dark:text-[#8CD2A6]'
                         }`}
                     >
                       {step.isLogo ? (
@@ -577,17 +573,39 @@ const FrontPage: React.FC<FrontPageProps> = ({ onGoToLogin }) => {
             {t('Institutions Text')}
           </p>
 
-          <div className="mt-12 flex flex-col items-center justify-center gap-10 sm:flex-row sm:gap-20">
-            <a href="https://psicologia.us.es/investigacion" target="_blank" rel="noopener noreferrer" className="group">
-              <img
-                src={darkMode ? '/images/facultad-logo-blanco.png' : '/images/facultad-logo.png'}
-                alt={t('Faculty Logo Alt')}
-                className="max-h-[82px] w-auto object-contain opacity-75 transition-all duration-300 group-hover:scale-105 group-hover:opacity-100"
-              />
-            </a>
-            <div className="hidden h-14 w-px bg-[#DCE5DE] dark:bg-[#2C4033] sm:block" />
-            <div className="flex min-w-[150px] items-center justify-center text-[#50685A] dark:text-[#A7B7AC]">
-              <span className="text-[21px] font-semibold tracking-tight">CENTRA</span>
+          <div className="mt-12 flex justify-center">
+            <div className="flex flex-col items-center justify-center gap-6 sm:flex-row sm:items-center sm:gap-8 sm:translate-x-6">
+
+              {/* Logo de la facultad */}
+              <a
+                href="https://psicologia.us.es/investigacion"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex h-28 w-full items-center justify-center sm:w-[360px] sm:justify-end sm:pr-8"
+              >
+                <img
+                  src={darkMode ? '/images/facultad-logo-blanco.png' : '/images/facultad-logo.png'}
+                  alt={t('Faculty Logo Alt')}
+                  className="max-h-20 w-auto object-contain opacity-75 transition-all duration-300 group-hover:scale-105 group-hover:opacity-100 sm:max-h-24"
+                />
+              </a>
+
+              {/* Separador vertical */}
+              <div className="hidden h-20 w-px bg-[#DCE5DE] dark:bg-[#2C4033] sm:block" />
+
+              {/* Logo CENTRA */}
+              <a
+                href="https://www.centrodeestudiosandaluces.es/cea-proyectos/2132"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex h-28 w-full items-center justify-center sm:w-[360px] sm:justify-start sm:pl-8"
+              >
+                <img
+                  src={darkMode ? '/images/centra-dark.png' : '/images/centra-claro.png'}
+                  alt={t('CENTRA Logo Alt')}
+                  className="max-h-20 w-auto object-contain opacity-75 transition-all duration-300 group-hover:scale-105 group-hover:opacity-100 sm:max-h-24"
+                />
+              </a>
             </div>
           </div>
         </div>

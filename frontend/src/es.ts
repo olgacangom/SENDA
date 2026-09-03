@@ -111,6 +111,7 @@ const es = {
     "Fitbit Image Alt": "Fitbit Charge 6",
 
     // Login
+    "Sign in": "Iniciar sesión",
     "Admin Access": "Acceso exclusivo para administradores.",
     "Researcher Step 1": "Introduce tu correo autorizado.",
     "Researcher Step 2": "Introduce el código temporal recibido.",
@@ -319,11 +320,11 @@ const es = {
     "All participants": "Todos los participantes",
     "All status": "Todos los estados",
     "All Fitbits": "Todas las Fitbits",
-    "All alarm types": "Todos los tipos de alarmas",
+    "All alarm types": "Todos los tipos de alertas",
     "All priorities": "Todas las prioridades",
     "Status assignment": "Estado de asignación",
     "Synchronization date": "Fecha de sincronización",
-    "Alarm type": "Tipo de alarma",
+    "Alarm type": "Tipo de alerta",
     "Priority": "Prioridad",
     "Detected": "Detectada",
     "High": "Alta",
@@ -338,6 +339,9 @@ const es = {
     "Action": "Acción",
     "No Downloads": "No hay registros de descargas recientes.",
     "Records Count": "registros",
+    "There is no information for the selected filters": "No hay información para los filtros seleccionados",
+    "The date must not be later than today's date": "La fecha no debe ser posterior a la fecha de hoy",
+
 
     // Syncs
     "Syncs Title": "Sincronizaciones",

@@ -1,5 +1,6 @@
 from django.shortcuts import redirect, HttpResponse
 from django.utils import timezone
+from zoneinfo import ZoneInfo
 from .oauth import GoogleOAuthService
 from .models import Participant, GoogleAccount, Fitbit, SyncLog, Assignment, PhysiologicalData, Alert, VariableType
 from decouple import config
@@ -34,6 +35,7 @@ def _add_cors_headers(request, resp):
         resp['Access-Control-Allow-Origin'] = origin
         resp['Access-Control-Allow-Credentials'] = 'true'
         resp['Vary'] = 'Origin'
+        resp['Access-Control-Expose-Headers'] = 'Content-Disposition'
     return resp
 
 def google_login_view(request):
@@ -924,7 +926,7 @@ def api_resolve_alert(request, alert_id):
 
 
 @csrf_exempt
-def api_export(request):
+def api_export_physiological_data(request):
     if request.method == 'OPTIONS':
         resp = JsonResponse({'ok': True})
         resp['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
@@ -944,182 +946,10 @@ def api_export(request):
     rows = []
 
     # =========================================================
-    # PARTICIPANTES (filtros: participant_code, study_status)
-    # =========================================================
-
-    if export_type == 'participants':
-        p_filter = request.GET.get('participant_code')
-        status_filter = request.GET.get('study_status')
-
-        rows.append(['participant_code', 'email', 'authentication_status', 'study_status'])
-
-        for account in GoogleAccount.objects.select_related('participant'):
-            participant = account.participant
-            if not participant:
-                continue
-                
-            assignment = Assignment.objects.filter(participant=participant).order_by('-start_date').first()
-            if not assignment:
-                study_status = 'PENDING'
-            elif assignment.real_end_date:
-                study_status = 'COMPLETED'
-            elif assignment.start_date > timezone.now():
-                study_status = 'PENDING'
-            else:
-                study_status = 'ACTIVE'
-
-            # Aplicar filtros
-            if p_filter and p_filter.strip() not in participant.participant_code:
-                continue
-            if status_filter and status_filter != 'ALL' and study_status != status_filter:
-                continue
-
-            rows.append([participant.participant_code, account.email, account.authentication_status, study_status])
-        file_root = 'participants'
-
-
-    # =========================================================
-    # FITBITS (filtros: fitbit_code, status)
-    # =========================================================
-
-    elif export_type == 'fitbits':
-        f_filter = request.GET.get('fitbit_code')
-        status_filter = request.GET.get('status')
-
-        rows.append(['fitbit_code', 'status', 'assigned_participant'])
-
-        for fitbit in Fitbit.objects.all():
-            if f_filter and f_filter.strip() not in fitbit.fitbit_code:
-                continue
-            if status_filter and status_filter != 'ALL' and fitbit.status != status_filter:
-                continue
-
-            assignment = fitbit.assignments.filter(real_end_date__isnull=True).order_by('-start_date').first()
-            assigned = assignment.participant.participant_code if assignment and assignment.participant else ''
-
-            rows.append([fitbit.fitbit_code, fitbit.status, assigned])
-        file_root = 'fitbits'
-
-    # ===============================================================================================
-    # ASIGNACIONES (filtros: participant_code, fitbit_code, start_date, end_date, status)
-    # ===============================================================================================
-
-    elif export_type == 'assignments':
-        p_code = request.GET.get('participant_code')
-        f_code = request.GET.get('fitbit_code')
-        d_start = request.GET.get('start_date')
-        d_end = request.GET.get('end_date')
-        status_filter = request.GET.get('status')
-
-        rows.append(['participant_code', 'fitbit_code', 'start_date', 'estimated_end_date', 'real_end_date', 'status'])
-
-        qs = Assignment.objects.select_related('participant', 'fitbit').all()
-        if p_code:
-            qs = qs.filter(participant__participant_code__icontains=p_code.strip())
-        if f_code:
-            qs = qs.filter(fitbit__fitbit_code__icontains=f_code.strip())
-        if status_filter and status_filter != 'ALL':
-            qs = qs.filter(status=status_filter)
-        if d_start:
-            qs = qs.filter(start_date__date__gte=d_start)
-        if d_end:
-            qs = qs.filter(start_date__date__lte=d_end)
-
-        for assignment in qs:
-            p_c = assignment.participant.participant_code if assignment.participant else ''
-            f_c = assignment.fitbit.fitbit_code if assignment.fitbit else ''
-            rows.append([
-                p_c, f_c,
-                assignment.start_date.isoformat() if assignment.start_date else '',
-                assignment.estimated_end_date.isoformat() if assignment.estimated_end_date else '',
-                assignment.real_end_date.isoformat() if assignment.real_end_date else '',
-                assignment.status
-            ])
-        file_root = 'assignments'
-
-    # ===========================================================================================================
-    # ALERTAS (filtros: type, priority, participant_code, fitbit_code, first_detected_at, resolved_at)
-    # ===========================================================================================================
-
-    elif export_type == 'alerts':
-        a_type = request.GET.get('type')
-        a_priority = request.GET.get('priority')
-        p_code = request.GET.get('participant_code')
-        f_code = request.GET.get('fitbit_code')
-        d_first = request.GET.get('first_detected_at')
-        d_resolved = request.GET.get('resolved_at')
-
-        rows.append(['alert_id', 'type', 'priority', 'resolved', 'participant_code', 'fitbit_code', 'email', 'first_detected_at', 'resolved_at', 'created_at'])
-
-        qs = Alert.objects.all()
-        if a_type and a_type != 'ALL':
-            qs = qs.filter(alert_type=a_type)
-        if a_priority and a_priority != 'ALL':
-            qs = qs.filter(priority=a_priority)
-        if p_code:
-            qs = qs.filter(assignment__participant__participant_code__icontains=p_code.strip())
-        if f_code:
-            qs = qs.filter(assignment__fitbit__fitbit_code__icontains=f_code.strip())
-        if d_first:
-            qs = qs.filter(first_detected_at__date__gte=d_first)
-        if d_resolved:
-            qs = qs.filter(resolved_at__date__lte=d_resolved)
-
-        for alert in qs:
-            participant_code = alert.assignment.participant.participant_code if alert.assignment and alert.assignment.participant else ''
-            fitbit_code = alert.assignment.fitbit.fitbit_code if alert.assignment and alert.assignment.fitbit else ''
-            email = alert.google_account.email if alert.google_account else ''
-
-            rows.append([
-                str(alert.id), alert.alert_type, alert.priority, str(alert.resolved),
-                participant_code, fitbit_code, email,
-                alert.first_detected_at.isoformat() if alert.first_detected_at else '',
-                alert.resolved_at.isoformat() if alert.resolved_at else '',
-                alert.created_at.isoformat() if alert.created_at else ''
-            ])
-        file_root = 'alerts'
-
-    # =========================================================
-    # RESEARCHERS (sin filtro)
-    # =========================================================
-
-    elif export_type == 'researchers':
-        rows.append(['email', 'created_at', 'is_active'])
-        User = get_user_model()
-        for researcher in User.objects.all():
-            rows.append([
-                researcher.email,
-                researcher.date_joined.isoformat() if hasattr(researcher, 'date_joined') and researcher.date_joined else '',
-                str(researcher.is_active)
-            ])
-        file_root = 'researchers'
-
-    # =========================================================
-    # SINCRONIZACIONES (filtro: start_date)
-    # =========================================================
-
-    elif export_type == 'syncs':
-        sync_date = request.GET.get('start_date')
-
-        rows.append(['sync_date', 'email', 'result', 'downloaded_records'])
-        qs = SyncLog.objects.select_related('google_account').order_by('-sync_date')
-        if sync_date:
-            qs = qs.filter(sync_date__date=sync_date)
-
-        for log in qs:
-            rows.append([
-                log.sync_date.isoformat(),
-                log.google_account.email if log.google_account else '',
-                log.result,
-                log.downloaded_records
-            ])
-        file_root = 'syncs'
-
-    # =========================================================
     # DATOS FISIOLÓGICOS
     # =========================================================
 
-    elif export_type == 'physiological':
+    if export_type == 'physiological':
 
         participant_code = request.GET.get('participant')
         fitbit_code = request.GET.get('fitbit')
@@ -1308,7 +1138,7 @@ def api_export(request):
                     pivot_data[row_key]['variables'][item.variable_type] = str(val)
 
             else:
-                pivot_data[row_key]['variables'][item.variable_type] = 'null'
+                pivot_data[row_key]['variables'][item.variable_type] = '-'  # -, null o nada (en excel)
 
         # =====================================================
         # ORDEN DE VARIABLES
@@ -1499,6 +1329,328 @@ def api_export(request):
         request,
         response
     )
+
+
+@csrf_exempt
+def api_export(request):
+    if request.method == 'OPTIONS':
+        resp = JsonResponse({'ok': True})
+        resp['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        resp['Access-Control-Allow-Headers'] = 'Content-Type'
+        return _add_cors_headers(request, resp)
+
+    if request.method != 'GET':
+        return _validation_error(request, 'method_not_allowed', status=405)
+
+    export_type = request.GET.get('type')
+    export_format = request.GET.get('format', 'csv')
+    check_only = request.GET.get('check', 'false') == 'true'
+
+    rows = []
+    has_data = False
+    filter_parts = []
+    
+    local_tz = ZoneInfo("Europe/Madrid")
+    today_date = timezone.localtime(timezone.now()).date()
+
+    # Validación de fechas/años futuros
+    for key, val in request.GET.items():
+        if val and str(val).strip() and str(val).strip().upper() != 'ALL':
+            val_str = str(val).strip()
+            try:
+                if len(val_str) == 10 and '-' in val_str:
+                    parsed_d = datetime.strptime(val_str, '%Y-%m-%d').date()
+                    if parsed_d > today_date:
+                        return JsonResponse({'ok': False, 'error': 'La fecha seleccionada no puede ser posterior a hoy.'}, status=400)
+                elif len(val_str) == 4 and val_str.isdigit():
+                    if int(val_str) > today_date.year:
+                        return JsonResponse({'ok': False, 'error': 'El año seleccionado no puede ser posterior al actual.'}, status=400)
+            except ValueError:
+                pass
+
+    def format_date_madrid(dt):
+        if not dt:
+            return ''
+
+        try:
+            if timezone.is_naive(dt):
+                dt = timezone.make_aware(dt, local_tz)
+
+            return timezone.localtime(dt, local_tz).isoformat()
+
+        except Exception as e:
+            print(f"ERROR formateando fecha: {dt!r} -> {e}")
+            return str(dt)
+
+    # =========================================================
+    # PARTICIPANTES
+    # =========================================================
+    if export_type == 'participants':
+        p_filter = request.GET.get('participant_code')
+        status_filter = request.GET.get('study_status')
+
+        if p_filter and p_filter != 'ALL': filter_parts.append(p_filter)
+        if status_filter and status_filter != 'ALL': filter_parts.append(status_filter.lower())
+
+        rows.append(['participant_code', 'email', 'authentication_status', 'study_status'])
+
+        for account in GoogleAccount.objects.select_related('participant'):
+            participant = account.participant
+            if not participant: continue
+                
+            assignment = Assignment.objects.filter(participant=participant).order_by('-start_date').first()
+            if not assignment: study_status = 'PENDING'
+            elif assignment.real_end_date: study_status = 'COMPLETED'
+            elif assignment.start_date > timezone.now(): study_status = 'PENDING'
+            else: study_status = 'ACTIVE'
+
+            if p_filter and p_filter != 'ALL' and p_filter.strip().lower() not in participant.participant_code.lower(): continue
+            if status_filter and status_filter != 'ALL' and study_status != status_filter: continue
+
+            rows.append([participant.participant_code, account.email, account.authentication_status, study_status])
+            has_data = True
+        
+        file_root = _generate_filename('participants', filter_parts)
+
+    # =========================================================
+    # FITBITS
+    # =========================================================
+    elif export_type == 'fitbits':
+        f_filter = request.GET.get('fitbit_code')
+        status_filter = request.GET.get('status')
+
+        if f_filter and f_filter != 'ALL': filter_parts.append(f_filter)
+        if status_filter and status_filter != 'ALL': filter_parts.append(status_filter.lower())
+
+        rows.append(['fitbit_code', 'status', 'assigned_participant'])
+
+        for fitbit in Fitbit.objects.all():
+            if f_filter and f_filter != 'ALL' and f_filter.strip().lower() not in fitbit.fitbit_code.lower(): continue
+            if status_filter and status_filter != 'ALL' and fitbit.status != status_filter: continue
+
+            assignment = fitbit.assignments.filter(real_end_date__isnull=True).order_by('-start_date').first()
+            assigned = assignment.participant.participant_code if assignment and assignment.participant else ''
+
+            rows.append([fitbit.fitbit_code, fitbit.status, assigned])
+            has_data = True
+        
+        file_root = _generate_filename('fitbits', filter_parts)
+
+    # =========================================================
+    # ASIGNACIONES
+    # =========================================================
+    elif export_type == 'assignments':
+        p_code = request.GET.get('participant_code')
+        f_code = request.GET.get('fitbit_code')
+        d_start = request.GET.get('start_date')
+        d_end = request.GET.get('end_date')
+        status_filter = request.GET.get('status')
+
+        # Añadir filtros a la lista (SOLO si no son ALL o están vacíos)
+        filter_parts = []  # Reiniciar para esta sección
+        if p_code and p_code != 'ALL' and p_code.strip():
+            filter_parts.append(p_code.strip())
+        if f_code and f_code != 'ALL' and f_code.strip():
+            filter_parts.append(f_code.strip())
+        if status_filter and status_filter != 'ALL' and status_filter.strip():
+            filter_parts.append(status_filter.lower().strip())
+        if d_start and d_start.strip():
+            filter_parts.append(d_start.strip())
+        if d_end and d_end.strip():
+            filter_parts.append(d_end.strip())
+
+        rows.append(['participant_code', 'fitbit_code', 'start_date', 'estimated_end_date', 'real_end_date', 'status'])
+
+        qs = Assignment.objects.select_related('participant', 'fitbit').all()
+        if p_code and p_code != 'ALL' and p_code.strip():
+            qs = qs.filter(participant__participant_code__icontains=p_code.strip())
+        if f_code and f_code != 'ALL' and f_code.strip():
+            qs = qs.filter(fitbit__fitbit_code__icontains=f_code.strip())
+        if d_start:
+            try: 
+                qs = qs.filter(start_date__date__gte=datetime.strptime(d_start, '%Y-%m-%d').date())
+            except ValueError: 
+                pass
+        if d_end:
+            try: 
+                qs = qs.filter(real_end_date__date=datetime.strptime(d_end, '%Y-%m-%d').date())
+            except ValueError: 
+                pass
+
+        for assignment in qs:
+            if status_filter and status_filter != 'ALL' and assignment.status != status_filter:
+                continue
+            rows.append([
+                assignment.participant.participant_code if assignment.participant else '',
+                assignment.fitbit.fitbit_code if assignment.fitbit else '',
+                format_date_madrid(assignment.start_date),
+                format_date_madrid(assignment.estimated_end_date),
+                format_date_madrid(assignment.real_end_date),
+                assignment.status
+            ])
+            has_data = True
+        
+        file_root = _generate_filename('assignments', filter_parts)
+
+    # =========================================================
+    # ALERTAS
+    # =========================================================
+    elif export_type == 'alerts':
+        a_type = request.GET.get('alert_type')
+        a_priority = request.GET.get('priority')
+        p_code = request.GET.get('participant_code')
+        f_code = request.GET.get('fitbit_code')
+        d_first = request.GET.get('first_detected_at')
+        d_resolved = request.GET.get('resolved_at')
+
+        if a_type and a_type != 'ALL': filter_parts.append(a_type.lower())
+        if a_priority and a_priority != 'ALL': filter_parts.append(a_priority.lower())
+        if p_code and p_code != 'ALL': filter_parts.append(p_code)
+        if f_code and f_code != 'ALL': filter_parts.append(f_code)
+        if d_first and d_first.strip(): filter_parts.append(d_first)
+        if d_resolved and d_resolved.strip(): filter_parts.append(d_resolved)
+
+        rows.append(['alert_id', 'type', 'priority', 'resolved', 'participant_code', 'fitbit_code', 'email', 'first_detected_at', 'resolved_at', 'created_at'])
+
+        qs = Alert.objects.select_related('assignment__participant', 'assignment__fitbit', 'google_account').all()
+        if a_type and a_type != 'ALL': qs = qs.filter(alert_type=a_type)
+        if a_priority and a_priority != 'ALL': qs = qs.filter(priority=a_priority)
+        if p_code and p_code != 'ALL': qs = qs.filter(assignment__participant__participant_code__icontains=p_code.strip())
+        if f_code and f_code != 'ALL': qs = qs.filter(assignment__fitbit__fitbit_code__icontains=f_code.strip())
+        if d_first and d_first.strip():
+            try: qs = qs.filter(first_detected_at__date=datetime.strptime(d_first.strip(), '%Y-%m-%d').date())
+            except ValueError: pass
+        if d_resolved and d_resolved.strip():
+            try: qs = qs.filter(resolved_at__date=datetime.strptime(d_resolved.strip(), '%Y-%m-%d').date())
+            except ValueError: pass
+
+        for alert in qs:
+            rows.append([
+                str(alert.id), alert.alert_type, alert.priority, str(alert.resolved),
+                alert.assignment.participant.participant_code if alert.assignment and alert.assignment.participant else '',
+                alert.assignment.fitbit.fitbit_code if alert.assignment and alert.assignment.fitbit else '',
+                alert.google_account.email if alert.google_account else '',
+                format_date_madrid(alert.first_detected_at),
+                format_date_madrid(alert.resolved_at),
+                format_date_madrid(alert.created_at)
+            ])
+            has_data = True
+        
+        file_root = _generate_filename('alerts', filter_parts)
+
+    # =========================================================
+    # RESEARCHERS
+    # =========================================================
+    elif export_type == 'researchers':
+        rows.append(['email', 'created_at', 'is_active'])
+        User = get_user_model()
+        for researcher in User.objects.all():
+            rows.append([
+                researcher.email,
+                format_date_madrid(researcher.date_joined) if hasattr(researcher, 'date_joined') else '',
+                str(researcher.is_active)
+            ])
+            has_data = True
+        file_root = 'researchers'
+
+    # =========================================================
+    # SINCRONIZACIONES
+    # =========================================================
+    elif export_type == 'syncs':
+        sync_date = request.GET.get('sync_date')
+        if sync_date and sync_date.strip(): filter_parts.append(sync_date)
+
+        rows.append(['sync_date_madrid', 'email', 'result', 'downloaded_records'])
+        qs = SyncLog.objects.select_related('google_account').order_by('-sync_date')
+        
+        if sync_date and sync_date.strip():
+            try:
+                date_obj = datetime.strptime(sync_date.strip(), '%Y-%m-%d').date()
+                start_dt = datetime.combine(date_obj, datetime.min.time(), tzinfo=local_tz)
+                end_dt = datetime.combine(date_obj, datetime.max.time(), tzinfo=local_tz)
+                qs = qs.filter(sync_date__range=(start_dt, end_dt))
+            except ValueError:
+                pass
+
+        for log in qs:
+            sync_local = log.sync_date.astimezone(local_tz)
+            rows.append([
+                sync_local.isoformat(),
+                log.google_account.email if log.google_account else '',
+                log.result,
+                log.downloaded_records
+            ])
+            has_data = True
+        
+        file_root = _generate_filename('syncs', filter_parts)
+
+    else:
+        return _validation_error(request, 'invalid_export_type', status=400)
+
+    if check_only:
+        return JsonResponse({'ok': True, 'has_data': has_data, 'count': len(rows) - 1 if has_data else 0})
+
+    if not has_data or len(rows) <= 1:
+        return JsonResponse({'ok': False, 'error': 'No hay información para los filtros seleccionados'}, status=404)
+
+    if export_format == 'xlsx':
+        import openpyxl
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Datos"
+        for row in rows: ws.append(row)
+
+        for col in ws.columns:
+            max_len = max(len(str(cell.value or '')) for cell in col)
+            ws.column_dimensions[col[0].column_letter].width = min(max_len + 2, 40)
+
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        response = HttpResponse(output.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename="{file_root}.xlsx"'
+    else:
+        output = io.BytesIO()
+        wrapper = io.TextIOWrapper(output, encoding='utf-8-sig', newline='')
+        writer = csv.writer(wrapper, delimiter=';')
+        for row in rows: writer.writerow(row)
+        wrapper.flush()
+        output.seek(0)
+        response = HttpResponse(output.getvalue(), content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{file_root}.csv"'
+
+    return _add_cors_headers(request, response)
+
+
+def _generate_filename(base_name, filter_parts):
+    """
+    Construye el nombre del archivo personalizado combinando base_name y filtros.
+    Maneja tanto listas como valores individuales.
+    """
+    if not filter_parts:
+        return base_name
+    
+    if not isinstance(filter_parts, list):
+        filter_parts = [filter_parts]
+    
+    clean_parts = []
+    for part in filter_parts:
+        if part is not None:
+            part_str = str(part).strip()
+            if part_str and part_str.upper() != 'ALL':
+                clean = part_str.replace(' ', '_').replace('/', '_').replace(':', '_').replace('\\', '_').lower()
+                if len(clean) > 20:
+                    clean = clean[:20]
+                clean_parts.append(clean)
+    
+    # Si no hay partes limpias, devolver solo el nombre base
+    if not clean_parts:
+        return base_name
+    
+    if len(clean_parts) == 1:
+        return f"{base_name}_{clean_parts[0]}"
+    else:
+        return f"{base_name}_{'_'.join(clean_parts)}"
 
 
 @csrf_exempt

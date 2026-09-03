@@ -111,6 +111,7 @@ const en = {
     "Fitbit Image Alt": "Fitbit Charge 6",
 
     // Login
+    "Sign in": "Sign in",
     "Admin Access": "Exclusive access for administrators.",
     "Enter your username": "Enter your username",
     "Researcher Step 1": "Enter your authorized email.",
@@ -338,6 +339,9 @@ const en = {
     "Action": "Action",
     "No Downloads": "No recent download records.",
     "Records Count": "records",
+    "There is no information for the selected filters": "There is no information for the selected filters",
+    "The date must not be later than today's date": "The date must not be later than today's date",
+
 
     // Syncs
     "Syncs Title": "Syncs",
