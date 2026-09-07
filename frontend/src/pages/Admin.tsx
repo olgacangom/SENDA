@@ -119,27 +119,35 @@ const Admin: React.FC = () => {
         subtitle={t('Admin Subtitle')}
       />
 
-      <div className="rounded-3xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-card p-8 shadow-xl transition-colors duration-300">
-        <form onSubmit={submit} autoComplete="off" className="grid gap-6 sm:grid-cols-2 items-end">
-          <div className="col-span-1">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#6B6F66] dark:text-[#9AA093] mb-1.5">{t('Researcher Email Input')}</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="investigador@senda.es"
-              required
-              autoComplete="off"
-              className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/60 dark:bg-senda-dark px-4 py-3.5 text-xs text-senda-main dark:text-white outline-none transition focus:border-senda-secondary"
-            />
-          </div>
-          <div className="col-span-1 flex justify-end">
+      <div id="researcher-form-card" className="rounded-3xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-card p-8 shadow-xl transition-colors duration-300">
+        <form onSubmit={submit} autoComplete="off">
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-[#6B6F66] dark:text-[#9AA093] mb-1.5">
+            {t('Researcher Email Input')}
+          </label>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+            <div className="relative flex-1 max-w-xl">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </span>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="investigador@senda.es"
+                required
+                autoComplete="off"
+                className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/60 dark:bg-senda-dark h-[46px] pl-11 pr-4 text-xs text-senda-main dark:text-white outline-none transition focus:border-senda-secondary"
+              />
+            </div>
+
             <button
               type="submit"
-              className="inline-flex items-center justify-center px-5 py-3.5 bg-senda-primary hover:bg-[#184232] dark:bg-senda-accent dark:text-senda-dark dark:hover:bg-[#59a67e] text-white font-bold rounded-2xl shadow-lg transition gap-2 cursor-pointer"
+              className="inline-flex items-center justify-center px-5 py-2.5 bg-gradient-to-b from-[#4C7C63] to-[#1F3B2C] hover:from-[#537F69] hover:to-[#234030] text-white font-semibold rounded-full shadow-md transition gap-2 cursor-pointer shrink-0"
             >
               <span className="text-base font-bold leading-none">+</span>
-              <span className="text-[12px]">{t('Authorize Btn')}</span>
+              <span className="text-xs">{t('Authorize Btn')}</span>
             </button>
           </div>
         </form>
@@ -202,11 +210,10 @@ const Admin: React.FC = () => {
                     <td className="px-6 py-4 text-xs font-bold text-senda-main dark:text-white">{r.email}</td>
                     <td className="px-6 py-4 text-xs text-[#6B6F66] dark:text-[#9AA093]">{new Date(r.created_at).toLocaleDateString('es-ES')}</td>
                     <td className="px-6 py-4 text-xs">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-semibold border ${
-                        r.is_active 
-                          ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900' 
-                          : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900'
-                      }`}>
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-semibold border ${r.is_active
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900'
+                        : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900'
+                        }`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${r.is_active ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
                         {r.is_active ? t('Active') : t('Pending')}
                       </span>

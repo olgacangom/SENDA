@@ -203,9 +203,8 @@ const App: React.FC = () => {
           <aside
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className={`shrink-0 border-b border-[#B5B5B1] dark:border-senda-darkborder bg-[#EBEBE4] dark:bg-senda-card py-6 lg:border-r lg:border-b-0 flex flex-col justify-between transition-all duration-300 ease-in-out z-20 shadow-lg lg:shadow-none lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto ${
-              isHovered ? 'lg:w-72 px-6' : 'lg:w-20 px-4'
-            } w-full`}
+            className={`shrink-0 border-r border-emerald-900/10 dark:border-emerald-900/30 bg-gradient-to-b from-[#F2F6F3] via-[#EBF2EE] to-[#E1EAE3] dark:from-[#111F17] dark:via-[#14231A] dark:to-[#0B1410] py-6 flex flex-col justify-between transition-all duration-300 ease-in-out z-20 shadow-[inset_1px_0_0_rgba(255,255,255,0.8),2px_0_8px_rgba(0,0,0,0.02)] lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto ${isHovered ? 'lg:w-72 px-6' : 'lg:w-20 px-4'
+              } w-full dark:shadow-[inset_1px_0_0_rgba(255,255,255,0.03),2px_0_8px_rgba(0,0,0,0.2)]`}
           >
             <div>
               {/* Logo SENDA */}
@@ -230,13 +229,11 @@ const App: React.FC = () => {
                     key={item.key}
                     onClick={() => handleSetPage(item.key)}
                     title={!isHovered ? item.label : undefined}
-                    className={`relative flex w-full items-center rounded-2xl py-3 text-left text-xs font-bold transition cursor-pointer ${
-                      isHovered ? 'px-4 justify-between' : 'lg:px-3 lg:justify-center px-4 justify-between'
-                    } ${
-                      page === item.key
+                    className={`relative flex w-full items-center rounded-2xl py-3 text-left text-xs font-bold transition cursor-pointer ${isHovered ? 'px-4 justify-between' : 'lg:px-3 lg:justify-center px-4 justify-between'
+                      } ${page === item.key
                         ? 'bg-[#DCEBE1] dark:bg-senda-darkborder text-senda-primary dark:text-senda-accent shadow-sm border border-[#8DC29A]/40 dark:border-[#3E8563]'
                         : 'text-[#6B6F66] dark:text-[#9AA093] hover:bg-senda-light dark:hover:bg-senda-input hover:text-senda-main dark:hover:text-senda-darktext'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-3 relative">
                       <span className={`${page === item.key ? 'text-senda-primary dark:text-senda-accent' : 'text-[#6B6F66] dark:text-[#9AA093]'}`}>
@@ -280,22 +277,20 @@ const App: React.FC = () => {
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => currentI18n.changeLanguage('es')}
-                      className={`flex h-7 items-center justify-center gap-1.5 rounded-full px-2.5 text-xs transition-all cursor-pointer ${
-                        currentI18n.language === 'es'
-                          ? 'bg-white dark:bg-senda-darkborder text-senda-main dark:text-white shadow-sm font-bold border border-[#8DC29A] dark:border-[#3E8563]'
-                          : 'text-[#6B6F66] dark:text-[#9AA093] font-medium hover:text-senda-main'
-                      }`}
+                      className={`flex h-7 items-center justify-center gap-1.5 rounded-full px-2.5 text-xs transition-all cursor-pointer ${currentI18n.language === 'es'
+                        ? 'bg-white dark:bg-senda-darkborder text-senda-main dark:text-white shadow-sm font-bold border border-[#8DC29A] dark:border-[#3E8563]'
+                        : 'text-[#6B6F66] dark:text-[#9AA093] font-medium hover:text-senda-main'
+                        }`}
                     >
                       <img src="https://flagcdn.com/w40/es.png" alt="ES" className="h-4 w-4 rounded-full object-cover shadow-sm" />
                       <span>ES</span>
                     </button>
                     <button
                       onClick={() => currentI18n.changeLanguage('en')}
-                      className={`flex h-7 items-center justify-center gap-1.5 rounded-full px-2.5 text-xs transition-all cursor-pointer ${
-                        currentI18n.language === 'en'
-                          ? 'bg-white dark:bg-senda-darkborder text-senda-main dark:text-white shadow-sm font-bold border border-[#8DC29A] dark:border-[#3E8563]'
-                          : 'text-[#6B6F66] dark:text-[#9AA093] font-medium hover:text-senda-main'
-                      }`}
+                      className={`flex h-7 items-center justify-center gap-1.5 rounded-full px-2.5 text-xs transition-all cursor-pointer ${currentI18n.language === 'en'
+                        ? 'bg-white dark:bg-senda-darkborder text-senda-main dark:text-white shadow-sm font-bold border border-[#8DC29A] dark:border-[#3E8563]'
+                        : 'text-[#6B6F66] dark:text-[#9AA093] font-medium hover:text-senda-main'
+                        }`}
                     >
                       <img src="https://flagcdn.com/w40/gb.png" alt="EN" className="h-4 w-4 rounded-full object-cover shadow-sm" />
                       <span>EN</span>
@@ -347,7 +342,7 @@ const App: React.FC = () => {
           <div className="flex flex-1 flex-col min-w-0 min-h-screen">
 
             {/* BARRA SUPERIOR STICKY */}
-            <header className="h-[65px] border-b border-[#B5B5B1] dark:border-senda-darkborder bg-[#EBEBE4] dark:bg-senda-card px-8 flex items-center justify-end shrink-0 sticky top-0 z-10">
+            <header className="h-[65px] border-b border-emerald-900/10 dark:border-emerald-900/30 bg-gradient-to-r from-[#F2F6F3] via-[#EBF2EE] to-[#E2EBE5] dark:from-[#111F17] dark:via-[#15251C] dark:to-[#0D1811] px-8 flex items-center justify-end gap-4 shrink-0 sticky top-0 z-10 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_1px_3px_rgba(0,0,0,0.02)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_1px_3px_rgba(0,0,0,0.2)]">
               <div className="flex items-center gap-6">
                 {/* STAT CARD: Fecha */}
                 <div className="senda-stat-card">
@@ -361,7 +356,7 @@ const App: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-3 pl-6 border-l border-senda-border dark:border-senda-darkborder">
-                  <div className="h-9 w-9 rounded-full bg-senda-primary dark:bg-senda-accent dark:text-[#0F1712] text-white flex items-center justify-center text-xs font-bold shadow-sm">
+                  <div className="h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold shadow-sm bg-gradient-to-b from-[#4C7C63] to-[#1F3B2C] hover:from-[#537F69] hover:to-[#234030] text-white dark:from-white dark:via-[#F4F4F0] dark:to-[#E6E6DF] dark:text-senda-main transition">
                     {getInitials(currentUser)}
                   </div>
                   <div className="text-left">

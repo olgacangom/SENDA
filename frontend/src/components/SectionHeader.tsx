@@ -27,10 +27,9 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
       {actionLabel && onAction && (
         <button
           onClick={onAction}
-          className="inline-flex items-center justify-center px-5 py-3 bg-senda-primary hover:bg-[#184232] dark:bg-senda-accent dark:text-senda-dark dark:hover:bg-[#59a67e] text-white font-bold rounded-2xl shadow-lg transition gap-2 cursor-pointer self-start sm:self-auto"
-        >
+          className="inline-flex items-center justify-center px-5 py-2.5 bg-gradient-to-b from-[#4C7C63] to-[#1F3B2C] hover:from-[#537F69] hover:to-[#234030] text-white font-semibold rounded-full shadow-md transition gap-2 cursor-pointer self-start sm:self-auto">
           <span className="text-base font-bold leading-none">+</span>
-          <span className="text-[12px]">{actionLabel}</span>
+          <span className="text-xs">{actionLabel}</span>
         </button>
       )}
     </div>

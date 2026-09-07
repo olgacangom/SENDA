@@ -101,7 +101,7 @@ const Exports: React.FC<ExportsProps> = ({ onNavigate, userEmail }) => {
     }
   };
 
-const executeDownload = async (type: string, label: string, format: string, filters: { [key: string]: string }) => {
+  const executeDownload = async (type: string, label: string, format: string, filters: { [key: string]: string }) => {
     setModalError(null);
 
     const today = new Date();
@@ -111,142 +111,142 @@ const executeDownload = async (type: string, label: string, format: string, filt
     // Eliminar valores vacíos o 'ALL'
     const cleanedFilters: { [key: string]: string } = {};
     Object.entries(filters).forEach(([key, value]) => {
-        if (value && value !== 'ALL' && value.trim() !== '') {
-            cleanedFilters[key] = value.trim();
-        }
+      if (value && value !== 'ALL' && value.trim() !== '') {
+        cleanedFilters[key] = value.trim();
+      }
     });
 
     const hasFilters = Object.keys(cleanedFilters).length > 0;
 
     // Validación de fechas y años futuros
     for (const [key, val] of Object.entries(cleanedFilters)) {
-        if (!val) continue;
-        
-        const valStr = String(val).trim();
-        const isDateField = key.includes('date') || key.includes('at') || key.includes('from') || key.includes('to');
+      if (!val) continue;
 
-        if (isDateField) {
-            // Si contiene un año de 4 dígitos y es superior al actual
-            const yearMatch = valStr.match(/^(\d{4})/);
-            if (yearMatch) {
-                const year = parseInt(yearMatch[1], 10);
-                if (year > currentYear) {
-                    setModalError(t('El año seleccionado no puede ser posterior al actual.'));
-                    return;
-                }
-            }
+      const valStr = String(val).trim();
+      const isDateField = key.includes('date') || key.includes('at') || key.includes('from') || key.includes('to');
 
-            // Si es una fecha completa y es mayor a la de hoy
-            if (/^\d{4}-\d{2}-\d{2}$/.test(valStr)) {
-                if (valStr > todayStr) {
-                    setModalError(t("The date must not be later than today's date"));
-                    return;
-                }
-            }
+      if (isDateField) {
+        // Si contiene un año de 4 dígitos y es superior al actual
+        const yearMatch = valStr.match(/^(\d{4})/);
+        if (yearMatch) {
+          const year = parseInt(yearMatch[1], 10);
+          if (year > currentYear) {
+            setModalError(t('El año seleccionado no puede ser posterior al actual.'));
+            return;
+          }
         }
+
+        // Si es una fecha completa y es mayor a la de hoy
+        if (/^\d{4}-\d{2}-\d{2}$/.test(valStr)) {
+          if (valStr > todayStr) {
+            setModalError(t("The date must not be later than today's date"));
+            return;
+          }
+        }
+      }
     }
 
     // Si no hay filtros, descargar todo sin verificación previa
     if (!hasFilters) {
-        const downloadParams = new URLSearchParams({ type, format });
-        window.open(`${API_BASE}/api/export/?${downloadParams.toString()}`, '_blank');
-        
-        const now = new Date();
-        setHistory((prev) => [{
-            id: Math.random().toString(36).substring(2, 9),
-            type,
-            label,
-            format: format.toUpperCase(),
-            dateStr: now.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-            timeStr: now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-        }, ...prev].slice(0, 25));
-        setSelectedCard(null);
-        return;
+      const downloadParams = new URLSearchParams({ type, format });
+      window.open(`${API_BASE}/api/export/?${downloadParams.toString()}`, '_blank');
+
+      const now = new Date();
+      setHistory((prev) => [{
+        id: Math.random().toString(36).substring(2, 9),
+        type,
+        label,
+        format: format.toUpperCase(),
+        dateStr: now.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+        timeStr: now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      }, ...prev].slice(0, 25));
+      setSelectedCard(null);
+      return;
     }
 
     // Verificar si hay datos con los filtros aplicados
     const checkParams = new URLSearchParams({ type, format, check: 'true', ...cleanedFilters });
 
     try {
-        const checkResponse = await fetch(`${API_BASE}/api/export/?${checkParams.toString()}`, {
-            credentials: 'include'
-        });
+      const checkResponse = await fetch(`${API_BASE}/api/export/?${checkParams.toString()}`, {
+        credentials: 'include'
+      });
 
-        const contentType = checkResponse.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-            setModalError(t('Error interno en el servidor.'));
-            return;
+      const contentType = checkResponse.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        setModalError(t('Error interno en el servidor.'));
+        return;
+      }
+
+      const data = await checkResponse.json();
+
+      if (!checkResponse.ok || !data.ok) {
+        setModalError(data.error || t('There is no information for the selected filters'));
+        return;
+      }
+
+      if (!data.has_data || data.count === 0) {
+        setModalError(t('There is no information for the selected filters'));
+        return;
+      }
+
+      const downloadParams = new URLSearchParams({ type, format, ...cleanedFilters });
+      const downloadResponse = await fetch(`${API_BASE}/api/export/?${downloadParams.toString()}`, {
+        credentials: 'include'
+      });
+
+      if (!downloadResponse.ok) {
+        const errContentType = downloadResponse.headers.get("content-type");
+        if (errContentType && errContentType.includes("application/json")) {
+          const errorData = await downloadResponse.json();
+          setModalError(errorData.error || t('Error al descargar el archivo'));
+        } else {
+          setModalError(t('Error al descargar el archivo.'));
         }
+        return;
+      }
 
-        const data = await checkResponse.json();
+      const blob = await downloadResponse.blob();
+      if (blob.size === 0) {
+        setModalError(t('El archivo descargado está vacío'));
+        return;
+      }
 
-        if (!checkResponse.ok || !data.ok) {
-            setModalError(data.error || t('There is no information for the selected filters'));
-            return;
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+
+      const contentDisposition = downloadResponse.headers.get('Content-Disposition');
+      let filename = `${type}.${format}`;
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="([^"]+)"/) || contentDisposition.match(/filename=([^;]+)/);
+        if (match && match[1]) {
+          filename = match[1].trim().replace(/['"]/g, '');
         }
+      }
 
-        if (!data.has_data || data.count === 0) {
-            setModalError(t('There is no information for the selected filters'));
-            return;
-        }
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => window.URL.revokeObjectURL(url), 100);
 
-        const downloadParams = new URLSearchParams({ type, format, ...cleanedFilters });
-        const downloadResponse = await fetch(`${API_BASE}/api/export/?${downloadParams.toString()}`, {
-            credentials: 'include'
-        });
-
-        if (!downloadResponse.ok) {
-            const errContentType = downloadResponse.headers.get("content-type");
-            if (errContentType && errContentType.includes("application/json")) {
-                const errorData = await downloadResponse.json();
-                setModalError(errorData.error || t('Error al descargar el archivo'));
-            } else {
-                setModalError(t('Error al descargar el archivo.'));
-            }
-            return;
-        }
-
-        const blob = await downloadResponse.blob();
-        if (blob.size === 0) {
-            setModalError(t('El archivo descargado está vacío'));
-            return;
-        }
-
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-
-        const contentDisposition = downloadResponse.headers.get('Content-Disposition');
-        let filename = `${type}.${format}`;
-        if (contentDisposition) {
-            const match = contentDisposition.match(/filename="([^"]+)"/) || contentDisposition.match(/filename=([^;]+)/);
-            if (match && match[1]) {
-                filename = match[1].trim().replace(/['"]/g, '');
-            }
-        }
-
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        setTimeout(() => window.URL.revokeObjectURL(url), 100);
-
-        const now = new Date();
-        setHistory((prev) => [{
-            id: Math.random().toString(36).substring(2, 9),
-            type,
-            label,
-            format: format.toUpperCase(),
-            dateStr: now.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-            timeStr: now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-        }, ...prev].slice(0, 25));
-        setSelectedCard(null);
+      const now = new Date();
+      setHistory((prev) => [{
+        id: Math.random().toString(36).substring(2, 9),
+        type,
+        label,
+        format: format.toUpperCase(),
+        dateStr: now.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+        timeStr: now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      }, ...prev].slice(0, 25));
+      setSelectedCard(null);
 
     } catch (error) {
-        console.error('Error en la descarga:', error);
-        setModalError(t('Error al conectar con el servidor.'));
+      console.error('Error en la descarga:', error);
+      setModalError(t('Error al conectar con el servidor.'));
     }
-};
+  };
 
   const clearHistory = () => {
     setHistory([]);
@@ -332,8 +332,7 @@ const executeDownload = async (type: string, label: string, format: string, filt
               <button
                 type="button"
                 onClick={() => handleOpenModalOrDownload(item.type, item.label, 'csv')}
-                className="w-full grid grid-cols-[1fr_auto_1fr] items-center rounded-xl bg-senda-primary hover:bg-[#184232] dark:bg-senda-accent dark:text-senda-dark dark:hover:bg-[#59a67e] px-4 py-3 text-[11px] font-bold text-white transition shadow-md shadow-emerald-500/20 cursor-pointer"
-              >
+                className="w-full grid grid-cols-[1fr_auto_1fr] items-center px-4 py-3 text-[11px] bg-gradient-to-b from-[#4C7C63] to-[#1F3B2C] hover:from-[#537F69] hover:to-[#234030] text-white font-semibold rounded-full shadow-md transition cursor-pointer">
                 <span></span>
                 <span className="text-center">{t('Download CSV')}</span>
                 <div className="flex justify-end">
@@ -346,7 +345,7 @@ const executeDownload = async (type: string, label: string, format: string, filt
               <button
                 type="button"
                 onClick={() => handleOpenModalOrDownload(item.type, item.label, 'xlsx')}
-                className="w-full grid grid-cols-[1fr_auto_1fr] items-center rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input hover:bg-senda-light dark:hover:bg-slate-700 px-4 py-3 text-[11px] font-bold text-senda-main dark:text-slate-300 transition shadow-sm cursor-pointer"
+                className="w-full grid grid-cols-[1fr_auto_1fr] items-center px-4 py-3 text-[11px] font-semibold border border-senda-border dark:border-senda-darkborder bg-gradient-to-b from-white via-[#F4F4F0] to-[#E6E6DF] dark:from-[#22382D] dark:via-senda-input dark:to-[#122019] text-senda-main dark:text-slate-300 rounded-full shadow-md transition cursor-pointer"
               >
                 <span></span>
                 <span className="text-center">{t('Download Excel')}</span>

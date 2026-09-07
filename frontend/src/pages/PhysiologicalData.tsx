@@ -343,13 +343,13 @@ const PhysiologicalData: React.FC = () => {
             <div className="flex flex-wrap items-center gap-3">
               <button
                 onClick={() => handleExport('csv')}
-                className="rounded-2xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/60 px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-emerald-100 dark:hover:bg-emerald-900 transition shadow-sm cursor-pointer"
+                className="px-4 py-3 text-[11px] bg-gradient-to-b from-[#4C7C63] to-[#1F3B2C] hover:from-[#537F69] hover:to-[#234030] text-white dark:from-white dark:via-[#F4F4F0] dark:to-[#E6E6DF] dark:text-senda-main font-semibold rounded-full shadow-md transition cursor-pointer"
               >
                 {t('Export CSV')}
               </button>
               <button
                 onClick={() => handleExport('xlsx')}
-                className="rounded-2xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/60 px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-emerald-100 dark:hover:bg-emerald-900 transition shadow-sm cursor-pointer"
+                className="px-4 py-3 text-[11px] bg-gradient-to-b from-[#4C7C63] to-[#1F3B2C] hover:from-[#537F69] hover:to-[#234030] text-white dark:from-white dark:via-[#F4F4F0] dark:to-[#E6E6DF] dark:text-senda-main font-semibold rounded-full shadow-md transition cursor-pointer"
               >
                 {t('Export Excel')}
               </button>
