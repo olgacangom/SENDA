@@ -30,6 +30,8 @@ from .views import (
     researcher_response_view,
     api_assignments_update,
     api_assignments_delete,
+    api_fitbits_update_status,
+    api_export_physiological_data,
 )
 
 urlpatterns = [
@@ -50,11 +52,13 @@ urlpatterns = [
     path('api/alerts/<uuid:alert_id>/resolve/', api_resolve_alert, name='api_resolve_alert'),
     path('api/alerts/', api_alerts, name='api_alerts'),
     path('api/physiological-data/', api_physiological_data, name='api_physiological_data'),
-    path('api_variable_types_list/', api_variable_types_list, name='api_variable_types_list'),
+    path('api/variable/types/list/', api_variable_types_list, name='api_variable_types_list'),
+    path('api/export/physiological/data/', api_export_physiological_data, name='api_export_physiological_data'),
     path('api/export/', api_export, name='api_export'),
     path('api/participants/', api_participants, name='api_participants'),
     path('api/fitbits/', api_fitbits, name='api_fitbits'),
-    path('api/fitbits/create/', api_fitbits_create, name='api_fitbits_create'),
+    path('api/fitbits/create/', api_fitbits_create, name='api_fitbits_create'), 
+    path('api/fitbits/update/status/', api_fitbits_update_status, name='api_fitbits_update_status'),
     path('api/fitbits/delete/', api_fitbits_delete, name='api_fitbits_delete'),
     path('api/synclogs/', api_synclogs, name='api_synclogs'),
     path('api/clear/synclogs/', api_clear_synclogs, name='api_clear_synclogs'),

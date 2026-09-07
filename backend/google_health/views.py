@@ -1,5 +1,6 @@
 from django.shortcuts import redirect, HttpResponse
 from django.utils import timezone
+from zoneinfo import ZoneInfo
 from .oauth import GoogleOAuthService
 from .models import Participant, GoogleAccount, Fitbit, SyncLog, Assignment, PhysiologicalData, Alert, VariableType
 from decouple import config
@@ -21,6 +22,9 @@ from django.core.mail import send_mail, EmailMultiAlternatives
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.urls import reverse
+from django.conf import settings
+from collections import defaultdict
+from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
@@ -31,6 +35,7 @@ def _add_cors_headers(request, resp):
         resp['Access-Control-Allow-Origin'] = origin
         resp['Access-Control-Allow-Credentials'] = 'true'
         resp['Vary'] = 'Origin'
+        resp['Access-Control-Expose-Headers'] = 'Content-Disposition'
     return resp
 
 def google_login_view(request):
@@ -171,12 +176,9 @@ def api_participants(request):
             return _validation_error(request, 'invalid_json')
 
         email = payload.get('email')
-        password = payload.get('password')
 
         if not email:
             return _validation_error(request, 'missing_email')
-        if not password:
-            return _validation_error(request, 'missing_password')
 
         if Participant.objects.filter(email__iexact=email).exists():
             return _validation_error(request, 'Email ya registrado', status=409)
@@ -188,9 +190,10 @@ def api_participants(request):
             next_code_num += 1
             participant_code = f"SENDA_{next_code_num:03d}"
 
-        participant = Participant(participant_code=participant_code, email=email)
-        participant.set_password(password)
-        participant.save()
+        participant = Participant.objects.create(
+            participant_code=participant_code,
+            email=email
+        )
 
         GoogleAccount.objects.get_or_create(
             participant=participant,
@@ -243,13 +246,29 @@ def api_fitbits_list(request):
 
 
 def api_fitbits(request):
-    """Devuelve pulseras y su estado operativo."""
+    """Devuelve pulseras y su estado operativo calculado según las asignaciones activas."""
+    now = timezone.now()
     fitbits = []
+    
     for f in Fitbit.objects.all():
-        status = f.operational_status
+        has_active_assignment = f.assignments.filter(
+            models.Q(real_end_date__isnull=True) | models.Q(real_end_date__gt=now),
+            start_date__lte=now
+        ).exists()
+
+        # Si está en mantenimiento o inactiva manualmente, respetamos ese estado
+        if f.status in ['MAINTENANCE', 'INACTIVE']:
+            operational_status = f.status
+        else:
+            operational_status = 'IN_USE' if has_active_assignment else 'FREE'
+            
+            if f.status != operational_status:
+                f.status = operational_status
+                f.save(update_fields=['status'])
+
         fitbits.append({
             'fitbit_code': f.fitbit_code,
-            'status': status,
+            'status': operational_status,
         })
 
     counts = {
@@ -258,6 +277,7 @@ def api_fitbits(request):
         'maintenance': sum(1 for f in fitbits if f['status'] == 'MAINTENANCE'),
         'inactive': sum(1 for f in fitbits if f['status'] == 'INACTIVE'),
     }
+    
     resp = JsonResponse({'count': len(fitbits), 'items': fitbits, 'counts': counts})
     return _add_cors_headers(request, resp)
 
@@ -289,6 +309,42 @@ def api_fitbits_create(request):
 
     fb = Fitbit.objects.create(fitbit_code=fitbit_code, status=status)
     return _json_response(request, {'ok': True, 'fitbit_code': fb.fitbit_code, 'status': fb.status}, status=201)
+
+
+@csrf_exempt
+def api_fitbits_update_status(request):
+    """Permite cambiar manualmente el estado operativo de una Fitbit (FREE, IN_USE, MAINTENANCE, INACTIVE)."""
+    if request.method == 'OPTIONS':
+        resp = JsonResponse({'ok': True})
+        resp['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        resp['Access-Control-Allow-Headers'] = 'Content-Type'
+        return _add_cors_headers(request, resp)
+
+    if request.method != 'POST':
+        return _json_response(request, {'ok': False, 'error': 'method_not_allowed'}, status=405)
+
+    try:
+        payload = json.loads(request.body.decode('utf-8'))
+        fitbit_code = payload.get('fitbit_code')
+        new_status = payload.get('status')
+        
+        if not fitbit_code or not new_status:
+            return _validation_error(request, 'missing_required_fields', status=400)
+            
+        valid_statuses = ['FREE', 'IN_USE', 'MAINTENANCE', 'INACTIVE']
+        if new_status not in valid_statuses:
+            return _validation_error(request, 'invalid_status', status=400)
+
+        fitbit = Fitbit.objects.filter(fitbit_code=fitbit_code).first()
+        if not fitbit:
+            return _validation_error(request, 'Fitbit not found', status=404)
+
+        fitbit.status = new_status
+        fitbit.save(update_fields=['status'])
+
+        return _json_response(request, {'ok': True, 'fitbit_code': fitbit.fitbit_code, 'status': fitbit.status})
+    except Exception as e:
+        return _validation_error(request, str(e), status=400)
 
 
 @csrf_exempt
@@ -482,51 +538,175 @@ def api_physiological_data(request):
         resp['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
         resp['Access-Control-Allow-Headers'] = 'Content-Type'
         return _add_cors_headers(request, resp)
+
     if request.method != 'GET':
         return _validation_error(request, 'method_not_allowed', status=405)
 
     participant_code = request.GET.get('participant')
-    fitbit_code = request.GET.get('fitbit')        
-    variable_type = request.GET.get('variable_type')      
+    fitbit_code = request.GET.get('fitbit')
+    variable_type = request.GET.get('variable_type')
     date_from = request.GET.get('from')
     date_to = request.GET.get('to')
+    status_filter = request.GET.get('status')
 
-    qs = PhysiologicalData.objects.select_related('assignment__participant', 'assignment__fitbit')
-    
+    qs = PhysiologicalData.objects.select_related(
+        'assignment__participant',
+        'assignment__fitbit'
+    )
+
+    # -----------------------------------------------------
+    # FILTRAR POR PARTICIPANTE
+    # -----------------------------------------------------
     if participant_code:
-        codes = [c.strip() for c in participant_code.split(',') if c.strip()]
-        qs = qs.filter(assignment__participant__participant_code__in=codes)
-        
+        codes = [
+            c.strip()
+            for c in participant_code.split(',')
+            if c.strip()
+        ]
+
+        qs = qs.filter(
+            assignment__participant__participant_code__in=codes
+        )
+
+    # -----------------------------------------------------
+    # FILTRAR POR FITBIT
+    # -----------------------------------------------------
     if fitbit_code:
-        f_codes = [f.strip() for f in fitbit_code.split(',') if f.strip()]
-        qs = qs.filter(assignment__fitbit__fitbit_code__in=f_codes)
-        
+        f_codes = [
+            f.strip()
+            for f in fitbit_code.split(',')
+            if f.strip()
+        ]
+
+        qs = qs.filter(
+            assignment__fitbit__fitbit_code__in=f_codes
+        )
+
+    # -----------------------------------------------------
+    # FILTRAR POR VARIABLE
+    # -----------------------------------------------------
     if variable_type:
-        vars_list = [v.strip() for v in variable_type.split(',') if v.strip()]
+        vars_list = [
+            v.strip()
+            for v in variable_type.split(',')
+            if v.strip()
+        ]
+
         qs = qs.filter(variable_type__in=vars_list)
 
+    # -----------------------------------------------------
+    # FILTRAR POR FECHAS
+    # -----------------------------------------------------
     if date_from:
         try:
-            qs = qs.filter(physical_time__gte=datetime.fromisoformat(date_from))
-        except ValueError:
-            pass
-    if date_to:
-        try:
-            qs = qs.filter(physical_time__lte=datetime.fromisoformat(date_to))
+            qs = qs.filter(
+                physical_time__gte=datetime.fromisoformat(date_from)
+            )
         except ValueError:
             pass
 
-    items = [
-        {
-            'participant_code': item.assignment.participant.participant_code,
-            'fitbit_code': item.assignment.fitbit.fitbit_code,
-            'variable_type': item.variable_type,
+    if date_to:
+        try:
+            qs = qs.filter(
+                physical_time__lte=datetime.fromisoformat(date_to)
+            )
+        except ValueError:
+            pass
+
+    # -----------------------------------------------------
+    # FILTRAR POR ESTADO DEL PARTICIPANTE
+    # -----------------------------------------------------
+    if status_filter and status_filter != 'ALL':
+        valid_participants = []
+
+        for participant in Participant.objects.all():
+
+            assignment = (
+                Assignment.objects
+                .filter(participant=participant)
+                .order_by('-start_date')
+                .first()
+            )
+
+            if not assignment:
+                p_status = 'PENDING'
+
+            elif (
+                assignment.real_end_date
+                and assignment.real_end_date <= timezone.now()
+            ):
+                p_status = 'COMPLETED'
+
+            elif assignment.start_date > timezone.now():
+                p_status = 'PENDING'
+
+            else:
+                p_status = 'ACTIVE'
+
+            if p_status == status_filter:
+                valid_participants.append(
+                    participant.participant_code
+                )
+
+        qs = qs.filter(
+            assignment__participant__participant_code__in=valid_participants
+        )
+
+    # =====================================================
+    # ACUMULACIÓN DE STEPS Y DISTANCE POR DÍA
+    # =====================================================
+
+    # Obtenemos los 500 registros más recientes de la base de datos (orden descendente)
+    recent_qs = qs.order_by('-physical_time')[:500]
+    records = list(recent_qs)
+    records.sort(key=lambda x: x.physical_time)
+
+    accumulated_values = defaultdict(float)
+    items = []
+
+    for item in records:
+        participant = item.assignment.participant.participant_code
+        fitbit = item.assignment.fitbit.fitbit_code
+        variable = item.variable_type
+        day = timezone.localtime(item.physical_time).date()
+        value = item.metric_value
+
+        accumulation_key = (
+            participant,
+            fitbit,
+            variable,
+            day
+        )
+
+        # Solo acumulamos STEPS y DISTANCE de forma progresiva
+        if variable in [
+            VariableType.STEPS,
+            VariableType.DISTANCE
+        ]:
+            if value is not None:
+                accumulated_values[accumulation_key] += float(value)
+
+            display_value = accumulated_values[accumulation_key]
+        else:
+            display_value = value
+
+        items.append({
+            'participant_code': participant,
+            'fitbit_code': fitbit,
+            'variable_type': variable,
             'physical_time': item.physical_time.isoformat(),
-            'metric_value': item.metric_value,
+            'metric_value': display_value,
+        })
+
+    items.reverse()
+
+    return _json_response(
+        request,
+        {
+            'count': len(items),
+            'items': items
         }
-        for item in qs.order_by('-physical_time')[:200]
-    ]
-    return _json_response(request, {'count': len(items), 'items': items})
+    )
 
 
 @csrf_exempt
@@ -544,53 +724,209 @@ def api_variable_types_list(request):
 
 @csrf_exempt
 def api_alerts(request):
+
     if request.method == 'OPTIONS':
         resp = JsonResponse({'ok': True})
         resp['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
         resp['Access-Control-Allow-Headers'] = 'Content-Type'
         return _add_cors_headers(request, resp)
-    if request.method != 'GET':
-        return _validation_error(request, 'method_not_allowed', status=405)
 
-    alerts = Alert.objects.select_related('assignment__participant', 'google_account').order_by('-created_at')[:100]
-    items = [
-        {
+    if request.method != 'GET':
+        return _validation_error(
+            request,
+            'method_not_allowed',
+            status=405
+        )
+
+    status_filter = request.GET.get('status', 'ALL')
+    priority_filter = request.GET.get('priority', 'ALL')
+    participant_filter = request.GET.get('participant', '').strip()
+    alert_type_filter = request.GET.get('type', 'ALL')
+
+    alerts = (
+        Alert.objects
+        .select_related(
+            'assignment__participant',
+            'assignment__fitbit',
+            'google_account'
+        )
+    )
+
+    # ----------------------------------------
+    # FILTRO POR ESTADO
+    # ----------------------------------------
+
+    if status_filter == 'ACTIVE':
+        alerts = alerts.filter(resolved=False)
+
+    elif status_filter == 'RESOLVED':
+        alerts = alerts.filter(resolved=True)
+
+    # ----------------------------------------
+    # FILTRO POR PRIORIDAD
+    # ----------------------------------------
+
+    if priority_filter in ['HIGH', 'MEDIUM']:
+        alerts = alerts.filter(priority=priority_filter)
+
+    # ----------------------------------------
+    # FILTRO POR TIPO DE ALERTA
+    # ----------------------------------------
+
+    if alert_type_filter != 'ALL':
+        alerts = alerts.filter(alert_type=alert_type_filter)
+
+    # ----------------------------------------
+    # FILTRO POR PARTICIPANTE
+    # ----------------------------------------
+
+    if participant_filter:
+        alerts = alerts.filter(
+            assignment__participant__participant_code__icontains=participant_filter
+        )
+
+    # ----------------------------------------
+    # ORDEN
+    # Activas primero y más recientes primero
+    # ----------------------------------------
+
+    alerts = alerts.order_by(
+        'resolved',
+        '-last_detected_at'
+    )[:500]
+
+    items = []
+
+    for alert in alerts:
+
+        participant_code = None
+        fitbit_code = None
+
+        if alert.assignment:
+            if alert.assignment.participant:
+                participant_code = (
+                    alert.assignment.participant.participant_code
+                )
+
+            if alert.assignment.fitbit:
+                fitbit_code = (
+                    alert.assignment.fitbit.fitbit_code
+                )
+
+        items.append({
             'id': str(alert.id),
+
+            'type': alert.alert_type,
+            'type_label': alert.get_alert_type_display(),
+
             'message': alert.message,
             'priority': alert.priority,
-            'type': alert.alert_type,
-            'resolved': alert.resolved,
-            'participant_code': alert.assignment.participant.participant_code if alert.assignment else None,
-            'email': alert.google_account.email if alert.google_account else None,
-            'created_at': alert.created_at.isoformat(),
-        }
-        for alert in alerts
-    ]
-    return _json_response(request, {'count': len(items), 'items': items})
 
+            'resolved': alert.resolved,
+
+            'participant_code': participant_code,
+
+            'fitbit_code': fitbit_code,
+
+            'email': (
+                alert.google_account.email
+                if alert.google_account
+                else None
+            ),
+
+            'details': alert.details or {},
+
+            'first_detected_at': (
+                alert.first_detected_at.isoformat()
+                if alert.first_detected_at
+                else None
+            ),
+
+            'last_detected_at': (
+                alert.last_detected_at.isoformat()
+                if alert.last_detected_at
+                else None
+            ),
+
+            'created_at': (
+                alert.created_at.isoformat()
+                if alert.created_at
+                else None
+            ),
+
+            'resolved_at': (
+                alert.resolved_at.isoformat()
+                if alert.resolved_at
+                else None
+            ),
+        })
+
+    return _json_response(
+        request,
+        {
+            'count': len(items),
+            'items': items,
+        }
+    )
 
 @csrf_exempt
 def api_resolve_alert(request, alert_id):
+
     if request.method == 'OPTIONS':
         resp = JsonResponse({'ok': True})
         resp['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
         resp['Access-Control-Allow-Headers'] = 'Content-Type'
         return _add_cors_headers(request, resp)
+
     if request.method != 'POST':
-        return _validation_error(request, 'method_not_allowed', status=405)
+        return _validation_error(
+            request,
+            'method_not_allowed',
+            status=405
+        )
 
     try:
         alert = Alert.objects.get(id=alert_id)
+
+        if alert.resolved:
+            return _json_response(
+                request,
+                {
+                    'ok': True,
+                    'already_resolved': True,
+                    'message': 'La alerta ya estaba resuelta'
+                }
+            )
+
         alert.resolved = True
         alert.resolved_at = timezone.now()
-        alert.save(update_fields=['resolved', 'resolved_at'])
-        return _json_response(request, {'ok': True, 'message': 'Alerta resuelta correctamente'})
+
+        alert.save(
+            update_fields=[
+                'resolved',
+                'resolved_at'
+            ]
+        )
+
+        return _json_response(
+            request,
+            {
+                'ok': True,
+                'message': 'Alerta marcada como resuelta correctamente',
+                'resolved_at': alert.resolved_at.isoformat()
+            }
+        )
+
     except Alert.DoesNotExist:
-        return _validation_error(request, 'alert_not_found', status=404)
+        return _validation_error(
+            request,
+            'alert_not_found',
+            status=404
+        )
 
 
 @csrf_exempt
-def api_export(request):
+def api_export_physiological_data(request):
     if request.method == 'OPTIONS':
         resp = JsonResponse({'ok': True})
         resp['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
@@ -610,95 +946,10 @@ def api_export(request):
     rows = []
 
     # =========================================================
-    # PARTICIPANTES
-    # =========================================================
-
-    if export_type == 'participants':
-
-        rows.append([
-            'participant_code',
-            'email',
-            'authentication_status'
-        ])
-
-        for account in GoogleAccount.objects.select_related('participant'):
-            rows.append([
-                account.participant.participant_code,
-                account.email,
-                account.authentication_status
-            ])
-
-        file_root = 'participants'
-
-    # =========================================================
-    # FITBITS
-    # =========================================================
-
-    elif export_type == 'fitbits':
-
-        rows.append([
-            'fitbit_code',
-            'status',
-            'assigned_participant'
-        ])
-
-        for fitbit in Fitbit.objects.all():
-
-            assignment = (
-                fitbit.assignments
-                .filter(real_end_date__isnull=True)
-                .order_by('-start_date')
-                .first()
-            )
-
-            assigned = (
-                assignment.participant.participant_code
-                if assignment
-                else ''
-            )
-
-            rows.append([
-                fitbit.fitbit_code,
-                fitbit.status,
-                assigned
-            ])
-
-        file_root = 'fitbits'
-
-    # =========================================================
-    # SINCRONIZACIONES
-    # =========================================================
-
-    elif export_type == 'syncs':
-
-        rows.append([
-            'sync_date',
-            'email',
-            'result',
-            'downloaded_records'
-        ])
-
-        for log in (
-            SyncLog.objects
-            .select_related('google_account')
-            .order_by('-sync_date')
-        ):
-            rows.append([
-                log.sync_date.isoformat(),
-                log.google_account.email
-                if log.google_account
-                else '',
-                log.result,
-                log.downloaded_records
-            ])
-
-        file_root = 'syncs'
-
-    # =========================================================
     # DATOS FISIOLÓGICOS
     # =========================================================
 
-    elif export_type == 'physiological':
+    if export_type == 'physiological':
 
         participant_code = request.GET.get('participant')
         fitbit_code = request.GET.get('fitbit')
@@ -825,7 +1076,7 @@ def api_export(request):
         pivot_data = {}
         variables_found = set()
 
-        for item in qs.order_by('physical_time')[:5000]:
+        for item in qs.order_by('-physical_time')[:5000]:
 
             if not item.assignment:
                 continue
@@ -870,11 +1121,24 @@ def api_export(request):
             # -------------------------------------------------
 
             val = item.metric_value
-            # Si el valor es cero o nulo, dejamos la celda vacía ('')
+
             if val is not None and float(val) > 0:
-                pivot_data[row_key]['variables'][item.variable_type] = val
+                try:
+                    num_val = float(val)
+
+                    # Convertimos a texto para que CSV y XLSX muestren siempre el punto decimal
+                    if num_val.is_integer():
+                        formatted_value = str(int(num_val))
+                    else:
+                        formatted_value = format(num_val, '.15g')
+
+                    pivot_data[row_key]['variables'][item.variable_type] = formatted_value
+
+                except (ValueError, TypeError):
+                    pivot_data[row_key]['variables'][item.variable_type] = str(val)
+
             else:
-                pivot_data[row_key]['variables'][item.variable_type] = 'null'
+                pivot_data[row_key]['variables'][item.variable_type] = '-'  # -, null o nada (en excel)
 
         # =====================================================
         # ORDEN DE VARIABLES
@@ -1065,6 +1329,328 @@ def api_export(request):
         request,
         response
     )
+
+
+@csrf_exempt
+def api_export(request):
+    if request.method == 'OPTIONS':
+        resp = JsonResponse({'ok': True})
+        resp['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        resp['Access-Control-Allow-Headers'] = 'Content-Type'
+        return _add_cors_headers(request, resp)
+
+    if request.method != 'GET':
+        return _validation_error(request, 'method_not_allowed', status=405)
+
+    export_type = request.GET.get('type')
+    export_format = request.GET.get('format', 'csv')
+    check_only = request.GET.get('check', 'false') == 'true'
+
+    rows = []
+    has_data = False
+    filter_parts = []
+    
+    local_tz = ZoneInfo("Europe/Madrid")
+    today_date = timezone.localtime(timezone.now()).date()
+
+    # Validación de fechas/años futuros
+    for key, val in request.GET.items():
+        if val and str(val).strip() and str(val).strip().upper() != 'ALL':
+            val_str = str(val).strip()
+            try:
+                if len(val_str) == 10 and '-' in val_str:
+                    parsed_d = datetime.strptime(val_str, '%Y-%m-%d').date()
+                    if parsed_d > today_date:
+                        return JsonResponse({'ok': False, 'error': 'La fecha seleccionada no puede ser posterior a hoy.'}, status=400)
+                elif len(val_str) == 4 and val_str.isdigit():
+                    if int(val_str) > today_date.year:
+                        return JsonResponse({'ok': False, 'error': 'El año seleccionado no puede ser posterior al actual.'}, status=400)
+            except ValueError:
+                pass
+
+    def format_date_madrid(dt):
+        if not dt:
+            return ''
+
+        try:
+            if timezone.is_naive(dt):
+                dt = timezone.make_aware(dt, local_tz)
+
+            return timezone.localtime(dt, local_tz).isoformat()
+
+        except Exception as e:
+            print(f"ERROR formateando fecha: {dt!r} -> {e}")
+            return str(dt)
+
+    # =========================================================
+    # PARTICIPANTES
+    # =========================================================
+    if export_type == 'participants':
+        p_filter = request.GET.get('participant_code')
+        status_filter = request.GET.get('study_status')
+
+        if p_filter and p_filter != 'ALL': filter_parts.append(p_filter)
+        if status_filter and status_filter != 'ALL': filter_parts.append(status_filter.lower())
+
+        rows.append(['participant_code', 'email', 'authentication_status', 'study_status'])
+
+        for account in GoogleAccount.objects.select_related('participant'):
+            participant = account.participant
+            if not participant: continue
+                
+            assignment = Assignment.objects.filter(participant=participant).order_by('-start_date').first()
+            if not assignment: study_status = 'PENDING'
+            elif assignment.real_end_date: study_status = 'COMPLETED'
+            elif assignment.start_date > timezone.now(): study_status = 'PENDING'
+            else: study_status = 'ACTIVE'
+
+            if p_filter and p_filter != 'ALL' and p_filter.strip().lower() not in participant.participant_code.lower(): continue
+            if status_filter and status_filter != 'ALL' and study_status != status_filter: continue
+
+            rows.append([participant.participant_code, account.email, account.authentication_status, study_status])
+            has_data = True
+        
+        file_root = _generate_filename('participants', filter_parts)
+
+    # =========================================================
+    # FITBITS
+    # =========================================================
+    elif export_type == 'fitbits':
+        f_filter = request.GET.get('fitbit_code')
+        status_filter = request.GET.get('status')
+
+        if f_filter and f_filter != 'ALL': filter_parts.append(f_filter)
+        if status_filter and status_filter != 'ALL': filter_parts.append(status_filter.lower())
+
+        rows.append(['fitbit_code', 'status', 'assigned_participant'])
+
+        for fitbit in Fitbit.objects.all():
+            if f_filter and f_filter != 'ALL' and f_filter.strip().lower() not in fitbit.fitbit_code.lower(): continue
+            if status_filter and status_filter != 'ALL' and fitbit.status != status_filter: continue
+
+            assignment = fitbit.assignments.filter(real_end_date__isnull=True).order_by('-start_date').first()
+            assigned = assignment.participant.participant_code if assignment and assignment.participant else ''
+
+            rows.append([fitbit.fitbit_code, fitbit.status, assigned])
+            has_data = True
+        
+        file_root = _generate_filename('fitbits', filter_parts)
+
+    # =========================================================
+    # ASIGNACIONES
+    # =========================================================
+    elif export_type == 'assignments':
+        p_code = request.GET.get('participant_code')
+        f_code = request.GET.get('fitbit_code')
+        d_start = request.GET.get('start_date')
+        d_end = request.GET.get('end_date')
+        status_filter = request.GET.get('status')
+
+        # Añadir filtros a la lista (SOLO si no son ALL o están vacíos)
+        filter_parts = []  # Reiniciar para esta sección
+        if p_code and p_code != 'ALL' and p_code.strip():
+            filter_parts.append(p_code.strip())
+        if f_code and f_code != 'ALL' and f_code.strip():
+            filter_parts.append(f_code.strip())
+        if status_filter and status_filter != 'ALL' and status_filter.strip():
+            filter_parts.append(status_filter.lower().strip())
+        if d_start and d_start.strip():
+            filter_parts.append(d_start.strip())
+        if d_end and d_end.strip():
+            filter_parts.append(d_end.strip())
+
+        rows.append(['participant_code', 'fitbit_code', 'start_date', 'estimated_end_date', 'real_end_date', 'status'])
+
+        qs = Assignment.objects.select_related('participant', 'fitbit').all()
+        if p_code and p_code != 'ALL' and p_code.strip():
+            qs = qs.filter(participant__participant_code__icontains=p_code.strip())
+        if f_code and f_code != 'ALL' and f_code.strip():
+            qs = qs.filter(fitbit__fitbit_code__icontains=f_code.strip())
+        if d_start:
+            try: 
+                qs = qs.filter(start_date__date__gte=datetime.strptime(d_start, '%Y-%m-%d').date())
+            except ValueError: 
+                pass
+        if d_end:
+            try: 
+                qs = qs.filter(real_end_date__date=datetime.strptime(d_end, '%Y-%m-%d').date())
+            except ValueError: 
+                pass
+
+        for assignment in qs:
+            if status_filter and status_filter != 'ALL' and assignment.status != status_filter:
+                continue
+            rows.append([
+                assignment.participant.participant_code if assignment.participant else '',
+                assignment.fitbit.fitbit_code if assignment.fitbit else '',
+                format_date_madrid(assignment.start_date),
+                format_date_madrid(assignment.estimated_end_date),
+                format_date_madrid(assignment.real_end_date),
+                assignment.status
+            ])
+            has_data = True
+        
+        file_root = _generate_filename('assignments', filter_parts)
+
+    # =========================================================
+    # ALERTAS
+    # =========================================================
+    elif export_type == 'alerts':
+        a_type = request.GET.get('alert_type')
+        a_priority = request.GET.get('priority')
+        p_code = request.GET.get('participant_code')
+        f_code = request.GET.get('fitbit_code')
+        d_first = request.GET.get('first_detected_at')
+        d_resolved = request.GET.get('resolved_at')
+
+        if a_type and a_type != 'ALL': filter_parts.append(a_type.lower())
+        if a_priority and a_priority != 'ALL': filter_parts.append(a_priority.lower())
+        if p_code and p_code != 'ALL': filter_parts.append(p_code)
+        if f_code and f_code != 'ALL': filter_parts.append(f_code)
+        if d_first and d_first.strip(): filter_parts.append(d_first)
+        if d_resolved and d_resolved.strip(): filter_parts.append(d_resolved)
+
+        rows.append(['alert_id', 'type', 'priority', 'resolved', 'participant_code', 'fitbit_code', 'email', 'first_detected_at', 'resolved_at', 'created_at'])
+
+        qs = Alert.objects.select_related('assignment__participant', 'assignment__fitbit', 'google_account').all()
+        if a_type and a_type != 'ALL': qs = qs.filter(alert_type=a_type)
+        if a_priority and a_priority != 'ALL': qs = qs.filter(priority=a_priority)
+        if p_code and p_code != 'ALL': qs = qs.filter(assignment__participant__participant_code__icontains=p_code.strip())
+        if f_code and f_code != 'ALL': qs = qs.filter(assignment__fitbit__fitbit_code__icontains=f_code.strip())
+        if d_first and d_first.strip():
+            try: qs = qs.filter(first_detected_at__date=datetime.strptime(d_first.strip(), '%Y-%m-%d').date())
+            except ValueError: pass
+        if d_resolved and d_resolved.strip():
+            try: qs = qs.filter(resolved_at__date=datetime.strptime(d_resolved.strip(), '%Y-%m-%d').date())
+            except ValueError: pass
+
+        for alert in qs:
+            rows.append([
+                str(alert.id), alert.alert_type, alert.priority, str(alert.resolved),
+                alert.assignment.participant.participant_code if alert.assignment and alert.assignment.participant else '',
+                alert.assignment.fitbit.fitbit_code if alert.assignment and alert.assignment.fitbit else '',
+                alert.google_account.email if alert.google_account else '',
+                format_date_madrid(alert.first_detected_at),
+                format_date_madrid(alert.resolved_at),
+                format_date_madrid(alert.created_at)
+            ])
+            has_data = True
+        
+        file_root = _generate_filename('alerts', filter_parts)
+
+    # =========================================================
+    # RESEARCHERS
+    # =========================================================
+    elif export_type == 'researchers':
+        rows.append(['email', 'created_at', 'is_active'])
+        User = get_user_model()
+        for researcher in User.objects.all():
+            rows.append([
+                researcher.email,
+                format_date_madrid(researcher.date_joined) if hasattr(researcher, 'date_joined') else '',
+                str(researcher.is_active)
+            ])
+            has_data = True
+        file_root = 'researchers'
+
+    # =========================================================
+    # SINCRONIZACIONES
+    # =========================================================
+    elif export_type == 'syncs':
+        sync_date = request.GET.get('sync_date')
+        if sync_date and sync_date.strip(): filter_parts.append(sync_date)
+
+        rows.append(['sync_date_madrid', 'email', 'result', 'downloaded_records'])
+        qs = SyncLog.objects.select_related('google_account').order_by('-sync_date')
+        
+        if sync_date and sync_date.strip():
+            try:
+                date_obj = datetime.strptime(sync_date.strip(), '%Y-%m-%d').date()
+                start_dt = datetime.combine(date_obj, datetime.min.time(), tzinfo=local_tz)
+                end_dt = datetime.combine(date_obj, datetime.max.time(), tzinfo=local_tz)
+                qs = qs.filter(sync_date__range=(start_dt, end_dt))
+            except ValueError:
+                pass
+
+        for log in qs:
+            sync_local = log.sync_date.astimezone(local_tz)
+            rows.append([
+                sync_local.isoformat(),
+                log.google_account.email if log.google_account else '',
+                log.result,
+                log.downloaded_records
+            ])
+            has_data = True
+        
+        file_root = _generate_filename('syncs', filter_parts)
+
+    else:
+        return _validation_error(request, 'invalid_export_type', status=400)
+
+    if check_only:
+        return JsonResponse({'ok': True, 'has_data': has_data, 'count': len(rows) - 1 if has_data else 0})
+
+    if not has_data or len(rows) <= 1:
+        return JsonResponse({'ok': False, 'error': 'No hay información para los filtros seleccionados'}, status=404)
+
+    if export_format == 'xlsx':
+        import openpyxl
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Datos"
+        for row in rows: ws.append(row)
+
+        for col in ws.columns:
+            max_len = max(len(str(cell.value or '')) for cell in col)
+            ws.column_dimensions[col[0].column_letter].width = min(max_len + 2, 40)
+
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        response = HttpResponse(output.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename="{file_root}.xlsx"'
+    else:
+        output = io.BytesIO()
+        wrapper = io.TextIOWrapper(output, encoding='utf-8-sig', newline='')
+        writer = csv.writer(wrapper, delimiter=';')
+        for row in rows: writer.writerow(row)
+        wrapper.flush()
+        output.seek(0)
+        response = HttpResponse(output.getvalue(), content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{file_root}.csv"'
+
+    return _add_cors_headers(request, response)
+
+
+def _generate_filename(base_name, filter_parts):
+    """
+    Construye el nombre del archivo personalizado combinando base_name y filtros.
+    Maneja tanto listas como valores individuales.
+    """
+    if not filter_parts:
+        return base_name
+    
+    if not isinstance(filter_parts, list):
+        filter_parts = [filter_parts]
+    
+    clean_parts = []
+    for part in filter_parts:
+        if part is not None:
+            part_str = str(part).strip()
+            if part_str and part_str.upper() != 'ALL':
+                clean = part_str.replace(' ', '_').replace('/', '_').replace(':', '_').replace('\\', '_').lower()
+                if len(clean) > 20:
+                    clean = clean[:20]
+                clean_parts.append(clean)
+    
+    # Si no hay partes limpias, devolver solo el nombre base
+    if not clean_parts:
+        return base_name
+    
+    if len(clean_parts) == 1:
+        return f"{base_name}_{clean_parts[0]}"
+    else:
+        return f"{base_name}_{'_'.join(clean_parts)}"
 
 
 @csrf_exempt
@@ -1267,45 +1853,149 @@ def api_admin_create_researcher(request):
     no_url = f"http://localhost:1574/api/auth/researcher/respond/?uid={uid}&action=no"
 
     html_content = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        body {{ font-family: Arial, sans-serif; color: #333; background-color: #f8fafc; margin: 0; padding: 20px; }}
-        .container {{ max-width: 600px; background: #ffffff; padding: 30px; border-radius: 12px; border: 1px solid #e2e8f0; }}
-        .button-yes {{ background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin-right: 10px; }}
-        .button-no {{ background-color: #ef4444; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; }}
-        .footer {{ margin-top: 25px; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h2 style="color: #1e293b;">Verificación de cuenta - SENDA</h2>
-        <p>Hola,</p>
-        <p>Has sido autorizado/a para colaborar como investigador/a en la plataforma <strong>SENDA</strong>.</p>
-        <p>Para confirmar tu identidad y activar tu acceso institucional, por favor haz clic en una de las siguientes opciones:</p>
-        
-        <div style="margin: 30px 0;">
-            <a href="{yes_url}" class="button-yes">Sí, aceptar autorización</a>
-            <a href="{no_url}" class="button-no">No, rechazar</a>
-        </div>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Verificación de cuenta - SENDA</title>
+        <style>
+            /* Estilos responsivos para clientes de correo */
+            @media only screen and (max-width: 600px) {{
+                .main-container {{
+                    width: 100% !important;
+                    border-radius: 0 !important;
+                }}
+                .content-padding {{
+                    padding: 20px !important;
+                }}
+                .header-padding {{
+                    padding: 20px 20px 16px 20px !important;
+                }}
+                .footer-padding {{
+                    padding: 20px !important;
+                }}
+                .button-stack {{
+                    display: block !important;
+                    width: 100% !important;
+                    margin-right: 0 !important;
+                    margin-bottom: 12px !important;
+                }}
+                .button-full {{
+                    display: block !important;
+                    width: 100% !important;
+                    box-sizing: border-box !important;
+                }}
+            }}
+        </style>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: auto; background-color: #f1f5f9;">
+            <tr>
+                <td align="center" style="padding: 20px 0;">
+                    <!-- Contenedor Principal (ancho fijo máx 600px, flexible en móvil) -->
+                    <table border="0" cellpadding="0" cellspacing="0" class="main-container" width="600" style="background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                        
+                        <!-- Cabecera con Logo SENDA -->
+                        <tr>
+                            <td class="header-padding" style="padding: 32px 40px 24px 40px; border-bottom: 1px solid #f1f5f9;">
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: auto;">
+                                    <tr>
+                                        <td class="header-padding" style="padding: 28px 40px 20px 40px; border-bottom: 1px solid #f1f5f9;">
+                                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: auto;">
+                                                <tr>
+                                                    <td style="vertical-align: middle;">
+                                                        <img 
+                                                            src="https://sendaproject.es/images/senda.png" 
+                                                            alt="SENDA" 
+                                                            width="150" 
+                                                            style="display: block; border: 0; outline: none; text-decoration: none; max-height: 75px; width: auto;" />
+                                                    </td>
+                                                    <td align="right" style="vertical-align: middle; font-size: 12px; color: #64748b; font-weight: 600;">
+                                                        Plataforma de investigación
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
 
-        <p>Si tú no has solicitado este acceso, puedes ignorar este mensaje de forma segura.</p>
-        
-        <div class="footer">
-            <p>Atentamente,<br><strong>Equipo SENDA</strong></p>
-        </div>
-    </div>
-</body>
-</html>
-"""
+                        <!-- Contenido del Mensaje -->
+                        <tr>
+                            <td class="content-padding" style="padding: 40px;">
+                                <h2 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 700; color: #1e293b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                                    Verificación de cuenta
+                                </h2>
+                                <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #334155;">
+                                    Hola,
+                                </p>
+                                <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #334155;">
+                                    Has sido autorizado/a para colaborar como investigador/a en la plataforma <strong style="color: #0f766e;">SENDA</strong> (Salud Emocional y Neurociencia para el Desarrollo de Andalucía).
+                                </p>
+                                <p style="margin: 0 0 28px 0; font-size: 15px; line-height: 1.6; color: #334155;">
+                                    Para confirmar tu identidad y activar tu acceso, por favor elige una opción:
+                                </p>
+
+                                <!-- Botones de Acción (Sí / No) - Responsive Stack -->
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: auto; margin-bottom: 32px;">
+                                    <tr>
+                                        <td>
+                                            <a href="{yes_url}" target="_blank" class="button-stack button-full" style="background-color: #059669; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 14px; display: inline-block; margin-right: 12px; box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2); text-align: center;">
+                                                Sí, aceptar autorización
+                                            </a>
+                                            <a href="{no_url}" target="_blank" class="button-full" style="background-color: #ffffff; color: #dc2626; border: 1px solid #fca5a5; padding: 13px 24px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 14px; display: inline-block; text-align: center;">
+                                                No, rechazar
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </table>
+
+                                <!-- Tarjeta de Aviso de Seguridad -->
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: auto; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+                                    <tr>
+                                        <td style="padding: 16px 20px; font-size: 13px; color: #64748b; line-height: 1.5;">
+                                            🔒 <strong>Aviso de seguridad:</strong> Si tú no has solicitado este acceso, puedes ignorar o rechazar este mensaje de forma segura.
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                        <!-- Pie de Página -->
+                        <tr>
+                            <td class="footer-padding" style="background-color: #f8fafc; padding: 24px 40px; border-top: 1px solid #e2e8f0;">
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: auto;">
+                                    <tr>
+                                        <td style="font-size: 12px; color: #64748b; line-height: 1.5;">
+                                            Este enlace es seguro y único para ti.<br>
+                                            Atentamente, <strong style="color: #0f766e;">Equipo SENDA</strong><br>
+                                            Universidad de Sevilla
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
 
     subject = 'Autorización como investigador/a en SENDA'
-    from_email = config('DEFAULT_FROM_EMAIL', default='admin@proyectosenda.org')
-    text_content = f"Hola,\n\nTe han autorizado como investigador/a en SENDA.\n\nAcepta aquí: {yes_url}\nRechaza aquí: {no_url}\n\nEquipo SENDA"
+    from_email = f"SENDA <{config('DEFAULT_FROM_EMAIL', default='admin@sendaproject.es')}>"
+    text_content = f"Hola,\n\nTe han autorizado como investigador/a en SENDA.\n\nAcepta la autorización aquí: {yes_url}\nO recházala aquí: {no_url}\n\nAtentamente,\nEquipo SENDA"
 
-    email_msg = EmailMultiAlternatives(subject, text_content, from_email, [email])
+    email_msg = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,
+        from_email=from_email,
+        to=[email],
+    )
     email_msg.attach_alternative(html_content, "text/html")
     email_msg.send(fail_silently=False)
 
@@ -1377,13 +2067,140 @@ def api_researcher_request_code(request):
     code = f"{random.randint(100000, 999999)}"
     cache.set(f"otp_{email}", code, timeout=300)  # 5 minutos de validez
 
-    send_mail(
-        subject='Verificación de cuenta en SENDA',
-        message=f'Tu código de verificación es: {code}',
-        from_email=config('DEFAULT_FROM_EMAIL'),
-        recipient_list=[email],
-        fail_silently=False, 
+    subject = 'Tu código de verificación - SENDA'
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Código de verificación - SENDA</title>
+        <style>
+            /* Estilos responsivos para clientes de correo */
+            @media only screen and (max-width: 600px) {{
+                .main-container {{
+                    width: 100% !important;
+                    border-radius: 0 !important;
+                }}
+                .content-padding {{
+                    padding: 20px !important;
+                }}
+                .header-padding {{
+                    padding: 20px 20px 16px 20px !important;
+                }}
+                .footer-padding {{
+                    padding: 20px !important;
+                }}
+                .otp-text {{
+                    font-size: 24px !important;
+                    letter-spacing: 4px !important;
+                }}
+            }}
+        </style>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: auto; background-color: #f1f5f9;">
+            <tr>
+                <td align="center" style="padding: 20px 0;">
+                    <!-- Contenedor Principal -->
+                    <table border="0" cellpadding="0" cellspacing="0" class="main-container" width="600" style="background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                        
+                        <!-- Cabecera con Logo SENDA -->
+                        <tr>
+                            <td class="header-padding" style="padding: 32px 40px 24px 40px; border-bottom: 1px solid #f1f5f9;">
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: auto;">
+                                    <tr>
+                                        <td class="header-padding" style="padding: 28px 40px 20px 40px; border-bottom: 1px solid #f1f5f9;">
+                                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: auto;">
+                                                <tr>
+                                                    <td style="vertical-align: middle;">
+                                                        <img 
+                                                            src="https://sendaproject.es/images/senda.png" 
+                                                            alt="SENDA" 
+                                                            width="150" 
+                                                            style="display: block; border: 0; outline: none; text-decoration: none; max-height: 75px; width: auto;" />
+                                                    </td>
+                                                    <td align="right" style="vertical-align: middle; font-size: 12px; color: #64748b; font-weight: 600;">
+                                                        Plataforma de investigación
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                        <!-- Contenido del Mensaje -->
+                        <tr>
+                            <td class="content-padding" style="padding: 40px;">
+                                <h2 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 700; color: #1e293b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                                    Código de acceso
+                                </h2>
+                                <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #334155;">
+                                    Hola,
+                                </p>
+                                <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #334155;">
+                                    Has solicitado iniciar sesión en la plataforma <strong style="color: #0f766e;">SENDA</strong>. Utiliza el siguiente código de verificación de un solo uso (válido por 5 minutos):
+                                </p>
+
+                                <!-- Bloque Destacado del Código OTP - Responsive -->
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: auto; margin-bottom: 28px;">
+                                    <tr>
+                                        <td align="center" style="background-color: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 20px;">
+                                            <span class="otp-text" style="font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #0f766e;">{code}</span>
+                                        </td>
+                                    </tr>
+                                </table>
+
+                                <!-- Tarjeta de Aviso de Seguridad -->
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: auto; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+                                    <tr>
+                                        <td style="padding: 16px 20px; font-size: 13px; color: #64748b; line-height: 1.5;">
+                                            🔒 <strong>Aviso de seguridad:</strong> Si no has solicitado este código, puedes ignorar este mensaje con total seguridad. Nadie podrá acceder a tu cuenta sin él.
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                        <!-- Pie de Página -->
+                        <tr>
+                            <td class="footer-padding" style="background-color: #f8fafc; padding: 24px 40px; border-top: 1px solid #e2e8f0;">
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: auto;">
+                                    <tr>
+                                        <td style="font-size: 12px; color: #64748b; line-height: 1.5;">
+                                            Este código es confidencial.<br>
+                                            Atentamente, <strong style="color: #0f766e;">Equipo SENDA</strong><br>
+                                            Universidad de Sevilla
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+
+    text_content = f"Hola,\n\nTu código de verificación para SENDA es: {code}\n\nEste código caduca en 5 minutos.\n\nAtentamente,\nEquipo SENDA"
+
+    from_email = f"SENDA <{settings.DEFAULT_FROM_EMAIL}>"
+    
+    email_msg = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,
+        from_email=from_email,
+        to=[email],
     )
+    email_msg.attach_alternative(html_content, "text/html")
+    email_msg.send(fail_silently=False)
+
     return _json_response(request, {'ok': True, 'message': 'Código enviado correctamente'})
 
 

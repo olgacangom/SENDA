@@ -1,5 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { CustomSelect } from '../components/CustomSelect';
+import { Pagination } from '../components/Pagination';
+import { SectionHeader } from '../components/SectionHeader';
 
 type PhysiologicalDataItem = {
   participant_code: string;
@@ -13,12 +16,16 @@ const API_BASE = 'http://localhost:1574';
 
 const VARIABLE_OPTIONS = [
   'SLEEP_DURATION', 'SLEEP_LIGHT', 'SLEEP_DEEP', 'SLEEP_REM',
-  'SLEEP_AWAKE', 'SLEEP_START_END', 'HEART_RATE', 'HEART_RATE_RESTING',
-  'HRV_NOCTURNAL', 'RESPIRATORY_RATE_NOCTURNAL', 'HR_ZONE_FAT_BURN',
-  'HR_ZONE_CARDIO', 'HR_ZONE_PEAK', 'ACTIVE_ZONE_MINUTES', 'STEPS', 'DISTANCE'
+  'SLEEP_AWAKE', 'SLEEP_START', 'SLEEP_END', 'SLEEP_MINUTES_TO_FALL_ASLEEP',
+  'SLEEP_MINUTES_ASLEEP', 'SLEEP_AFTER_WAKE_UP',
+  'RESPIRATORY_RATE_NOCTURNAL', 'RESPIRATORY_RATE_LIGHT',
+  'RESPIRATORY_RATE_DEEP', 'RESPIRATORY_RATE_REM',
+  'HEART_RATE', 'HEART_RATE_RESTING', 'HRV_AVERAGE_MS', 'HRV_RMSSD',
+  'HRV_NON_REM_HR', 'HRV_ENTROPY',
+  'HR_ZONE_FAT_BURN', 'HR_ZONE_CARDIO', 'HR_ZONE_PEAK',
+  'ACTIVE_ZONE_MINUTES', 'STEPS', 'DISTANCE'
 ];
 
-// --- Componente reutilizable para desplegables de SELECCIÓN MÚLTIPLE con buscador ---
 const CustomMultiSearchableSelect: React.FC<{
   label: string;
   selectedValues: string[];
@@ -52,17 +59,17 @@ const CustomMultiSearchableSelect: React.FC<{
   };
 
   const getDisplayText = () => {
-    if (selectedValues.length === 0) return `${t('All')} ${label.toLowerCase()}s`;
+    if (selectedValues.length === 0) return `${t('All')} ${label.toLowerCase()}`;
     if (selectedValues.length === 1) return selectedValues[0];
-    return `${selectedValues.length} ${label.toLowerCase()}s ${t('Selected plural')}`;
+    return `${selectedValues.length} ${label.toLowerCase()} ${t('Selected plural')}`;
   };
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">{label}</label>
+      <label className="block text-[11px] font-bold uppercase tracking-wider text-[#6B6F66] dark:text-[#9AA093] mb-1.5">{label}</label>
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50/60 px-4 py-3 text-xs font-semibold text-slate-900 cursor-pointer transition hover:border-blue-500 hover:bg-white"
+        className="w-full flex items-center justify-between rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/60 dark:bg-senda-dark/80 px-4 py-3 text-xs font-semibold text-senda-main dark:text-white cursor-pointer transition hover:border-senda-secondary hover:bg-white dark:hover:bg-senda-dark"
       >
         <span className="truncate">{getDisplayText()}</span>
         <div className="flex items-center gap-1.5 text-slate-400">
@@ -72,7 +79,7 @@ const CustomMultiSearchableSelect: React.FC<{
                 e.stopPropagation();
                 onChange([]);
               }}
-              className="hover:text-slate-600 p-0.5 rounded-full"
+              className="hover:text-senda-main dark:hover:text-slate-200 p-0.5 rounded-full"
               title={t('Clear selection')}
             >
               ✕
@@ -85,7 +92,7 @@ const CustomMultiSearchableSelect: React.FC<{
       </div>
 
       {isOpen && (
-        <div className="absolute left-0 right-0 z-50 mt-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
+        <div className="absolute left-0 right-0 z-50 mt-2 rounded-2xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-card p-3 shadow-2xl">
           <div className="relative mb-2">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
               <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,14 +105,14 @@ const CustomMultiSearchableSelect: React.FC<{
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={placeholder}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50/60 py-2 pl-9 pr-3 text-xs text-slate-900 outline-none focus:border-blue-500 focus:bg-white"
+              className="w-full rounded-xl border border-senda-border dark:border-senda-darkborder bg-senda-light/60 dark:bg-senda-dark py-2 pl-9 pr-3 text-xs text-senda-main dark:text-white outline-none focus:border-senda-secondary"
             />
           </div>
 
           <div className="max-h-60 overflow-y-auto space-y-1">
             <div
               onClick={() => onChange([])}
-              className={`cursor-pointer rounded-xl px-3 py-2 text-xs font-semibold transition ${selectedValues.length === 0 ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}
+              className={`cursor-pointer rounded-xl px-3 py-2 text-xs font-semibold transition ${selectedValues.length === 0 ? 'bg-[#DCEBE1] dark:bg-senda-darkborder text-senda-primary dark:text-senda-accent' : 'text-[#6B6F66] dark:text-slate-300 hover:bg-senda-light dark:hover:bg-senda-dark'}`}
             >
               {t('All (Clear selection)')}
             </div>
@@ -115,10 +122,10 @@ const CustomMultiSearchableSelect: React.FC<{
                 <div
                   key={opt}
                   onClick={() => toggleOption(opt)}
-                  className={`flex items-center justify-between cursor-pointer rounded-xl px-3 py-2 text-xs font-semibold transition ${isSelected ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}
+                  className={`flex items-center justify-between cursor-pointer rounded-xl px-3 py-2 text-xs font-semibold transition ${isSelected ? 'bg-[#DCEBE1] dark:bg-senda-darkborder text-senda-primary dark:text-senda-accent' : 'text-[#6B6F66] dark:text-slate-300 hover:bg-senda-light dark:hover:bg-senda-dark'}`}
                 >
                   <span className="truncate mr-2">{opt}</span>
-                  <div className={`h-4 w-4 rounded-md border flex items-center justify-center transition ${isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 bg-white'}`}>
+                  <div className={`h-4 w-4 rounded-md border flex items-center justify-center transition ${isSelected ? 'bg-senda-primary border-senda-primary dark:bg-senda-accent dark:border-senda-accent text-white dark:text-senda-dark' : 'border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-dark'}`}>
                     {isSelected && (
                       <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
@@ -151,8 +158,11 @@ const PhysiologicalData: React.FC = () => {
   const [data, setData] = useState<PhysiologicalDataItem[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  const [pageSize, setPageSize] = useState<number>(() => {
+    const savedSize = localStorage.getItem('physiological_page_size');
+    return savedSize ? Number(savedSize) : 10;
+  });
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 15;
 
   const [sortOrderDate, setSortOrderDate] = useState<'desc' | 'asc'>('desc');
   const [sortOrderValue, setSortOrderValue] = useState<'desc' | 'asc'>('desc');
@@ -197,6 +207,11 @@ const PhysiologicalData: React.FC = () => {
       .catch((err) => console.error("Error cargando metadatos", err));
   }, []);
 
+  useEffect(() => {
+    localStorage.setItem('physiological_page_size', pageSize.toString());
+    setCurrentPage(1);
+  }, [pageSize]);
+
   const loadData = () => {
     setError(null);
     const params = new URLSearchParams();
@@ -205,6 +220,7 @@ const PhysiologicalData: React.FC = () => {
     if (selectedVariables.length > 0) params.append('variable_type', selectedVariables.join(','));
     if (from) params.append('from', from);
     if (to) params.append('to', to);
+    if (statusFilter && statusFilter !== 'ALL') params.append('status', statusFilter);
 
     fetch(`${API_BASE}/api/physiological-data/?${params.toString()}`, { credentials: 'include' })
       .then((res) => res.json())
@@ -217,7 +233,7 @@ const PhysiologicalData: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, [selectedParticipants, selectedFitbits, selectedVariables, from, to]);
+  }, [selectedParticipants, selectedFitbits, selectedVariables, from, to, statusFilter]);
 
   const filteredDataByStatus = data.filter((item) => {
     const pStatus = participantsStatusMap[item.participant_code] || 'ACTIVE';
@@ -227,6 +243,14 @@ const PhysiologicalData: React.FC = () => {
 
   const totalPages = Math.ceil(filteredDataByStatus.length / pageSize) || 1;
   const paginatedData = filteredDataByStatus.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const pageSizeOptions = [
+    { label: 5, value: 5 },
+    { label: 10, value: 10 },
+    { label: 15, value: 15 },
+    { label: 20, value: 20 },
+    { label: 25, value: 25 },
+  ];
 
   const clearFilters = () => {
     setSelectedParticipants([]);
@@ -251,7 +275,7 @@ const PhysiologicalData: React.FC = () => {
     if (to) params.append('to', to);
     if (statusFilter && statusFilter !== 'ALL') params.append('status', statusFilter);
 
-    window.open(`${API_BASE}/api/export/?${params.toString()}`, '_blank');
+    window.open(`${API_BASE}/api/export/physiological/data/?${params.toString()}`, '_blank');
   };
 
   const toggleSortOrderDate = () => {
@@ -276,74 +300,70 @@ const PhysiologicalData: React.FC = () => {
     setData(sortedData);
   };
 
-  const goToPreviousPage = () => {
-    setCurrentPage(prev => Math.max(prev - 1, 1));
-  };
-
-  const goToNextPage = () => {
-    setCurrentPage(prev => Math.min(prev + 1, totalPages));
-  };
-
   return (
-    <div className="w-full text-slate-900 space-y-8">
-      {/* Cabecera de la sección */}
-      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900">{t('Physiological Data Title')}</h1>
-          <p className="mt-1 text-xs font-medium text-slate-500">{t('Physiological Subtitle')}</p>
-        </div>
-      </div>
+    <div className="w-full text-senda-main dark:text-senda-darktext space-y-8">
+      <SectionHeader
+        title={t('Physiological Data Title')}
+        subtitle={t('Physiological Subtitle')}
+      />
 
-      {/* Pestañas de estado */}
-      <div className="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-xl w-fit">
+      <div className="flex items-center gap-1.5 bg-senda-light dark:bg-senda-card p-1 rounded-xl w-fit border border-senda-border dark:border-senda-darkborder">
         <button
           onClick={() => { setStatusFilter('ALL'); setCurrentPage(1); }}
-          className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${statusFilter === 'ALL' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+          className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${statusFilter === 'ALL'
+            ? 'bg-white dark:bg-senda-darkborder text-senda-main dark:text-white shadow-sm'
+            : 'text-[#6B6F66] dark:text-[#9AA093] hover:text-senda-main dark:hover:text-white'
+            }`}
         >
           {t('All')}
         </button>
         <button
           onClick={() => { setStatusFilter('ACTIVE'); setCurrentPage(1); }}
-          className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${statusFilter === 'ACTIVE' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+          className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${statusFilter === 'ACTIVE'
+            ? 'bg-white dark:bg-senda-darkborder text-senda-main dark:text-white shadow-sm'
+            : 'text-[#6B6F66] dark:text-[#9AA093] hover:text-senda-main dark:hover:text-white'
+            }`}
         >
           {t('Active')}
         </button>
         <button
           onClick={() => { setStatusFilter('COMPLETED'); setCurrentPage(1); }}
-          className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${statusFilter === 'COMPLETED' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+          className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${statusFilter === 'COMPLETED'
+            ? 'bg-white dark:bg-senda-darkborder text-senda-main dark:text-white shadow-sm'
+            : 'text-[#6B6F66] dark:text-[#9AA093] hover:text-senda-main dark:hover:text-white'
+            }`}
         >
           {t('Completed')}
         </button>
       </div>
 
-      {/* FILTROS */}
-      <div className="rounded-3xl border border-slate-200/80 bg-white p-8 shadow-xl shadow-slate-200/40">
+      <div className="rounded-3xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-card p-8 shadow-xl transition-colors duration-300">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center justify-between gap-3 w-full">
             <div className="flex flex-wrap items-center gap-3">
               <button
                 onClick={() => handleExport('csv')}
-                className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-bold text-slate-700 hover:bg-emerald-100 transition shadow-sm cursor-pointer"
+                className="px-4 py-3 text-[11px] bg-gradient-to-b from-[#4C7C63] to-[#1F3B2C] hover:from-[#537F69] hover:to-[#234030] text-white dark:from-white dark:via-[#F4F4F0] dark:to-[#E6E6DF] dark:text-senda-main font-semibold rounded-full shadow-md transition cursor-pointer"
               >
                 {t('Export CSV')}
               </button>
               <button
                 onClick={() => handleExport('xlsx')}
-                className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-bold text-slate-700 hover:bg-emerald-100 transition shadow-sm cursor-pointer"
+                className="px-4 py-3 text-[11px] bg-gradient-to-b from-[#4C7C63] to-[#1F3B2C] hover:from-[#537F69] hover:to-[#234030] text-white dark:from-white dark:via-[#F4F4F0] dark:to-[#E6E6DF] dark:text-senda-main font-semibold rounded-full shadow-md transition cursor-pointer"
               >
                 {t('Export Excel')}
               </button>
             </div>
             <button
               onClick={clearFilters}
-              className="ml-auto rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold text-rose-500 transition hover:bg-rose-500 hover:text-white cursor-pointer shadow-sm"
+              className="ml-auto rounded-xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-input px-3 py-2 text-[11px] font-bold text-rose-500 dark:text-rose-400 transition hover:bg-rose-500 hover:text-white cursor-pointer shadow-sm"
             >
               {t('Clear Filters')}
             </button>
           </div>
         </div>
 
-        <div className="mt-6 pt-6 border-t border-slate-100 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mt-6 pt-6 border-t border-senda-border dark:border-senda-darkborder grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <CustomMultiSearchableSelect
             label={t('Participants Resource')}
             selectedValues={selectedParticipants}
@@ -369,81 +389,106 @@ const PhysiologicalData: React.FC = () => {
           />
 
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">{t('From')}</label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#6B6F66] dark:text-[#9AA093] mb-1.5">{t('From')}</label>
             <input
               type="datetime-local"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 px-4 py-3 text-xs text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white"
+              className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/60 dark:bg-senda-dark px-4 py-3 text-xs text-senda-main dark:text-white outline-none transition focus:border-senda-secondary"
             />
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">{t('To')}</label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#6B6F66] dark:text-[#9AA093] mb-1.5">{t('To')}</label>
             <input
               type="datetime-local"
               value={to}
               onChange={(e) => setTo(e.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 px-4 py-3 text-xs text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white"
+              className="w-full rounded-2xl border border-senda-border dark:border-senda-darkborder bg-senda-light/60 dark:bg-senda-dark px-4 py-3 text-xs text-senda-main dark:text-white outline-none transition focus:border-senda-secondary"
             />
           </div>
         </div>
       </div>
 
-      {/* Tabla de registros */}
-      <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xl shadow-slate-200/40">
-        <div className="mb-6 flex items-center justify-between">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-700">{t('Detailed Records')}</p>
-          <span className="inline-flex items-center px-3 py-1 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
-            {t('Showing Filtered Records', { count: paginatedData.length, total: filteredDataByStatus.length })}
-          </span>
+      <div className="rounded-3xl border border-senda-border dark:border-senda-darkborder bg-white dark:bg-senda-card p-6 shadow-xl transition-colors duration-300 space-y-6">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <p className="text-xs font-bold uppercase tracking-wider text-senda-main dark:text-slate-300">{t('Detailed Records')}</p>
+
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center px-3 py-1 rounded-xl text-xs font-semibold bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900">
+              {t('Showing Filtered Records', { count: paginatedData.length, total: filteredDataByStatus.length })}
+            </span>
+
+            <div className="flex items-center gap-1.5 bg-senda-light dark:bg-senda-input px-3 h-[37px] rounded-2xl text-xs font-semibold text-[#6B6F66] dark:text-[#9AA093] border border-senda-border dark:border-senda-darkborder">
+              <CustomSelect
+                value={pageSize}
+                onChange={(val) => setPageSize(Number(val))}
+                options={pageSizeOptions}
+                width="w-28"
+              />
+              <span>{t('Per Page')}</span>
+            </div>
+          </div>
         </div>
 
         <div className="overflow-hidden rounded-2xl">
           <div className="overflow-x-auto">
             <table className="min-w-full table-fixed border-collapse text-left">
               <thead>
-                <tr className="bg-blue-50/60 text-blue-900 uppercase text-[10px] tracking-wider">
+                <tr className="bg-[#DCEBE1]/60 dark:bg-senda-darkborder/80 text-senda-primary dark:text-senda-accent uppercase text-[10px] tracking-wider">
                   <th className="w-[18%] px-6 py-3.5 font-bold rounded-l-2xl">{t('Participants Resource')}</th>
                   <th className="w-[17%] px-6 py-3.5 font-bold">{t('Status')}</th>
                   <th className="w-[18%] px-6 py-3.5 font-bold">{t('Fitbit')}</th>
                   <th className="w-[18%] px-6 py-3.5 font-bold">{t('Variable')}</th>
-                  <th className="w-[15%] px-6 py-3.5 font-bold cursor-pointer select-none hover:text-blue-600 transition" onClick={toggleSortOrderDate}>
+                  <th className="w-[15%] px-6 py-3.5 font-bold cursor-pointer select-none hover:text-senda-primary dark:hover:text-senda-accent transition" onClick={toggleSortOrderDate}>
                     <div className="flex items-center gap-1.5">
                       <span>{t('Time')}</span>
                     </div>
                   </th>
-                  <th className="w-[14%] px-6 py-3.5 font-bold cursor-pointer select-none hover:text-blue-600 transition rounded-r-2xl" onClick={toggleSortOrderValue}>
+                  <th className="w-[14%] px-6 py-3.5 font-bold cursor-pointer select-none hover:text-senda-primary dark:hover:text-senda-accent transition rounded-r-2xl" onClick={toggleSortOrderValue}>
                     <div className="flex items-center gap-1.5">
                       <span>{t('Value')}</span>
                     </div>
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-senda-border dark:divide-senda-darkborder">
                 {paginatedData.map((item, index) => {
                   const status = participantsStatusMap[item.participant_code] || 'ACTIVE';
                   return (
-                    <tr key={`${item.participant_code}-${index}`} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50/80 transition-colors">
-                      <td className="px-6 py-4 text-xs font-bold text-slate-900">{item.participant_code}</td>
+                    <tr key={`${item.participant_code}-${index}`} className="cursor-pointer transition-all duration-200 hover:bg-senda-light/80 dark:hover:bg-senda-dark/50 hover:shadow-[inset_3px_0_0_0_theme(colors.senda-primary)] dark:hover:shadow-[inset_3px_0_0_0_theme(colors.senda-accent)]">
+                      <td className="px-6 py-4 text-xs font-bold text-senda-main dark:text-white">{item.participant_code}</td>
                       <td className="px-6 py-4 text-xs">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-xl text-[10px] font-bold ${
-                          status === 'COMPLETED'
-                            ? 'bg-amber-50 text-amber-700 border border-amber-100'
-                            : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                        }`}>
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-xl text-[10px] font-bold ${status === 'COMPLETED'
+                          ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-100 dark:border-amber-900'
+                          : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900'
+                          }`}>
                           {status === 'COMPLETED' ? t('Completed') : t('Active')}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-xs font-semibold text-blue-600">{item.fitbit_code}</td>
+                      <td className="px-6 py-4 text-xs font-semibold text-blue-600 dark:text-blue-400">{item.fitbit_code}</td>
                       <td className="px-6 py-4 text-xs">
-                        <span className="inline-flex items-center px-3 py-1 rounded-xl text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-100">
+                        <span className="inline-flex items-center px-3 py-1 rounded-xl text-[11px] font-semibold bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-100 dark:border-sky-900">
                           {item.variable_type}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-xs text-slate-600">{new Date(item.physical_time).toLocaleString('es-ES')}</td>
-                      <td className="px-6 py-4 text-xs font-bold text-slate-900">
-                        {item.metric_value !== null && item.metric_value !== undefined ? item.metric_value : 'null'}
+                      <td className="px-6 py-4 text-xs text-[#6B6F66] dark:text-[#9AA093]">{new Date(item.physical_time).toLocaleString('es-ES')}</td>
+                      <td className="px-6 py-4 text-xs font-bold text-senda-main dark:text-white">
+                        {item.metric_value !== null && item.metric_value !== undefined ? (() => {
+                          const v = item.variable_type;
+                          const val = item.metric_value;
+
+                          if (v.startsWith('SLEEP_') && v !== 'SLEEP_START' && v !== 'SLEEP_END') return `${val} ${t('unit_min')}`;
+                          if (v.includes('ZONE') || v === 'ACTIVE_ZONE_MINUTES') return `${val} ${t('unit_min')}`;
+                          if (v === 'HEART_RATE' || v === 'HEART_RATE_RESTING' || v === 'HRV_NON_REM_HR') return `${val} ${t('unit_bpm')}`;
+                          if (v.startsWith('RESPIRATORY_RATE_')) return `${val} ${t('unit_resp')}`;
+                          if (v === 'HRV_AVERAGE_MS' || v === 'HRV_RMSSD') return `${val} ${t('unit_ms')}`;
+                          if (v === 'HRV_ENTROPY') return `${val}`;
+                          if (v === 'DISTANCE') return `${Number(val).toFixed(4)} ${t('unit_km')}`;
+                          if (v === 'STEPS') return `${val} ${t('unit_steps')}`;
+
+                          return val;
+                        })() : '-'}
                       </td>
                     </tr>
                   );
@@ -453,36 +498,11 @@ const PhysiologicalData: React.FC = () => {
           </div>
         </div>
 
-        {/* Paginación */}
-        {filteredDataByStatus.length > 0 && (
-          <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-[11px] font-medium text-slate-400">
-              {t('Page', { page: currentPage, totalPages })}
-            </p>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={goToPreviousPage}
-                disabled={currentPage === 1}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
-              >
-                {t('Previous')}
-              </button>
-
-              <div className="rounded-xl bg-blue-50 px-4 py-2 text-[11px] font-bold text-blue-700">
-                {currentPage}
-              </div>
-
-              <button
-                onClick={goToNextPage}
-                disabled={currentPage === totalPages}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
-              >
-                {t('Next')}
-              </button>
-            </div>
-          </div>
-        )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
 
         {filteredDataByStatus.length === 0 && !error && (
           <p className="py-12 text-center text-xs text-slate-400">{t('No Physiological Data')}</p>
