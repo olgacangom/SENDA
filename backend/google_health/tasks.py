@@ -1,7 +1,7 @@
 from celery import shared_task
 from django.utils import timezone
 from django.db import models
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 import requests
 
 from google_health.services import GoogleAuthService
@@ -466,11 +466,18 @@ def sync_all_users_data():
                     assignment=assignment,
                 )
 
-                SyncLog.objects.create(
+                # Solo registrar el error TOKEN_ERROR una vez por hora
+                last_error = SyncLog.objects.filter(
                     google_account=account,
-                    result='TOKEN_ERROR',
-                    downloaded_records=0
-                )
+                    result='TOKEN_ERROR'
+                ).order_by('-sync_date').first()
+
+                if not last_error or (now - last_error.sync_date) > timedelta(hours=1):
+                    SyncLog.objects.create(
+                        google_account=account,
+                        result='TOKEN_ERROR',
+                        downloaded_records=0
+                    )
 
                 continue
 
@@ -752,23 +759,36 @@ def sync_all_users_data():
                     google_account=account,
                     assignment=assignment,
                 )
+                # Los errores siempre se registran
                 SyncLog.objects.create(
                     google_account=account,
                     result='TOTAL_ERROR',
                     downloaded_records=total_downloaded,
                 )
             else:
-                # ÉXITO: Resolvemos la alerta de sincronización limpiamente
                 resolve_alert_automatically(
                     AlertType.SYNC_ERROR,
                     google_account=account,
                     assignment=assignment,
                 )
-                SyncLog.objects.create(
+
+                # Solo registrar un SUCCESS al día por participante
+                now_local = timezone.localtime(now)
+                today_start_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+                today_start_utc = today_start_local.astimezone(dt_timezone.utc)
+
+                already_logged_today = SyncLog.objects.filter(
                     google_account=account,
                     result='SUCCESS',
-                    downloaded_records=total_downloaded,
-                )
+                    sync_date__gte=today_start_utc
+                ).exists()
+
+                if successful_endpoints > 0 and not already_logged_today:
+                    SyncLog.objects.create(
+                        google_account=account,
+                        result='SUCCESS',
+                        downloaded_records=total_downloaded,
+                    )
 
             # =====================================================
             # 6. EVALUAR ALERTAS BASADAS EN DATOS REALES
@@ -785,8 +805,15 @@ def sync_all_users_data():
                 google_account=account,
                 assignment=assignment,
             )
-            SyncLog.objects.create(
+            # Solo registrar un error cada hora
+            last_error = SyncLog.objects.filter(
                 google_account=account,
-                result=f'ERROR: {str(e)[:100]}',
-                downloaded_records=0
-            )
+                result__startswith='ERROR'
+            ).order_by('-sync_date').first()
+
+            if not last_error or (now - last_error.sync_date) > timedelta(hours=1):
+                SyncLog.objects.create(
+                    google_account=account,
+                    result=f'ERROR: {str(e)[:100]}',
+                    downloaded_records=0
+                )

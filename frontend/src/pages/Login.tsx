@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-
-const API_BASE = 'http://localhost:1574';
+import { API_URL } from '../config';
 
 type LoginProps = {
   onLogin: (
@@ -58,7 +57,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToFront }) => {
 
     try {
       if (step === 1) {
-        const res = await fetch(`${API_BASE}/api/auth/researcher/request-code/`, {
+        const res = await fetch(`${API_URL}/api/auth/researcher/request-code/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: username }),
@@ -72,7 +71,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToFront }) => {
         setInfoMessage('Hemos enviado un código temporal a tu correo electrónico.');
         setStep(2);
       } else {
-        const res = await fetch(`${API_BASE}/api/auth/researcher/verify-code/`, {
+        const res = await fetch(`${API_URL}/api/auth/researcher/verify-code/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: username, code: otpCode }),
@@ -99,7 +98,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToFront }) => {
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE}/api/admin/login/`, {
+      const res = await fetch(`${API_URL}/api/admin/login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),

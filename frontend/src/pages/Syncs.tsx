@@ -3,8 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { CustomSelect } from '../components/CustomSelect';
 import { Pagination } from '../components/Pagination';
 import { SectionHeader } from '../components/SectionHeader';
-
-const API_BASE = 'http://localhost:1574';
+import { API_URL } from '../config';
 
 type SyncLog = {
   id?: string;
@@ -39,7 +38,7 @@ const Syncs: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/synclogs/`, { credentials: 'include' });
+      const res = await fetch(`${API_URL}/api/synclogs/`, { credentials: 'include' });
       const data = await res.json();
       const items = data.items || [];
       setSyncs(items);
@@ -70,7 +69,7 @@ const Syncs: React.FC = () => {
     }
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/synclogs/clear/`, {
+      const res = await fetch(`${API_URL}/api/clear/synclogs/`, {
         method: 'POST',
         credentials: 'include',
       });

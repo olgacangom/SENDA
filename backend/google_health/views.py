@@ -29,13 +29,20 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 def _add_cors_headers(request, resp):
-    """Añade cabeceras CORS en desarrollo permitiendo orígenes localhost dinámicos."""
+    """Añade cabeceras CORS permitiendo orígenes locales y de producción."""
     origin = request.META.get('HTTP_ORIGIN') or request.headers.get('Origin') if hasattr(request, 'headers') else None
-    if origin and (origin.startswith('http://localhost') or origin.startswith('http://127.0.0.1')):
-        resp['Access-Control-Allow-Origin'] = origin
-        resp['Access-Control-Allow-Credentials'] = 'true'
-        resp['Vary'] = 'Origin'
-        resp['Access-Control-Expose-Headers'] = 'Content-Disposition'
+    if origin:
+        allowed_origins = [
+            'http://localhost:5174',
+            'http://127.0.0.1:5174',
+            'http://192.168.20.84:5174',
+            'http://192.168.20.84',
+        ]
+        if origin in allowed_origins or origin.startswith('http://localhost') or origin.startswith('http://127.0.0.1'):
+            resp['Access-Control-Allow-Origin'] = origin
+            resp['Access-Control-Allow-Credentials'] = 'true'
+            resp['Vary'] = 'Origin'
+            resp['Access-Control-Expose-Headers'] = 'Content-Disposition'
     return resp
 
 def google_login_view(request):
@@ -56,15 +63,26 @@ def google_callback_view(request):
     refresh_token = token_data.get('refresh_token') # Google solo lo manda la primera vez que se da consentimiento
     expires_in = token_data.get('expires_in', 3600)
     expires_at = timezone.now() + timezone.timedelta(seconds=expires_in)
-    user_info_resp = requests.get(
-        "https://www.googleapis.com/oauth2/v3/userinfo",
-        headers={"Authorization": f"Bearer {access_token}"}
-    )
+    try:
+        user_info_resp = requests.get(
+            "https://www.googleapis.com/oauth2/v3/userinfo",
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=10  
+        )
+    except requests.exceptions.Timeout:
+        return HttpResponse("Timeout al conectar con Google (userinfo)", status=504)
+    except requests.exceptions.RequestException as e:
+        return HttpResponse(f"Error al conectar con Google: {str(e)}", status=500)
     
     if user_info_resp.status_code == 200:
         email = user_info_resp.json().get('email')
     else:
-        email = "unknown@senda.com"
+        # Google devolvió un error al pedir la info del usuario
+        return HttpResponse(
+            f"Error al obtener info del usuario de Google: "
+            f"HTTP {user_info_resp.status_code} - {user_info_resp.text}",
+            status=500
+        )
 
     # buscamos si existe una GoogleAccount para este correo
     google_account = GoogleAccount.objects.filter(email=email).first()
@@ -112,7 +130,7 @@ def google_callback_view(request):
     )
     action_text = "creado" if created else "actualizado"
     print(f"¡Autorización exitosa! Cuenta vinculada al participante {participant.participant_code} ({action_text}).")
-    frontend_url = config("FRONTEND_URL", default="http://localhost:5174").rstrip('/')
+    frontend_url = config("FRONTEND_URL")
     query = urlencode({
         'oauth': 'success',
         'participant_code': participant.participant_code,
@@ -992,6 +1010,15 @@ def api_export_physiological_data(request):
 
         if variable_type:
             vars_list = [v.strip() for v in variable_type.split(',') if v.strip()]
+
+            # Si la exportación es de sueño (contiene alguna variable SLEEP_*),
+            # añadimos también SLEEP_START y SLEEP_END para que estén disponibles
+            # en el pivot aunque el usuario no los haya seleccionado explícitamente.
+            if any(v.startswith('SLEEP_') for v in vars_list):
+                for bound in ('SLEEP_START', 'SLEEP_END'):
+                    if bound not in vars_list:
+                        vars_list.append(bound)
+
             qs = qs.filter(
                 variable_type__in=vars_list
             )
@@ -1100,12 +1127,27 @@ def api_export_physiological_data(request):
             # -------------------------------------------------
             # CLAVE DE LA FILA
             # -------------------------------------------------
+            # Para SLEEP_START y SLEEP_END agrupamos por DÍA
+            # (así el start y el end de la misma noche caen en la misma fila)
+            if item.variable_type.startswith('SLEEP_'):
+                # Si la hora es antes del mediodía, es parte de la noche anterior
+                if time_key.hour < 12:
+                    from datetime import timedelta
+                    sleep_day = (time_key - timedelta(days=1)).date()
+                else:
+                    sleep_day = time_key.date()
 
-            row_key = (
-                participant_code_value,
-                fitbit_code_value,
-                time_key
-            )
+                row_key = (
+                    participant_code_value,
+                    fitbit_code_value,
+                    sleep_day
+                )
+            else:
+                row_key = (
+                    participant_code_value,
+                    fitbit_code_value,
+                    time_key
+                )  
 
             if row_key not in pivot_data:
 
@@ -1115,14 +1157,25 @@ def api_export_physiological_data(request):
                     'physical_time': time_key,
                     'variables': {}
                 }
+            else:
+                # Actualizamos physical_time a la hora más reciente de la noche
+                if time_key > pivot_data[row_key]['physical_time']:
+                    pivot_data[row_key]['physical_time'] = time_key
 
             # -------------------------------------------------
             # VARIABLE -> VALOR
             # -------------------------------------------------
 
             val = item.metric_value
+            
+            if item.variable_type in ('SLEEP_START', 'SLEEP_END'):
+                # Guardamos la hora completa (con fecha, hora, minuto, segundo)
+                pivot_data[row_key]['variables'][item.variable_type] = time_key.isoformat()
+                # Actualizamos physical_time al más reciente (para el orden)
+                if time_key > pivot_data[row_key]['physical_time']:
+                    pivot_data[row_key]['physical_time'] = time_key
 
-            if val is not None and float(val) > 0:
+            elif val is not None and float(val) > 0:
                 try:
                     num_val = float(val)
 
@@ -1140,18 +1193,59 @@ def api_export_physiological_data(request):
             else:
                 pivot_data[row_key]['variables'][item.variable_type] = '-'  # -, null o nada (en excel)
 
+
+        # =====================================================
+        # DETECCIÓN DE MODO SUEÑO
+        # =====================================================
+
+        # Detectar si la exportación incluye alguna variable de sueño (SLEEP_*)
+        # En ese caso:
+        #   - NO se incluye physical_time
+        #   - SÍ se incluyen SLEEP_START y SLEEP_END
+        if variable_type:
+            selected_vars = [v.strip() for v in variable_type.split(',') if v.strip()]
+            only_sleep = any(v.startswith('SLEEP_') for v in selected_vars)
+        else:
+            # Sin filtro: miramos si en los datos aparecen variables SLEEP_*
+            only_sleep = any(v.startswith('SLEEP_') for v in variables_found)
+
+            
         # =====================================================
         # ORDEN DE VARIABLES
         # =====================================================
 
+        sleep_bounds = ['SLEEP_START', 'SLEEP_END']
+
         if variable_type:
-            # Si hay filtro de variables, limitamos las columnas a las seleccionadas
-            ordered_variables = [v.strip() for v in variable_type.split(',') if v.strip() in variables_found or v.strip() in [c[0] for c in VariableType.choices]]
+            ordered_variables = [
+                v.strip() for v in variable_type.split(',')
+                if v.strip() in variables_found
+                or v.strip() in [c[0] for c in VariableType.choices]
+            ]
+
+            if only_sleep:
+                # Añadir SLEEP_START y SLEEP_END si no están ya en la lista
+                for sb in sleep_bounds:
+                    if sb not in ordered_variables:
+                        ordered_variables.insert(0, sb)
+                # Ordenar: primero SLEEP_START, luego SLEEP_END, luego el resto
+                ordered_variables = sorted(
+                    ordered_variables,
+                    key=lambda v: sleep_bounds.index(v) if v in sleep_bounds else 99
+                )
         else:
-            # Si no hay filtro, mostramos todas las del sistema
+            # Sin filtro: mostramos todas las variables del sistema
             ordered_variables = [choice[0] for choice in VariableType.choices]
 
-        remaining_variables = sorted(variables_found - set(ordered_variables))  # Por si aparece en BD una variable que no esté todavía definida en VariableType
+            if only_sleep:
+                # Aseguramos que SLEEP_START y SLEEP_END estén al principio
+                for sb in reversed(sleep_bounds):
+                    if sb in ordered_variables:
+                        ordered_variables.remove(sb)
+                    ordered_variables.insert(0, sb)
+
+        # Añadir cualquier variable que aparezca en los datos pero no esté en la lista
+        remaining_variables = sorted(variables_found - set(ordered_variables))
         ordered_variables.extend(remaining_variables)
 
         # =====================================================
@@ -1163,8 +1257,10 @@ def api_export_physiological_data(request):
         header = [
             'participant_code',
             'fitbit_code',
-            'physical_time'
         ]
+
+        if not only_sleep:
+            header.append('physical_time')
 
         header.extend(ordered_variables)
 
@@ -1185,16 +1281,16 @@ def api_export_physiological_data(request):
             row_data = [
                 row['participant_code'],
                 row['fitbit_code'],
-                row['physical_time'].isoformat()
             ]
 
-            for variable in ordered_variables:
-                # Si no hay registro para esta variable en este timestamp, dejamos la celda VACÍA ('' para Excel/CSV)
-                value = row['variables'].get(
-                    variable,
-                    ''
-                )
+            # Solo añadimos physical_time si NO es exportación exclusiva de sueño
+            if not only_sleep:
+                row_data.append(row['physical_time'].isoformat())
 
+            for variable in ordered_variables:
+                # El valor ya está guardado correctamente en el pivot
+                # (para SLEEP_START/SLEEP_END es la hora; para el resto es el valor numérico)
+                value = row['variables'].get(variable, '')
                 row_data.append(value)
 
             rows.append(row_data)
@@ -1847,10 +1943,11 @@ def api_admin_create_researcher(request):
 
     # Generar enlaces de confirmación Sí / No usando codificación segura del email
     uid = urlsafe_base64_encode(force_bytes(email))
-    frontend_url = config("FRONTEND_URL", default="http://localhost:5174")
+    frontend_url = config("FRONTEND_URL")
+    backend_url = config("BACKEND_URL")
     
-    yes_url = f"http://localhost:1574/api/auth/researcher/respond/?uid={uid}&action=yes"
-    no_url = f"http://localhost:1574/api/auth/researcher/respond/?uid={uid}&action=no"
+    yes_url = f"{backend_url}/api/auth/researcher/respond/?uid={uid}&action=yes"
+    no_url = f"{backend_url}/api/auth/researcher/respond/?uid={uid}&action=no"
 
     html_content = f"""
     <!DOCTYPE html>
@@ -2016,7 +2113,7 @@ def researcher_response_view(request):
     except (TypeError, ValueError, OverflowError, User.DoesNotExist):
         return HttpResponse("Usuario no encontrado.", status=404)
 
-    frontend_url = config("FRONTEND_URL", default="http://localhost:5174")
+    frontend_url = config("FRONTEND_URL")
 
     if action == 'yes':
         user.is_active = True

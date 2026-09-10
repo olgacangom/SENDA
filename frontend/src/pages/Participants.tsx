@@ -4,8 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { CustomSelect } from '../components/CustomSelect';
 import { Pagination } from '../components/Pagination';
 import { SectionHeader } from '../components/SectionHeader';
-
-const API_BASE = 'http://localhost:1574';
+import { API_URL } from '../config';
 
 type Participant = {
   participant_code: string;
@@ -37,7 +36,7 @@ const Participants: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const loadParticipants = () => {
-    fetch(`${API_BASE}/api/participants/`, { credentials: 'include' })
+    fetch(`${API_URL}/api/participants/`, { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
         const list = Array.isArray(data) ? data : data.items || data.results || [];
@@ -101,7 +100,7 @@ const Participants: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${API_BASE}/api/participants/`, {
+      const response = await fetch(`${API_URL}/api/participants/`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -118,7 +117,7 @@ const Participants: React.FC = () => {
         setNewEmail('');
         setShowModal(false);
         loadParticipants();
-        window.location.href = `${API_BASE}/auth/login/`;
+        window.location.href = `${API_URL}/auth/login/`;
       }
     } catch (err) {
       setSubmitError(t('Server connection error'));
@@ -164,18 +163,6 @@ const Participants: React.FC = () => {
       {showModal && ReactDOM.createPortal(
         <div className="fixed inset-0 z-[50] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
           <div className="relative w-full max-w-[400px] overflow-hidden rounded-[28px] bg-senda-light dark:bg-senda-card p-7 shadow-[0_30px_60px_rgba(29,90,61,0.18)] dark:shadow-[0_30px_60px_rgba(0,0,0,0.4)]">
-
-            {/* Decoración: blobs difuminados */}
-            <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[#DCEBE1] opacity-70 blur-3xl dark:bg-[#163A29]/40" />
-            <div className="pointer-events-none absolute -bottom-16 -left-12 h-40 w-40 rounded-full bg-[#E7F1E9] opacity-80 blur-3xl dark:bg-[#153426]/30" />
-            <div
-              className="pointer-events-none absolute inset-0 opacity-[0.04] dark:opacity-[0.05]"
-              style={{
-                backgroundImage: 'linear-gradient(#1D5A3D 1px, transparent 1px), linear-gradient(90deg, #1D5A3D 1px, transparent 1px)',
-                backgroundSize: '26px 26px',
-              }}
-            />
-
             <div className="relative">
               <button
                 onClick={() => {
@@ -265,20 +252,7 @@ const Participants: React.FC = () => {
       {selectedParticipant && ReactDOM.createPortal(
         <div className="fixed inset-0 z-[50] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
           <div className="relative w-full max-w-xl rounded-[28px] bg-senda-light dark:bg-senda-card p-7 shadow-[0_30px_60px_rgba(29,90,61,0.18)] dark:shadow-[0_30px_60px_rgba(0,0,0,0.4)]">
-
-            {/* Decoración: blobs difuminados */}
-            <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[#DCEBE1] opacity-70 blur-3xl dark:bg-[#163A29]/40" />
-            <div className="pointer-events-none absolute -bottom-16 -left-12 h-40 w-40 rounded-full bg-[#E7F1E9] opacity-80 blur-3xl dark:bg-[#153426]/30" />
-            <div
-              className="pointer-events-none absolute inset-0 opacity-[0.04] dark:opacity-[0.05]"
-              style={{
-                backgroundImage: 'linear-gradient(#1D5A3D 1px, transparent 1px), linear-gradient(90deg, #1D5A3D 1px, transparent 1px)',
-                backgroundSize: '26px 26px',
-              }}
-            />
-
             <div className="relative">
-
               <div className="mb-6 flex items-start justify-between">
                 <div className="flex items-center gap-4">
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#DCEBE1] dark:bg-senda-darkborder text-senda-primary dark:text-senda-accent">
@@ -352,7 +326,7 @@ const Participants: React.FC = () => {
                       if (!selectedParticipant) return;
                       if (!confirm(`${t('Delete confirmation')} ${selectedParticipant.participant_code}?`)) return;
                       try {
-                        const resp = await fetch(`${API_BASE}/api/participants/`, {
+                        const resp = await fetch(`${API_URL}/api/participants/`, {
                           method: 'DELETE',
                           credentials: 'include',
                           headers: { 'Content-Type': 'application/json' },
@@ -378,7 +352,7 @@ const Participants: React.FC = () => {
                   </button>
 
                   <a
-                    href={`${API_BASE}/auth/login/`}
+                    href={`${API_URL}/auth/login/`}
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl border border-sky-200 dark:border-sky-900 bg-sky-50 dark:bg-sky-950/50 px-5 py-3 text-xs font-bold text-sky-700 dark:text-sky-300 hover:bg-sky-100 transition cursor-pointer shadow-sm"
                   >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

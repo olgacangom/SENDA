@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CustomSelect } from '../components/CustomSelect';
 import { Pagination } from '../components/Pagination';
+import { API_URL } from '../config';
 
 type AlertItem = {
   id: string;
@@ -19,8 +20,6 @@ type AlertItem = {
   created_at: string;
   resolved_at: string | null;
 };
-
-const API_BASE = 'http://localhost:1574';
 
 type AlertsProps = {
   onActiveCountChange?: (count: number) => void;
@@ -42,7 +41,7 @@ const Alerts: React.FC<AlertsProps> = ({ onActiveCountChange }) => {
   const activeAlerts = alerts.filter((item) => !item.resolved);
 
   const fetchAlerts = () => {
-    fetch(`${API_BASE}/api/alerts/`, { credentials: 'include' })
+    fetch(`${API_URL}/api/alerts/`, { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => setAlerts(data.items || []))
       .catch(() => setError(t('Error loading alerts')));
@@ -65,7 +64,7 @@ const Alerts: React.FC<AlertsProps> = ({ onActiveCountChange }) => {
 
   const handleResolve = async (id: string) => {
     try {
-      const res = await fetch(`${API_BASE}/api/alerts/${id}/resolve/`, {
+      const res = await fetch(`${API_URL}/api/alerts/${id}/resolve/`, {
         method: 'POST',
         credentials: 'include',
       });

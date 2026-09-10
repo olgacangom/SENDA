@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { CustomSelect } from '../components/CustomSelect';
 import { Pagination } from '../components/Pagination';
 import { SectionHeader } from '../components/SectionHeader';
+import { API_URL } from '../config';
 
 type PhysiologicalDataItem = {
   participant_code: string;
@@ -11,8 +12,6 @@ type PhysiologicalDataItem = {
   physical_time: string;
   metric_value: number;
 };
-
-const API_BASE = 'http://localhost:1574';
 
 const VARIABLE_OPTIONS = [
   'SLEEP_DURATION', 'SLEEP_LIGHT', 'SLEEP_DEEP', 'SLEEP_REM',
@@ -173,10 +172,10 @@ const PhysiologicalData: React.FC = () => {
 
   useEffect(() => {
     Promise.all([
-      fetch(`${API_BASE}/api/participants/`, { credentials: 'include' }).then(r => r.json()),
-      fetch(`${API_BASE}/api/fitbits/list/`, { credentials: 'include' }).then(r => r.json()),
-      fetch(`${API_BASE}/api/physiological-data/`, { credentials: 'include' }).then(r => r.json()),
-      fetch(`${API_BASE}/api/assignments/`, { credentials: 'include' }).then(r => r.json())
+      fetch(`${API_URL}/api/participants/`, { credentials: 'include' }).then(r => r.json()),
+      fetch(`${API_URL}/api/fitbits/list/`, { credentials: 'include' }).then(r => r.json()),
+      fetch(`${API_URL}/api/physiological-data/`, { credentials: 'include' }).then(r => r.json()),
+      fetch(`${API_URL}/api/assignments/`, { credentials: 'include' }).then(r => r.json())
     ])
       .then(([partData, fitData, physData, assignData]) => {
         const itemsPart = partData.items || partData || [];
@@ -222,7 +221,7 @@ const PhysiologicalData: React.FC = () => {
     if (to) params.append('to', to);
     if (statusFilter && statusFilter !== 'ALL') params.append('status', statusFilter);
 
-    fetch(`${API_BASE}/api/physiological-data/?${params.toString()}`, { credentials: 'include' })
+    fetch(`${API_URL}/api/physiological-data/?${params.toString()}`, { credentials: 'include' })
       .then((res) => res.json())
       .then((result) => {
         setData(result.items || []);
@@ -275,7 +274,7 @@ const PhysiologicalData: React.FC = () => {
     if (to) params.append('to', to);
     if (statusFilter && statusFilter !== 'ALL') params.append('status', statusFilter);
 
-    window.open(`${API_BASE}/api/export/physiological/data/?${params.toString()}`, '_blank');
+    window.open(`${API_URL}/api/export/physiological/data/?${params.toString()}`, '_blank');
   };
 
   const toggleSortOrderDate = () => {

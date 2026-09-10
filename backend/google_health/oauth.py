@@ -8,7 +8,6 @@ class GoogleOAuthService:
 
     @staticmethod
     def get_authorization_url():
-
         params = {
             "client_id": config("GOOGLE_CLIENT_ID"),
             "redirect_uri": config("GOOGLE_REDIRECT_URI"),
@@ -17,8 +16,8 @@ class GoogleOAuthService:
                 "https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly",
                 "https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly",
                 "https://www.googleapis.com/auth/googlehealth.sleep.readonly",
-                "https://www.googleapis.com/auth/userinfo.email",    
-                "https://www.googleapis.com/auth/userinfo.profile"  
+                "https://www.googleapis.com/auth/userinfo.email",
+                "https://www.googleapis.com/auth/userinfo.profile"
             ]),
             "access_type": "offline",
             "prompt": "select_account consent",
@@ -38,7 +37,14 @@ class GoogleOAuthService:
             "redirect_uri": config("GOOGLE_REDIRECT_URI"),
             "grant_type": "authorization_code",
         }
-        response = requests.post(token_uri, data=payload)
+
+        try:
+            response = requests.post(token_uri, data=payload, timeout=15)
+        except requests.exceptions.Timeout:
+            return {'error': 'Timeout al conectar con Google (token)', 'status_code': 504}
+        except requests.exceptions.RequestException as e:
+            return {'error': f'Error de conexión: {str(e)}', 'status_code': 500}
+
         if response.status_code == 200:
             return response.json()
         try:
@@ -46,4 +52,3 @@ class GoogleOAuthService:
         except Exception:
             error_data = response.text
         return {'error': error_data, 'status_code': response.status_code}
-    
