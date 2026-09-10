@@ -29,13 +29,20 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 def _add_cors_headers(request, resp):
-    """Añade cabeceras CORS en desarrollo permitiendo orígenes localhost dinámicos."""
+    """Añade cabeceras CORS permitiendo orígenes locales y de producción."""
     origin = request.META.get('HTTP_ORIGIN') or request.headers.get('Origin') if hasattr(request, 'headers') else None
-    if origin and (origin.startswith('http://localhost') or origin.startswith('http://127.0.0.1')):
-        resp['Access-Control-Allow-Origin'] = origin
-        resp['Access-Control-Allow-Credentials'] = 'true'
-        resp['Vary'] = 'Origin'
-        resp['Access-Control-Expose-Headers'] = 'Content-Disposition'
+    if origin:
+        allowed_origins = [
+            'http://localhost:5174',
+            'http://127.0.0.1:5174',
+            'http://192.168.20.84:5174',
+            'http://192.168.20.84',
+        ]
+        if origin in allowed_origins or origin.startswith('http://localhost') or origin.startswith('http://127.0.0.1'):
+            resp['Access-Control-Allow-Origin'] = origin
+            resp['Access-Control-Allow-Credentials'] = 'true'
+            resp['Vary'] = 'Origin'
+            resp['Access-Control-Expose-Headers'] = 'Content-Disposition'
     return resp
 
 def google_login_view(request):
@@ -56,15 +63,26 @@ def google_callback_view(request):
     refresh_token = token_data.get('refresh_token') # Google solo lo manda la primera vez que se da consentimiento
     expires_in = token_data.get('expires_in', 3600)
     expires_at = timezone.now() + timezone.timedelta(seconds=expires_in)
-    user_info_resp = requests.get(
-        "https://www.googleapis.com/oauth2/v3/userinfo",
-        headers={"Authorization": f"Bearer {access_token}"}
-    )
+    try:
+        user_info_resp = requests.get(
+            "https://www.googleapis.com/oauth2/v3/userinfo",
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=10  
+        )
+    except requests.exceptions.Timeout:
+        return HttpResponse("Timeout al conectar con Google (userinfo)", status=504)
+    except requests.exceptions.RequestException as e:
+        return HttpResponse(f"Error al conectar con Google: {str(e)}", status=500)
     
     if user_info_resp.status_code == 200:
         email = user_info_resp.json().get('email')
     else:
-        email = "unknown@senda.com"
+        # Google devolvió un error al pedir la info del usuario
+        return HttpResponse(
+            f"Error al obtener info del usuario de Google: "
+            f"HTTP {user_info_resp.status_code} - {user_info_resp.text}",
+            status=500
+        )
 
     # buscamos si existe una GoogleAccount para este correo
     google_account = GoogleAccount.objects.filter(email=email).first()
@@ -112,7 +130,7 @@ def google_callback_view(request):
     )
     action_text = "creado" if created else "actualizado"
     print(f"¡Autorización exitosa! Cuenta vinculada al participante {participant.participant_code} ({action_text}).")
-    frontend_url = config("FRONTEND_URL", default="http://localhost:5174").rstrip('/')
+    frontend_url = config("FRONTEND_URL")
     query = urlencode({
         'oauth': 'success',
         'participant_code': participant.participant_code,
@@ -1847,10 +1865,11 @@ def api_admin_create_researcher(request):
 
     # Generar enlaces de confirmación Sí / No usando codificación segura del email
     uid = urlsafe_base64_encode(force_bytes(email))
-    frontend_url = config("FRONTEND_URL", default="http://localhost:5174")
+    frontend_url = config("FRONTEND_URL")
+    backend_url = config("BACKEND_URL")
     
-    yes_url = f"http://localhost:1574/api/auth/researcher/respond/?uid={uid}&action=yes"
-    no_url = f"http://localhost:1574/api/auth/researcher/respond/?uid={uid}&action=no"
+    yes_url = f"{backend_url}/api/auth/researcher/respond/?uid={uid}&action=yes"
+    no_url = f"{backend_url}/api/auth/researcher/respond/?uid={uid}&action=no"
 
     html_content = f"""
     <!DOCTYPE html>
@@ -2016,7 +2035,7 @@ def researcher_response_view(request):
     except (TypeError, ValueError, OverflowError, User.DoesNotExist):
         return HttpResponse("Usuario no encontrado.", status=404)
 
-    frontend_url = config("FRONTEND_URL", default="http://localhost:5174")
+    frontend_url = config("FRONTEND_URL")
 
     if action == 'yes':
         user.is_active = True

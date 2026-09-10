@@ -4,8 +4,7 @@ import { CustomSelect } from '../components/CustomSelect';
 import { Pagination } from '../components/Pagination';
 import { SectionHeader } from '../components/SectionHeader';
 import ReactDOM from 'react-dom';
-
-const API_BASE = 'http://localhost:1574';
+import { API_URL } from '../config';
 
 type FitbitItem = {
   fitbit_code: string;
@@ -35,7 +34,7 @@ const Fitbits: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const loadFitbits = () => {
-    fetch(`${API_BASE}/api/fitbits/`, { credentials: 'include' })
+    fetch(`${API_URL}/api/fitbits/`, { credentials: 'include' })
       .then(async (res) => {
         if (!res.ok) throw new Error(await res.text());
         return res.json();
@@ -75,7 +74,7 @@ const Fitbits: React.FC = () => {
     setSubmitSuccess(null);
 
     try {
-      const response = await fetch(`${API_BASE}/api/fitbits/create/`, {
+      const response = await fetch(`${API_URL}/api/fitbits/create/`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -479,7 +478,7 @@ const Fitbits: React.FC = () => {
                         value={selectedFitbit.status}
                         onChange={async (newStatus) => {
                           try {
-                            const resp = await fetch(`${API_BASE}/api/fitbits/update/status/`, {
+                            const resp = await fetch(`${API_URL}/api/fitbits/update/status/`, {
                               method: 'POST',
                               credentials: 'include',
                               headers: { 'Content-Type': 'application/json' },
@@ -509,7 +508,7 @@ const Fitbits: React.FC = () => {
                     if (!selectedFitbit) return;
                     if (!confirm(`${t('Delete Fitbit Confirmation')} ${selectedFitbit.fitbit_code}?`)) return;
                     try {
-                      const resp = await fetch(`${API_BASE}/api/fitbits/delete/`, {
+                      const resp = await fetch(`${API_URL}/api/fitbits/delete/`, {
                         method: 'DELETE',
                         credentials: 'include',
                         headers: { 'Content-Type': 'application/json' },

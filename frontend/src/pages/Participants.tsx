@@ -4,8 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { CustomSelect } from '../components/CustomSelect';
 import { Pagination } from '../components/Pagination';
 import { SectionHeader } from '../components/SectionHeader';
-
-const API_BASE = 'http://localhost:1574';
+import { API_URL } from '../config';
 
 type Participant = {
   participant_code: string;
@@ -37,7 +36,7 @@ const Participants: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const loadParticipants = () => {
-    fetch(`${API_BASE}/api/participants/`, { credentials: 'include' })
+    fetch(`${API_URL}/api/participants/`, { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
         const list = Array.isArray(data) ? data : data.items || data.results || [];
@@ -101,7 +100,7 @@ const Participants: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${API_BASE}/api/participants/`, {
+      const response = await fetch(`${API_URL}/api/participants/`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -118,7 +117,7 @@ const Participants: React.FC = () => {
         setNewEmail('');
         setShowModal(false);
         loadParticipants();
-        window.location.href = `${API_BASE}/auth/login/`;
+        window.location.href = `${API_URL}/auth/login/`;
       }
     } catch (err) {
       setSubmitError(t('Server connection error'));
@@ -352,7 +351,7 @@ const Participants: React.FC = () => {
                       if (!selectedParticipant) return;
                       if (!confirm(`${t('Delete confirmation')} ${selectedParticipant.participant_code}?`)) return;
                       try {
-                        const resp = await fetch(`${API_BASE}/api/participants/`, {
+                        const resp = await fetch(`${API_URL}/api/participants/`, {
                           method: 'DELETE',
                           credentials: 'include',
                           headers: { 'Content-Type': 'application/json' },
@@ -378,7 +377,7 @@ const Participants: React.FC = () => {
                   </button>
 
                   <a
-                    href={`${API_BASE}/auth/login/`}
+                    href={`${API_URL}/auth/login/`}
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl border border-sky-200 dark:border-sky-900 bg-sky-50 dark:bg-sky-950/50 px-5 py-3 text-xs font-bold text-sky-700 dark:text-sky-300 hover:bg-sky-100 transition cursor-pointer shadow-sm"
                   >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -10,6 +10,7 @@ import PhysiologicalData from './pages/PhysiologicalData';
 import Alerts from './pages/Alerts';
 import Exports from './pages/Exports';
 import Admin from './pages/Admin';
+import { API_URL } from './config';
 
 
 const App: React.FC = () => {
@@ -50,7 +51,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (loggedIn) {
-      fetch('http://localhost:1574/api/alerts/', { credentials: 'include' })
+      fetch(`${API_URL}/api/alerts/`, { credentials: 'include' })
         .then((res) => res.json())
         .then((data) => {
           const items = data.items || [];

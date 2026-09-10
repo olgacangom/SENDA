@@ -4,8 +4,7 @@ import { CustomSelect } from '../components/CustomSelect';
 import { Pagination } from '../components/Pagination';
 import { SectionHeader } from '../components/SectionHeader';
 import ReactDOM from 'react-dom';
-
-const API_BASE = 'http://localhost:1574';
+import { API_URL } from '../config';
 
 type AssignmentItem = {
   id?: string | number;
@@ -54,7 +53,7 @@ const Assignments: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const loadAssignments = () => {
-    fetch(`${API_BASE}/api/assignments/`, { credentials: 'include' })
+    fetch(`${API_URL}/api/assignments/`, { credentials: 'include' })
       .then(async (res) => {
         if (!res.ok) throw new Error(await res.text());
         return res.json();
@@ -69,8 +68,8 @@ const Assignments: React.FC = () => {
   const loadDropdownLists = async () => {
     try {
       const [partRes, fitRes] = await Promise.all([
-        fetch(`${API_BASE}/api/participants/list/`, { credentials: 'include' }),
-        fetch(`${API_BASE}/api/fitbits/list/`, { credentials: 'include' })
+        fetch(`${API_URL}/api/participants/list/`, { credentials: 'include' }),
+        fetch(`${API_URL}/api/fitbits/list/`, { credentials: 'include' })
       ]);
       if (partRes.ok) {
         const partData = await partRes.json();
@@ -120,7 +119,7 @@ const Assignments: React.FC = () => {
     setSubmitSuccess(null);
 
     try {
-      const response = await fetch(`${API_BASE}/api/assignments/create/`, {
+      const response = await fetch(`${API_URL}/api/assignments/create/`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -166,7 +165,7 @@ const Assignments: React.FC = () => {
     setEditError(null);
 
     try {
-      const response = await fetch(`${API_BASE}/api/assignments/update/`, {
+      const response = await fetch(`${API_URL}/api/assignments/update/`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -622,7 +621,7 @@ const Assignments: React.FC = () => {
                         if (!selectedAssignment || !selectedAssignment.id) return;
                         if (!confirm(`${t('Delete Assignment Confirmation')} ${getParticipantCode(selectedAssignment)}?`)) return;
                         try {
-                          const resp = await fetch(`${API_BASE}/api/assignments/delete/`, {
+                          const resp = await fetch(`${API_URL}/api/assignments/delete/`, {
                             method: 'POST',
                             credentials: 'include',
                             headers: { 'Content-Type': 'application/json' },
