@@ -262,7 +262,9 @@ const Fitbits: React.FC = () => {
                     ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-100 dark:border-emerald-900'
                     : statusLower.includes('free') || statusLower.includes('libre')
                       ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-100 dark:border-blue-900'
-                      : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-900';
+                      : statusLower.includes('inactive') || statusLower.includes('inactivo')
+                        ? 'bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900'
+                        : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-900';
 
                   return (
                     <tr
@@ -309,18 +311,6 @@ const Fitbits: React.FC = () => {
       {isModalOpen && ReactDOM.createPortal(
         <div className="fixed inset-0 z-[50] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
           <div className="relative w-full max-w-[400px] overflow-hidden rounded-[28px] bg-senda-light dark:bg-senda-card p-7 shadow-[0_30px_60px_rgba(29,90,61,0.18)] dark:shadow-[0_30px_60px_rgba(0,0,0,0.4)]">
-
-            {/* Decoración: blobs difuminados */}
-            <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[#DCEBE1] opacity-70 blur-3xl dark:bg-[#163A29]/40" />
-            <div className="pointer-events-none absolute -bottom-16 -left-12 h-40 w-40 rounded-full bg-[#E7F1E9] opacity-80 blur-3xl dark:bg-[#153426]/30" />
-            <div
-              className="pointer-events-none absolute inset-0 opacity-[0.04] dark:opacity-[0.05]"
-              style={{
-                backgroundImage: 'linear-gradient(#1D5A3D 1px, transparent 1px), linear-gradient(90deg, #1D5A3D 1px, transparent 1px)',
-                backgroundSize: '26px 26px',
-              }}
-            />
-
             <div className="relative">
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -419,18 +409,6 @@ const Fitbits: React.FC = () => {
       {selectedFitbit && ReactDOM.createPortal(
         <div className="fixed inset-0 z-[50] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
           <div className="relative w-full max-w-xl rounded-[28px] bg-senda-light dark:bg-senda-card p-7 shadow-[0_30px_60px_rgba(29,90,61,0.18)] dark:shadow-[0_30px_60px_rgba(0,0,0,0.4)]">
-
-            {/* Decoración: blobs difuminados */}
-            <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[#DCEBE1] opacity-70 blur-3xl dark:bg-[#163A29]/40" />
-            <div className="pointer-events-none absolute -bottom-16 -left-12 h-40 w-40 rounded-full bg-[#E7F1E9] opacity-80 blur-3xl dark:bg-[#153426]/30" />
-            <div
-              className="pointer-events-none absolute inset-0 opacity-[0.04] dark:opacity-[0.05]"
-              style={{
-                backgroundImage: 'linear-gradient(#1D5A3D 1px, transparent 1px), linear-gradient(90deg, #1D5A3D 1px, transparent 1px)',
-                backgroundSize: '26px 26px',
-              }}
-            />
-
             <div className="relative">
               <div className="mb-6 flex items-start justify-between">
                 <div className="flex items-center gap-4">
@@ -466,7 +444,9 @@ const Fitbits: React.FC = () => {
                         ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300'
                         : selectedFitbit.status.toLowerCase().includes('free') || selectedFitbit.status.toLowerCase().includes('libre')
                           ? 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300'
-                          : 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300'
+                          : selectedFitbit.status.toLowerCase().includes('inactive') || selectedFitbit.status.toLowerCase().includes('inactivo')
+                            ? 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-400'
+                            : 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300'
                         }`}>
                         <span className="h-1.5 w-1.5 rounded-full bg-current"></span>
                         {selectedFitbit.status.replace('_', ' ').toLowerCase()}

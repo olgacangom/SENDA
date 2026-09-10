@@ -69,7 +69,7 @@ const Syncs: React.FC = () => {
     }
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/api/synclogs/clear/`, {
+      const res = await fetch(`${API_URL}/api/clear/synclogs/`, {
         method: 'POST',
         credentials: 'include',
       });

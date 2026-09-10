@@ -372,18 +372,6 @@ const Assignments: React.FC = () => {
       {isModalOpen && ReactDOM.createPortal(
         <div className="fixed inset-0 z-[50] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
           <div className="relative w-full max-w-[640px] rounded-[28px] bg-senda-light dark:bg-senda-card p-7 shadow-[0_30px_60px_rgba(29,90,61,0.18)] dark:shadow-[0_30px_60px_rgba(0,0,0,0.4)]">
-
-            {/* Decoración: blobs difuminados */}
-            <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[#DCEBE1] opacity-70 blur-3xl dark:bg-[#163A29]/40" />
-            <div className="pointer-events-none absolute -bottom-16 -left-12 h-40 w-40 rounded-full bg-[#E7F1E9] opacity-80 blur-3xl dark:bg-[#153426]/30" />
-            <div
-              className="pointer-events-none absolute inset-0 opacity-[0.04] dark:opacity-[0.05]"
-              style={{
-                backgroundImage: 'linear-gradient(#1D5A3D 1px, transparent 1px), linear-gradient(90deg, #1D5A3D 1px, transparent 1px)',
-                backgroundSize: '26px 26px',
-              }}
-            />
-
             <div className="relative">
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -523,18 +511,6 @@ const Assignments: React.FC = () => {
       {selectedAssignment && ReactDOM.createPortal(
         <div className="fixed inset-0 z-[50] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
           <div className="relative w-full max-w-xl rounded-[28px] bg-senda-light dark:bg-senda-card p-7 shadow-[0_30px_60px_rgba(29,90,61,0.18)] dark:shadow-[0_30px_60px_rgba(0,0,0,0.4)]">
-
-            {/* Decoración: blobs difuminados */}
-            <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[#DCEBE1] opacity-70 blur-3xl dark:bg-[#163A29]/40" />
-            <div className="pointer-events-none absolute -bottom-16 -left-12 h-40 w-40 rounded-full bg-[#E7F1E9] opacity-80 blur-3xl dark:bg-[#153426]/30" />
-            <div
-              className="pointer-events-none absolute inset-0 opacity-[0.04] dark:opacity-[0.05]"
-              style={{
-                backgroundImage: 'linear-gradient(#1D5A3D 1px, transparent 1px), linear-gradient(90deg, #1D5A3D 1px, transparent 1px)',
-                backgroundSize: '26px 26px',
-              }}
-            />
-
             <div className="relative">
               <div className="mb-6 flex items-start justify-between">
                 <div className="flex items-center gap-4">
