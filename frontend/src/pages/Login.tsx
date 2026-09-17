@@ -106,7 +106,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToFront }) => {
       });
       const json = await res.json();
       if (!res.ok) {
-        setError(json.error || 'Las credenciales de administrador no son correctas.');
+        setError(t(json.error) || t('Unknown error'));
         return;
       }
       onLogin('participants', 'admin', username);
@@ -346,7 +346,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBackToFront }) => {
                   </>
                 ) : (
                   <>
-                    <span>{role === 'researcher' && step === 1 ? t('Request Code') : t('Access system', { defaultValue: 'Access system' })}</span>
+                    <span>{role === 'researcher' && step === 1 ? t('Request Code') : t('Access system')}</span>
                     <span>→</span>
                   </>
                 )}

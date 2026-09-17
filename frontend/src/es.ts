@@ -123,7 +123,7 @@ const es = {
     "Password": "Contraseña",
     "Role": "Rol",
     "Request Code": "Solicitar código de verificación",
-    "Access System": "Acceder al sistema",
+    "Access system": "Acceder al sistema",
     "Processing": "Procesando...",
     "Back to home": "Volver al inicio",
     "Health": "Salud",
@@ -131,6 +131,11 @@ const es = {
     "Neuroscience": "Neurociencia",
     "Development": "Desarrollo",
     "Andalusia": "Andalucía",
+    "invalid_credentials": "Credenciales inválidas",
+    "not_authorized": "No tiene permisos para acceder",
+    "method_not_allowed": "Método no permitido",
+    "invalid_json": "Formato de datos incorrecto",
+    "missing_credentials": "Faltan datos de acceso",
 
     // Participants
     "Participants Title": "Participantes",

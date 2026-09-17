@@ -248,8 +248,42 @@ def calculate_wear_time_hours(assignment, day_date):
     diff_hours = (latest - earliest).total_seconds() / 3600.0
     return min(diff_hours, 24.0)
 
+def get_device_battery(account, headers):
+    """
+    Consulta el endpoint pairedDevices de Google Health para obtener
+    el nivel de batería del dispositivo emparejado.
+    
+    Devuelve un diccionario con:
+      - battery_level: int (0-100) o None
+      - battery_status: str ('High', 'Medium', 'Low', 'Empty') o None
+      - device_name: str o None
+    """
+    try:
+        url = "https://health.googleapis.com/v4/users/me/pairedDevices"
+        response = requests.get(url, headers=headers, timeout=15)
+        
+        if response.status_code != 200:
+            return {'battery_level': None, 'battery_status': None, 'device_name': None}
+        
+        data = response.json()
+        devices = data.get('pairedDevices', [])
+        
+        if not devices:
+            return {'battery_level': None, 'battery_status': None, 'device_name': None}
+        
+        # Cogemos el primer dispositivo (normalmente solo hay uno)
+        device = devices[0]
+        
+        return {
+            'battery_level': device.get('batteryLevel'),
+            'battery_status': device.get('batteryStatus'),
+            'device_name': device.get('deviceVersion'),
+        }
+    except Exception:
+        return {'battery_level': None, 'battery_status': None, 'device_name': None}
 
-def evaluate_data_alerts(account, assignment, now):
+
+def evaluate_data_alerts(account, assignment, now, headers):
 
     today = now.date()
 
@@ -431,6 +465,32 @@ def evaluate_data_alerts(account, assignment, now):
 
             resolve_alert_automatically(
                 AlertType.INSUFFICIENT_USAGE,
+                google_account=account,
+                assignment=assignment,
+            )
+    
+    # =========================================================
+    # BATERÍA BAJA (<20%)
+    # =========================================================
+
+    battery_info = get_device_battery(account, headers)
+    battery_level = battery_info.get('battery_level')
+
+    if battery_level is not None:
+        if battery_level < 20:
+            activate_alert(
+                AlertType.LOW_BATTERY,
+                google_account=account,
+                assignment=assignment,
+                details={
+                    'battery_level': battery_level,
+                    'battery_status': battery_info.get('battery_status'),
+                    'device_name': battery_info.get('device_name'),
+                }
+            )
+        else:
+            resolve_alert_automatically(
+                AlertType.LOW_BATTERY,
                 google_account=account,
                 assignment=assignment,
             )
@@ -797,6 +857,7 @@ def sync_all_users_data():
                 account=account,
                 assignment=assignment,
                 now=now,
+                headers=headers,
             )
 
         except Exception as e:

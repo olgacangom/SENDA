@@ -16,6 +16,7 @@ class GoogleOAuthService:
                 "https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly",
                 "https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly",
                 "https://www.googleapis.com/auth/googlehealth.sleep.readonly",
+                "https://www.googleapis.com/auth/googlehealth.settings.readonly",
                 "https://www.googleapis.com/auth/userinfo.email",
                 "https://www.googleapis.com/auth/userinfo.profile"
             ]),
@@ -46,9 +47,27 @@ class GoogleOAuthService:
             return {'error': f'Error de conexión: {str(e)}', 'status_code': 500}
 
         if response.status_code == 200:
-            return response.json()
+            data = response.json()
+
+            print("========== GOOGLE TOKEN RESPONSE ==========")
+            print("STATUS:", response.status_code)
+            print("HAS ACCESS TOKEN:", bool(data.get("access_token")))
+            print("HAS REFRESH TOKEN:", bool(data.get("refresh_token")))
+            print("===========================================")
+
+            return data
+
         try:
             error_data = response.json()
         except Exception:
             error_data = response.text
-        return {'error': error_data, 'status_code': response.status_code}
+
+        print("========== GOOGLE TOKEN ERROR ==========")
+        print("STATUS:", response.status_code)
+        print("ERROR:", error_data)
+        print("=========================================")
+
+        return {
+            'error': error_data,
+            'status_code': response.status_code
+        }

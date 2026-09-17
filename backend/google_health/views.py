@@ -25,6 +25,8 @@ from django.urls import reverse
 from django.conf import settings
 from collections import defaultdict
 from django.contrib.auth import get_user_model
+from django.db import transaction
+
 
 User = get_user_model()
 
@@ -54,7 +56,16 @@ def google_callback_view(request):
     if not code:
         return HttpResponse("No se encontró el código de autorización", status=400)
 
+    print("=" * 60)
+    print("CALLBACK RECIBIDO")
+    print(f"CODE: {code[:30]}...")
+    print(f"REDIRECT_URI CONFIGURADO: {config('GOOGLE_REDIRECT_URI')}")
+    print("=" * 60)
+
     token_data = GoogleOAuthService.exchange_code_for_tokens(code)
+    print(f"TOKEN DATA: {token_data}")
+    print("=" * 60)
+
     if not token_data or 'access_token' not in token_data:
         error_detail = token_data.get('error') if isinstance(token_data, dict) else 'Unknown error'
         return HttpResponse(f"Error al intercambiar el código por tokens: {error_detail}", status=400)
@@ -76,6 +87,7 @@ def google_callback_view(request):
     
     if user_info_resp.status_code == 200:
         email = user_info_resp.json().get('email')
+        email = email.lower().strip()
     else:
         # Google devolvió un error al pedir la info del usuario
         return HttpResponse(
@@ -85,7 +97,7 @@ def google_callback_view(request):
         )
 
     # buscamos si existe una GoogleAccount para este correo
-    google_account = GoogleAccount.objects.filter(email=email).first()
+    google_account = GoogleAccount.objects.filter(email__iexact=email).first()
 
     if google_account:
         # Si existe, reutilizamos su participante asociado
@@ -97,14 +109,31 @@ def google_callback_view(request):
             participant.save(update_fields=['email'])
         else:
             # Si es nuevo, calculamos el siguiente código autoincremental
-            total_participants = Participant.objects.count()
-            next_code_num = total_participants + 1
-            participant_code = f"SENDA_{next_code_num:03d}"
+            participant = Participant.objects.filter(email=email).first()
 
-            participant = Participant.objects.create(
-                participant_code=participant_code,
-                email=email
-            )
+            if not participant:
+                # Generar código único dentro de una transacción atómica
+                with transaction.atomic():
+                    # Bloquear la tabla de participantes para evitar carreras
+                    last_participant = Participant.objects.select_for_update().order_by('-id').first()
+                    
+                    # Calcular el siguiente código
+                    if last_participant:
+                        # Extraer el número del último código (ej. SENDA_015 -> 15)
+                        try:
+                            last_num = int(last_participant.participant_code.split('_')[1])
+                        except (IndexError, ValueError):
+                            last_num = 0
+                        next_code_num = last_num + 1
+                    else:
+                        next_code_num = 1
+                    
+                    participant_code = f"SENDA_{next_code_num:03d}"
+
+                    participant = Participant.objects.create(
+                        participant_code=participant_code,
+                        email=email
+                    )
 
     # Buscamos primero si la cuenta ya existe de forma segura
     existing_account = GoogleAccount.objects.filter(email=email).first()
@@ -118,25 +147,37 @@ def google_callback_view(request):
     else:
         final_refresh_token = ""
 
-    google_account, created = GoogleAccount.objects.update_or_create(
-        email=email,
-        defaults={
-            'participant': participant,
-            'access_token': access_token,
-            'refresh_token': final_refresh_token,
-            'access_token_expiration': expires_at,
-            'authentication_status': 'ACTIVE'
-        }
-    )
-    action_text = "creado" if created else "actualizado"
-    print(f"¡Autorización exitosa! Cuenta vinculada al participante {participant.participant_code} ({action_text}).")
+    try:
+        google_account, created = GoogleAccount.objects.update_or_create(
+            email=email,
+            defaults={
+                'participant': participant,
+                'access_token': access_token,
+                'refresh_token': final_refresh_token,
+                'access_token_expiration': expires_at,
+                'authentication_status': 'ACTIVE'
+            }
+        )
+        action_text = "creado" if created else "actualizado"
+        print(f"¡Autorización exitosa! Cuenta vinculada al participante {participant.participant_code} ({action_text}).")
+    except Exception as e:
+        print(f"❌ Error al crear/actualizar GoogleAccount: {e}")
+        print(f"   Email: {email}")
+        print(f"   Participant: {participant.participant_code}")
+        frontend_url = config("FRONTEND_URL")
+        query = urlencode({
+            'oauth': 'error',
+            'error': str(e)[:150],
+            'participant_code': participant.participant_code,
+        })
+        return redirect(f"{frontend_url}/?{query}")
+
     frontend_url = config("FRONTEND_URL")
     query = urlencode({
         'oauth': 'success',
         'participant_code': participant.participant_code,
     })
     return redirect(f"{frontend_url}/?{query}")
-    
 
 
 @csrf_exempt
@@ -210,7 +251,7 @@ def api_participants(request):
 
         participant = Participant.objects.create(
             participant_code=participant_code,
-            email=email
+            email=email.lower().strip()
         )
 
         GoogleAccount.objects.get_or_create(
